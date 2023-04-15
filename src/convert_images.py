@@ -21,6 +21,8 @@ def cvt(filename: str) -> Image.Image:
     num_colors = len(pal) // 3
     assert num_colors <= 16
     width, height = img.size
+    if (width % 16) != 0:
+        raise ValueError("width is not a multiple of 16: "+str(filename))
     num_tiles = width // 16 * height // 16
     converted = Image.new('P', (num_tiles * 16, 16))
     converted.putpalette(reduce_colorspace(pal))
@@ -90,6 +92,15 @@ def combine_parts() -> Tuple[Image.Image, int, list[TilesPart]]:
     return converted, total_tiles, parts
 
 
+def make_cx16_palette(palette: list[int]) -> bytes:
+    cx16palette = bytearray()
+    for pi in range(0, len(palette), 3):
+        r, g, b = palette[pi] >> 4, palette[pi + 1] >> 4, palette[pi + 2] >> 4
+        cx16palette.append(g << 4 | b)
+        cx16palette.append(r)
+    return cx16palette
+
+
 def convert_tiles() -> list[TilesPart]:
     converted, num_tiles, tiles_parts = combine_parts()
     print(f"converting {num_tiles} tiles to 4bpp tile data")
@@ -104,26 +115,28 @@ def convert_tiles() -> list[TilesPart]:
                 data.append(color1 << 4 | color2)
     converted.save("converted.png")
     open("TILES.BIN", "wb").write(data)
-    cx16palette = bytearray()
-    for pi in range(0, len(palette), 3):
-        r, g, b = palette[pi] >> 4, palette[pi + 1] >> 4, palette[pi + 2] >> 4
-        cx16palette.append(g << 4 | b)
-        cx16palette.append(r)
+    cx16palette = make_cx16_palette(palette)
     cx16palette[0] = 0  # make first entry black
     cx16palette[1] = 0  # make first entry black
     open("TILES.PAL", "wb").write(cx16palette)
     return tiles_parts
 
 
+def get_animspeed(attributes: set[str]) -> int:
+    for attr in attributes:
+        if attr.startswith('A'):
+            return int(attr.split('=')[1])
+    return 0
+
+
 def make_catalog(parts: list[TilesPart]) -> None:
     config = configparser.ConfigParser()
     config.read("images/catalog.ini")
-    total_num_tiles = sum(part.num_tiles for part in parts)
     object_id = 0
     tile_idx = []
     palette_offsets = []
-    num_anim_frames = []
-    anim_fps = []
+    anim_sizes = []
+    anim_speeds = []
     rounded = []
     consumable = []
     explodable = []
@@ -132,37 +145,65 @@ def make_catalog(parts: list[TilesPart]) -> None:
         for part in parts:
             section = config[part.name]
             for offsets, tilename in section.items():
+                tilename = tilename.strip()
+                if ' ' in tilename:
+                    tilename, attributes = tilename.split(" ", maxsplit=1)
+                    attributes = set(attributes.strip().split(','))
+                else:
+                    attributes = set()
                 out.write(f"    const ubyte {tilename} = {object_id}\n")
                 palette_offsets.append(part.palette_offset)
                 if '-' in offsets:
                     # it is an animation sequence
+                    speed = get_animspeed(attributes)
+                    assert speed > 0
+                    anim_speeds.append(speed)
                     start, end = offsets.split('-')
                     start = int(start, 16)
                     end = int(end, 16)
                     tile_idx.append(start + part.tile_idx_offset)
-                    num_anim_frames.append(end - start + 1)
-                    anim_fps.append(1)  # TODO
+                    anim_sizes.append(end - start + 1)
                 else:
                     # just 1 tile for this object
+                    speed = get_animspeed(attributes)
+                    assert speed == 0
+                    anim_speeds.append(0)
                     tilenum = int(offsets, 16)
                     tile_idx.append(tilenum + part.tile_idx_offset)
-                    num_anim_frames.append(0)
-                    anim_fps.append(0)
+                    anim_sizes.append(0)
                 object_id += 1
-        assert len(tile_idx) == len(palette_offsets) == len(num_anim_frames) == len(anim_fps) == object_id
+        total_num_tiles = object_id
+        assert len(tile_idx) == len(palette_offsets) == len(anim_sizes) == len(anim_speeds) == total_num_tiles
         out.write("\n")
-        out.write(f"    const ubyte NUM_OBJECTS = {object_id}\n")
+        out.write(f"    const ubyte NUM_OBJECTS = {total_num_tiles}\n")
         tile_lo = [t & 255 for t in tile_idx]
         tile_hi = [t >> 8 for t in tile_idx]
         out.write(f"    ubyte[NUM_OBJECTS] @shared tile_lo = {tile_lo}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared tile_hi = {tile_hi}\n")
         palette_offsets = [o << 4 for o in palette_offsets]
         out.write(f"    ubyte[NUM_OBJECTS] @shared palette_offsets_preshifted = {palette_offsets}\n")
-        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_frames = {num_anim_frames}\n")
-        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_fps    = {anim_fps}\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_sizes = {anim_sizes}\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_speeds = {anim_speeds}\n")
+        frame_count = [255 if x == 0 else 0 for x in anim_speeds]
+        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_frames = {frame_count}\n")
         out.write("}\n")
+
+
+def convert_titlescreen():
+    img = Image.open("images/miner16.png")
+    palette = make_cx16_palette(img.getpalette())
+    assert (len(palette) == 32)
+    open("TITLESCREEN.PAL", "wb").write(palette)
+    data = bytearray()
+    for y in range(240):
+        for x in range(0, 320, 2):
+            color1 = img.getpixel((x, y)) & 15
+            color2 = img.getpixel((x + 1, y)) & 15
+            data.append(color1 << 4 | color2)
+    open("TITLESCREEN.BIN", "wb").write(data)
 
 
 if __name__ == '__main__':
     tiles_parts = convert_tiles()
     make_catalog(tiles_parts)
+    convert_titlescreen()

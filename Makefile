@@ -1,21 +1,22 @@
-.PHONY: all clean emu
+.PHONY: all clean emu zip
 
-all: TILES.BIN TILES.PAL SHOW.PRG
+all: BOULDER.PRG
 
 clean:
-	rm -f *.prg *.PRG *.asm *.vice-* *.BIN *.PAL *.ADPCM *.zip *.7z src/objects.p8
+	rm -f *.prg *.PRG *.asm *.vice-* *.BIN *.PAL *.ADPCM *.zip *.7z converted.png src/objects.p8
 
-emu:  SHOW.PRG
+emu:  BOULDER.PRG
 	# PULSE_LATENCY_MSEC=20 box16 -scale 2 -run -prg $<
 	PULSE_LATENCY_MSEC=20 x16emu -scale 2 -quality best -run -prg $<
 
-TILES.BIN: src/convert_images.py images/catalog.ini
+src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL: src/convert_images.py images/catalog.ini
 	@python src/convert_images.py
 
-src/objects.p8: src/convert_images.py images/catalog.ini
-	@python src/convert_images.py
-
-SHOW.PRG: src/show.p8 src/objects.p8
+BOULDER.PRG: src/boulder.p8 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL
 	@p8compile $< -target cx16
-	@mv show.prg SHOW.PRG
+	@mv boulder.prg BOULDER.PRG
 
+zip: all
+	7z a boulder.zip BOULDER.PRG TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREN.PAL
+
+	
