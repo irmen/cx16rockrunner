@@ -1,4 +1,5 @@
 import os
+import configparser
 import glob
 from dataclasses import dataclass
 from typing import Tuple
@@ -63,18 +64,19 @@ class TilesPart:
     image: Image.Image
 
 
-def combine_parts() -> Tuple[Image.Image, int]:
+def combine_parts() -> Tuple[Image.Image, int, list[TilesPart]]:
     total_tiles = 0
     palette_offset = 0
     parts = []
     for fn in sorted(glob.glob("images/bd_*.png")):
         part = cvt(fn)
         num_tiles = part.size[0] // 16
-        parts.append(TilesPart(fn, total_tiles, palette_offset, num_tiles, part))
+        parts.append(TilesPart(os.path.basename(fn), total_tiles, palette_offset, num_tiles, part))
         total_tiles += num_tiles
         palette_offset += 1
     for part in parts:
-        print(f"{part.name} tile offset={part.tile_idx_offset} palette offset={part.palette_offset} ({part.num_tiles} tiles)")
+        print(
+            f"{part.name} tile offset={part.tile_idx_offset} palette offset={part.palette_offset} ({part.num_tiles} tiles)")
     # we assume every palette differs from every other,
     # so every partial image gets its own 16 colors in the final palette
     # not all colors might be used though, but that can't be helped.
@@ -85,11 +87,11 @@ def combine_parts() -> Tuple[Image.Image, int]:
     for index, part in enumerate(parts):
         join_part_into_full(part.image, index, x_offset, converted)
         x_offset += part.image.size[0]
-    return converted, total_tiles
+    return converted, total_tiles, parts
 
 
-if __name__ == '__main__':
-    converted, num_tiles = combine_parts()
+def convert_tiles() -> list[TilesPart]:
+    converted, num_tiles, tiles_parts = combine_parts()
     print(f"converting {num_tiles} tiles to 4bpp tile data")
     palette = converted.getpalette()
     print("total number of palette entries allocated:", len(palette) // 3)
@@ -107,6 +109,60 @@ if __name__ == '__main__':
         r, g, b = palette[pi] >> 4, palette[pi + 1] >> 4, palette[pi + 2] >> 4
         cx16palette.append(g << 4 | b)
         cx16palette.append(r)
-    cx16palette[0] = 0      # make first entry black
-    cx16palette[1] = 0      # make first entry black
+    cx16palette[0] = 0  # make first entry black
+    cx16palette[1] = 0  # make first entry black
     open("TILES.PAL", "wb").write(cx16palette)
+    return tiles_parts
+
+
+def make_catalog(parts: list[TilesPart]) -> None:
+    config = configparser.ConfigParser()
+    config.read("images/catalog.ini")
+    total_num_tiles = sum(part.num_tiles for part in parts)
+    object_id = 0
+    tile_idx = []
+    palette_offsets = []
+    num_anim_frames = []
+    anim_fps = []
+    rounded = []
+    consumable = []
+    explodable = []
+    with open("src/objects.p8", "wt") as out:
+        out.write("objects {\n")
+        for part in parts:
+            section = config[part.name]
+            for offsets, tilename in section.items():
+                out.write(f"    const ubyte {tilename} = {object_id}\n")
+                palette_offsets.append(part.palette_offset)
+                if '-' in offsets:
+                    # it is an animation sequence
+                    start, end = offsets.split('-')
+                    start = int(start, 16)
+                    end = int(end, 16)
+                    tile_idx.append(start + part.tile_idx_offset)
+                    num_anim_frames.append(end - start + 1)
+                    anim_fps.append(1)  # TODO
+                else:
+                    # just 1 tile for this object
+                    tilenum = int(offsets, 16)
+                    tile_idx.append(tilenum + part.tile_idx_offset)
+                    num_anim_frames.append(0)
+                    anim_fps.append(0)
+                object_id += 1
+        assert len(tile_idx) == len(palette_offsets) == len(num_anim_frames) == len(anim_fps) == object_id
+        out.write("\n")
+        out.write(f"    const ubyte NUM_OBJECTS = {object_id}\n")
+        tile_lo = [t & 255 for t in tile_idx]
+        tile_hi = [t >> 8 for t in tile_idx]
+        out.write(f"    ubyte[NUM_OBJECTS] @shared tile_lo = {tile_lo}\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared tile_hi = {tile_hi}\n")
+        palette_offsets = [o << 4 for o in palette_offsets]
+        out.write(f"    ubyte[NUM_OBJECTS] @shared palette_offsets_preshifted = {palette_offsets}\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_frames = {num_anim_frames}\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_fps    = {anim_fps}\n")
+        out.write("}\n")
+
+
+if __name__ == '__main__':
+    tiles_parts = convert_tiles()
+    make_catalog(tiles_parts)

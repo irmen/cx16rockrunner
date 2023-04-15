@@ -1,61 +1,74 @@
 %import diskio
 %import cx16diskio
+%import objects
 
 main {
+    uword cells = memory("objects_matrix", 64*32, 256)
+    uword cell_anims = memory("anim_matrix", 64*32, 256)
+
+    const ubyte VISIBLE_CELLS_H = 320/16
+    const ubyte VISIBLE_CELLS_V = 240/16
+
     sub start() {
+        sys.memset(cells, 64*32, objects.space)
+        sys.memset(cell_anims, 64*32, 0)
         load_tiles()
         lores256()
 
-        ; clear the whole tile map with all transparent space tiles.
-        uword vv
-        for vv in $b000 to $b000+2*64*32-1 step 2 {
-            cx16.vpoke(1, vv, 74)
-            cx16.vpoke(1, vv+1, $20)
+        ubyte xx
+        ubyte yy
+        ubyte obj_id = 0
+        for yy in 0 to VISIBLE_CELLS_V-1 {
+            for xx in 0 to VISIBLE_CELLS_H-1 {
+                cells[yy*$0040 + xx] = obj_id
+                obj_id++
+                if obj_id >= objects.NUM_OBJECTS
+                    obj_id=0
+            }
         }
-
-        ; draw all 287 tiles
-        ;images/bd_bluethings.png tile offset=0 palette offset=0 (48 tiles)
-        ;images/bd_explosions.png tile offset=48 palette offset=1 (24 tiles)
-        ;images/bd_grass.png tile offset=72 palette offset=2 (16 tiles)
-        ;images/bd_metals.png tile offset=88 palette offset=3 (32 tiles)
-        ;images/bd_misc1.png tile offset=120 palette offset=4 (16 tiles)
-        ;images/bd_misc2.png tile offset=136 palette offset=5 (7 tiles)
-        ;images/bd_orangethings.png tile offset=143 palette offset=6 (56 tiles)
-        ;images/bd_player.png tile offset=199 palette offset=7 (64 tiles)
-        ;images/bd_rocks.png tile offset=263 palette offset=8 (8 tiles)
-        ;images/bd_walls.png tile offset=271 palette offset=9 (16 tiles)
-
-        ubyte column = 0
-        ubyte row = 0
-        draw_tiles(0, 48, 0)
-        draw_tiles(48, 24, 1)
-        draw_tiles(72, 16, 2)
-        draw_tiles(88, 32, 3)
-        draw_tiles(120, 16, 4)
-        draw_tiles(136, 7, 5)
-        draw_tiles(143, 56, 6)
-        draw_tiles(199, 64, 7)
-        draw_tiles(263, 8, 8)
-        draw_tiles(271, 16, 9)
 
         repeat {
-
+            sys.waitvsync()
+            draw_screen()
         }
 
-        sub draw_tiles(uword tile_index, ubyte num_tiles, ubyte palette_offset) {
-            repeat num_tiles {
-                uword vaddr = $b000+column*$0002+(row*$0080)
-                cx16.vpoke(1, vaddr, lsb(tile_index))
-                cx16.vpoke(1, vaddr+1, palette_offset<<4 | msb(tile_index))
-                tile_index++
-                column++
-                if column==20 {
-                    column=0
-                    row++
-                }
+        sub draw_screen() {
+            ; This fills the visible part of the screen in video ram with the tiles for all cells.
+            ; TODO take viewable X,Y offsets in to account
+            uword @requirezp cell_ptr
+            uword @requirezp anim_ptr
+            ubyte @zp row
+            for row in 0 to VISIBLE_CELLS_V {
+                cx16.vaddr(1, $b000 + row*$0080, 0, 1)
+                cell_ptr = cells + row*$0040
+                anim_ptr = cell_anims + row*$0040
+                %asm {{
+                    phx
+                    ldx  #main.VISIBLE_CELLS_H
+-                   lda  (cell_ptr)
+                    clc
+                    adc  (anim_ptr)
+                    tay
+                    lda  objects.tile_lo,y
+                    sta  cx16.VERA_DATA0
+                    lda  objects.palette_offsets_preshifted,y
+                    ora  objects.tile_hi,y
+                    sta  cx16.VERA_DATA0
+                    inc  cell_ptr
+                    bne  +
+                    inc  cell_ptr+1
++                   inc  anim_ptr
+                    bne  +
+                    inc  anim_ptr+1
++                   dex
+                    bne  -
+                    plx
+                }}
             }
-            row++
-            column = 0
+        }
+
+        sub draw_tile(ubyte col, ubyte row, ubyte id) {
+            @(cells+(row as uword)*64+col) = id
         }
     }
 
