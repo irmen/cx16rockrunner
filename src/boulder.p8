@@ -1,10 +1,10 @@
 %import diskio
 %import cx16diskio
 %import objects
+%import cave
 
 main {
     uword @requirezp cell_ptr
-    uword @requirezp anims_ptr
 
     sub start() {
         ;; titlescreen()
@@ -12,10 +12,10 @@ main {
         cave.init()
         load_tiles()
         set_tiles_screenmode()
-        fill_demotiles()
+        cave.fill_demotiles()
 
         repeat {
-            update_animation()
+            update_animations()
             sys.waitvsync()
             draw_screen()
         }
@@ -45,43 +45,24 @@ main {
         }
     }
 
-    sub update_animation() {
-        ; increase anim frame count of all animate objects
-        ; once they reach their target frame, set it to 0 which will trigger the next animation tile in the sequence
+    sub update_animations() {
+        ; increase anim delay counter of all animate objects
+        ; once they reach their target, set it to 0 which will trigger the next animation tile in the sequence
         ; cx16.vpoke(1,$fa00,$f0)
         ubyte idx
         for idx in 0 to objects.NUM_OBJECTS {
-            cx16.r1L = objects.anim_speeds[idx]
-            if_nz {
-                cx16.r0L = objects.anim_frames[idx]
+            if objects.anim_speeds[idx] {
+                cx16.r0L = objects.anim_delay[idx]
                 cx16.r0L++
-                if cx16.r0L >= cx16.r1L
+                if cx16.r0L >= objects.anim_speeds[idx] {
                     cx16.r0L = 0
-                objects.anim_frames[idx] = cx16.r0L
-            }
-        }
-
-        cell_ptr = cave.cells
-        anims_ptr = cave.cell_anims
-        repeat cave.MAX_CAVE_HEIGHT {
-            repeat cave.MAX_CAVE_WIDTH {
-                %asm {{
-                    lda  (cell_ptr)
-                    tay
-                    lda  objects.anim_frames,y
-                    bne  _no_anim
-                    lda  objects.anim_sizes,y
-                    sta  cx16.r0L
-                    lda  (anims_ptr)
-                    ina
-                    cmp  cx16.r0L
-                    bne  +
-                    lda  #0
-+                   sta  (anims_ptr)
-_no_anim
-                }}
-                cell_ptr++
-                anims_ptr++
+                    cx16.r1L = objects.anim_frame[idx]
+                    cx16.r1L++
+                    if cx16.r1L == objects.anim_sizes[idx]
+                        cx16.r1L = 0
+                    objects.anim_frame[idx] = cx16.r1L
+                }
+                objects.anim_delay[idx] = cx16.r0L
             }
         }
         ; cx16.vpoke(1,$fa00,$00)
@@ -96,46 +77,26 @@ _no_anim
             cx16.vaddr(1, $b000 + row*$0080, 0, 1)
             uword offset = (row as uword)*cave.MAX_CAVE_WIDTH
             cell_ptr = cave.cells + offset
-            anims_ptr = cave.cell_anims + offset
-            %asm {{
-                phx
-                ldx  #cave.VISIBLE_CELLS_H
--               lda  (cell_ptr)
-                tay
-                lda  objects.tile_lo,y
-                clc
-                adc  (anims_ptr)
-                sta  cx16.VERA_DATA0
-                lda  objects.palette_offsets_preshifted,y
-                adc  #0
-                ora  objects.tile_hi,y
-                sta  cx16.VERA_DATA0
-                inc  cell_ptr
-                bne  +
-                inc  cell_ptr+1
-+               inc  anims_ptr
-                bne  +
-                inc  anims_ptr+1
-+               dex
-                bne  -
-                plx
-            }}
-        }
-        ; cx16.vpoke(1,$fa00,$00)
-    }
-
-    sub fill_demotiles() {
-        ubyte xx
-        ubyte yy
-        ubyte @zp obj_id = 0
-        for yy in 0 to cave.VISIBLE_CELLS_V-1 {
-            for xx in 0 to cave.VISIBLE_CELLS_H-1 {
-                cave.cells[(yy as uword)*cave.MAX_CAVE_WIDTH + xx] = obj_id
-                obj_id++
-                if obj_id >= objects.NUM_OBJECTS
-                    obj_id=0
+            repeat cave.VISIBLE_CELLS_H {
+                %asm {{
+                    lda  (cell_ptr)
+                    tay
+                    lda  objects.tile_lo,y
+                    clc
+                    adc  objects.anim_frame,y
+                    sta  cx16.VERA_DATA0
+                    lda  objects.palette_offsets_preshifted,y
+                    adc  #0
+                    ora  objects.tile_hi,y
+                    sta  cx16.VERA_DATA0
+                    inc  cell_ptr
+                    bne  +
+                    inc  cell_ptr+1
++
+                }}
             }
         }
+        ; cx16.vpoke(1,$fa00,$00)
     }
 
     sub set_tiles_screenmode() {
@@ -151,24 +112,3 @@ _no_anim
     }
 }
 
-cave {
-    ; for now we use the original cave dimension limits
-    const ubyte MAX_CAVE_WIDTH = 40
-    const ubyte MAX_CAVE_HEIGHT = 22
-    const ubyte VISIBLE_CELLS_H = 320/16
-    const ubyte VISIBLE_CELLS_V = 240/16
-
-    uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
-    uword cell_anims = memory("anim_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
-
-    sub init() {
-        sys.memset(cells, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, objects.space)
-        sys.memset(cell_anims, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
-    }
-
-    sub draw_tile(ubyte col, ubyte row, ubyte id) {
-        uword offset = (row as uword)*MAX_CAVE_WIDTH+col
-        @(cells+offset) = id
-        @(cell_anims+offset) = 0
-    }
-}

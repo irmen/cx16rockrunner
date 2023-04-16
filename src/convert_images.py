@@ -184,8 +184,8 @@ def make_catalog(parts: list[TilesPart]) -> None:
         out.write(f"    ubyte[NUM_OBJECTS] @shared palette_offsets_preshifted = {palette_offsets}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_sizes = {anim_sizes}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_speeds = {anim_speeds}\n")
-        frame_count = [255 if x == 0 else 0 for x in anim_speeds]
-        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_frames = {frame_count}\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_frame = 0\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_delay = 0\n")
         out.write("}\n")
 
 
