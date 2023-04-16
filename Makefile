@@ -12,8 +12,8 @@ emu:  BOULDER.PRG
 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL: src/convert_images.py images/catalog.ini
 	@python src/convert_images.py
 
-BOULDER.PRG: src/boulder.p8 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL
-	@p8compile $< -target cx16
+BOULDER.PRG: src/*.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL
+	@p8compile src/boulder.p8 -target cx16
 	@mv boulder.prg BOULDER.PRG
 
 zip: all

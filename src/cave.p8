@@ -5,14 +5,19 @@ cave {
     const ubyte VISIBLE_CELLS_H = 320/16
     const ubyte VISIBLE_CELLS_V = 240/16
 
+    uword name_ptr
+    uword description_ptr
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
+    ubyte width
+    ubyte height
+    bool intermission
 
     sub init() {
         sys.memset(cells, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, objects.space)
     }
 
-    sub draw_tile(ubyte col, ubyte row, ubyte id) {
-        @((row as uword)*MAX_CAVE_WIDTH+col) = id
+    sub set_tile(ubyte col, ubyte row, ubyte id) {
+        @(cave.cells + (row as uword)*MAX_CAVE_WIDTH + col) = id
     }
 
     sub fill_demotiles() {
@@ -28,4 +33,6 @@ cave {
             }
         }
     }
+
+
 }

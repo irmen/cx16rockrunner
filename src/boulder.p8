@@ -2,6 +2,7 @@
 %import cx16diskio
 %import objects
 %import cave
+%import bd1caves
 
 main {
     uword @requirezp cell_ptr
@@ -12,13 +13,51 @@ main {
         cave.init()
         load_tiles()
         set_tiles_screenmode()
-        cave.fill_demotiles()
+        ; cave.fill_demotiles()
+
+        ubyte level = 0
+        bd1caves.decode(level)
+        ubyte switch_level=0
+        ubyte frame
 
         repeat {
             update_animations()
             sys.waitvsync()
+            scroll(sx, sy)
             draw_screen()
+            update_scrollpos()
+            switch_level++
+            if switch_level==120 {
+                switch_level=0
+                level++
+                if level==bd1caves.NUM_CAVES
+                    level=0
+                bd1caves.decode(level)
+            }
+            frame++
         }
+    }
+
+    uword sx
+    uword sy
+    byte sdx=1
+    byte sdy=1
+
+    sub update_scrollpos() {
+        sx += sdx as uword
+        sy += sdy as uword
+        if sx==0 or sx >= (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
+            sdx = -sdx
+        if sy==0 or sy >= (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
+            sdy = -sdy
+    }
+
+    sub scroll(uword sx, uword sy) {
+        ; smooth scroll the screen to top left pixel at sx, sy
+        cx16.VERA_L1_HSCROLL_H = msb(sx)
+        cx16.VERA_L1_HSCROLL_L = lsb(sx)
+        cx16.VERA_L1_VSCROLL_H = msb(sy)
+        cx16.VERA_L1_VSCROLL_L = lsb(sy)
     }
 
     sub titlescreen() {
@@ -69,15 +108,15 @@ main {
     }
 
     sub draw_screen() {
-        ; This fills the visible part of the screen in video ram with the tiles for all cells.
-        ; TODO take viewable X,Y offsets in to account
+        ; set the tiles in video ram for the visible cells.
         ; cx16.vpoke(1,$fa00,$0f)
+        ubyte row_offset = lsb(sy/16)
+        ubyte col_offset = lsb(sx/16)
         ubyte @zp row
-        for row in 0 to cave.VISIBLE_CELLS_V {
-            cx16.vaddr(1, $b000 + row*$0080, 0, 1)
-            uword offset = (row as uword)*cave.MAX_CAVE_WIDTH
-            cell_ptr = cave.cells + offset
-            repeat cave.VISIBLE_CELLS_H {
+        for row in row_offset to row_offset+cave.VISIBLE_CELLS_V {
+            cx16.vaddr(1, $b000 + row*$0080 + col_offset*2, 0, 1)
+            cell_ptr = cave.cells + (row as uword)*cave.MAX_CAVE_WIDTH + col_offset
+            repeat cave.VISIBLE_CELLS_H+1 {
                 %asm {{
                     lda  (cell_ptr)
                     tay
