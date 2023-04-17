@@ -10,33 +10,70 @@ main {
     sub start() {
         music.init()
         palette.set_all_black()
-        screen.titlescreen()
+        ;; screen.titlescreen()
         cx16.set_irq(&interrupts.handler, true)
         music.playback_enabled = true
-        sys.wait(120)
+        ;; sys.wait(120)
         palette.set_all_black()
         cave.init()
         screen.set_tiles_screenmode()
         screen.load_tiles()
-
         bd1caves.decode(8)
 
         repeat {
             ; the game loop, executed every frame.
             interrupts.waitvsync()
             screen.update()
-            screen.update_animations()
             cave.scan()
+            if cave.covered
+                cave.uncover_more()
         }
     }
 }
 
 screen {
-    uword @requirezp cell_ptr
     uword scrollx
     uword scrolly
     byte scrolldx=1
     byte scrolldy=1
+
+    sub update() {
+        ; set the tiles in video ram for the visible cells.
+        ; cx16.vpoke(1,$fa00,$0f)
+        ubyte row_offset = lsb(scrolly/16)
+        ubyte col_offset = lsb(scrollx/16)
+        ubyte @zp row
+        for row in row_offset to row_offset+cave.VISIBLE_CELLS_V {
+            cx16.vaddr(1, $b000 + row*$0080 + col_offset*2, 0, 1)
+            uword cells_offset = (row as uword)*cave.MAX_CAVE_WIDTH + col_offset
+            uword @requirezp cell_ptr = cave.cells + cells_offset
+            uword @requirezp attr_ptr = cave.cell_attributes + cells_offset
+            %asm {{
+                phx
+                ldy  #0
+_loop           lda  (attr_ptr),y
+                cmp  #cave.ATTR_COVERED
+                bne  +
+                ldx  #objects.covered
+                bra  ++
++               lda  (cell_ptr),y
+                tax
++               lda  objects.tile_lo,x
+                clc
+                adc  objects.anim_frame,x
+                sta  cx16.VERA_DATA0
+                lda  objects.tile_hi,x
+                adc  objects.palette_offsets_preshifted,x
+                sta  cx16.VERA_DATA0
+                iny
+                cpy  #cave.VISIBLE_CELLS_H+1
+                bne  _loop
+                plx
+            }}
+        }
+        ; cx16.vpoke(1,$fa00,$00)
+        screen.update_animations()
+    }
 
     sub update_scrollpos() {
         scrollx += scrolldx as uword
@@ -77,7 +114,7 @@ screen {
             txt.print("load error\n")
             sys.exit(1)
         }
-        sys.wait(1)
+        sys.wait(5)
     }
 
     sub update_animations() {
@@ -89,7 +126,7 @@ screen {
             if objects.anim_speeds[idx] {
                 cx16.r0L = objects.anim_delay[idx]
                 cx16.r0L++
-                if cx16.r0L >= objects.anim_speeds[idx] {
+                if cx16.r0L == objects.anim_speeds[idx] {
                     cx16.r0L = 0
                     cx16.r1L = objects.anim_frame[idx]
                     cx16.r1L++
@@ -103,40 +140,18 @@ screen {
         ; cx16.vpoke(1,$fa00,$00)
     }
 
-    sub update() {
-        ; set the tiles in video ram for the visible cells.
-        ; cx16.vpoke(1,$fa00,$0f)
-        ubyte row_offset = lsb(scrolly/16)
-        ubyte col_offset = lsb(scrollx/16)
-        ubyte @zp row
-        for row in row_offset to row_offset+cave.VISIBLE_CELLS_V {
-            cx16.vaddr(1, $b000 + row*$0080 + col_offset*2, 0, 1)
-            cell_ptr = cave.cells + (row as uword)*cave.MAX_CAVE_WIDTH + col_offset
-            repeat cave.VISIBLE_CELLS_H+1 {
-                %asm {{
-                    lda  (cell_ptr)
-                    tay
-                    lda  objects.tile_lo,y
-                    clc
-                    adc  objects.anim_frame,y
-                    sta  cx16.VERA_DATA0
-                    lda  objects.palette_offsets_preshifted,y
-                    adc  #0
-                    ora  objects.tile_hi,y
-                    sta  cx16.VERA_DATA0
-                    inc  cell_ptr
-                    bne  +
-                    inc  cell_ptr+1
-+
-                }}
-            }
-        }
-        ; cx16.vpoke(1,$fa00,$00)
-    }
-
     sub set_tiles_screenmode() {
         ; 320x240 tile layer (#1), 4bpp (16 colors) per tile, 16x16 tiles.
         ; 64x32 tile map at $1B000
+
+        ; pre-fill screen with space tiles
+        cx16.vaddr(1, $b000, 0, 1)
+        ubyte space_tile = objects.tile_lo[objects.space]
+        repeat 64*32 {
+            cx16.VERA_DATA0 = space_tile
+            cx16.VERA_DATA0 = 0
+        }
+
         cx16.VERA_CTRL = 0
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & $0f | %00100000       ; layer 1 active
         cx16.VERA_DC_HSCALE = 64
@@ -166,13 +181,13 @@ interrupts {
         if cx16.VERA_ISR & %00000001 {
             vsync_semaphore=0
             vsync_counter++
-            cx16.push_vera_context()
+            cx16.save_vera_context()
             ; soft-scrolling is handled in the irq handler itself to avoid stutters
             screen.scroll(screen.scrollx, screen.scrolly)
             screen.update_scrollpos()
             music.update()
-            psg.envelopes_irq()
-            cx16.pop_vera_context()
+            cx16.restore_vera_context()
+            psg.envelopes_irq()     ; note: does its own vera save/restore context
         }
     }
 }

@@ -133,7 +133,7 @@ bd1caves {
         objects.space,          ; 00
         objects.dirt,           ; 01
         objects.wall,           ; 02
-        objects.magicwall,      ; 03
+        objects.magicwallinactive, ; 03
         objects.outboxclosed,   ; 04
         objects.outboxblinking, ; 05
         objects.slime,          ; 06
@@ -186,7 +186,7 @@ bd1caves {
         0,                      ; 35
         0,                      ; 36
         0,                      ; 37
-        objects.rockfordblink,  ; 38            ; TODO rockfordbirth??
+        objects.rockfordbirth,  ; 38
         0,                      ; 39
         objects.amoeba,         ; 3a
         0,                      ; 3b
