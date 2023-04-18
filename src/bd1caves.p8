@@ -3,6 +3,8 @@ bd1caves {
     const ubyte NUM_CAVES = 20
 
     sub decode(ubyte level) {
+        cave.player_x = 0
+        cave.player_y = 0
         cave.name_ptr = names[level]
         cave.description_ptr = descriptions[level]
         uword data_ptr = caves[level]
@@ -115,6 +117,10 @@ bd1caves {
 
     sub draw_single(ubyte obj, ubyte attr, ubyte x, ubyte y) {
         cave.set_tile(x, y, obj, attr)
+        if obj==objects.inboxclosed or obj==objects.rockfordbirth {
+            cave.player_x = x
+            cave.player_y = y
+        }
     }
 
     sub draw_rectangle(ubyte obj, ubyte attr, ubyte x1, ubyte y1, ubyte width, ubyte height, ubyte fillobj, ubyte fillattr) {
@@ -179,7 +185,7 @@ bd1caves {
         0,                      ; 22
         0,                      ; 23
         0,                      ; 24
-        objects.inboxblinking,  ; 25
+        objects.inboxclosed,    ; 25
         0,                      ; 26
         0,                      ; 27
         0,                      ; 28

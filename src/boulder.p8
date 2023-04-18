@@ -9,18 +9,20 @@
 main {
     sub start() {
         music.init()
-        screen.titlescreen()
+        ;; screen.titlescreen()
         cx16.set_irq(&interrupts.handler, true)
-        music.playback_enabled = true
-        sys.wait(120)
+        ;; music.playback_enabled = true
+        ;; sys.wait(120)
         cave.init()
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        bd1caves.decode(8)
+        bd1caves.decode(1)
         cave.cover_all()
+        screen.set_scroll_pos((cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16/2, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16/2)
         screen.enable()
 
+        bool firebutton_down = false
         repeat {
             ; the game loop, executed every frame.
             interrupts.waitvsync()
@@ -28,16 +30,27 @@ main {
             cave.scan()
             if cave.covered
                 cave.uncover_more()
+
+            ; TODO temporary: enter (firebutton) jumps to another scroll position
+            if firebutton_down and cx16.joystick_get2(0) & %0000000000010000
+                firebutton_down = false
+            if not firebutton_down and cx16.joystick_get2(0) & %0000000000010000 == 0 {
+                firebutton_down = true
+                cave.player_x = math.rnd() % cave.width
+                cave.player_y = math.rnd() % cave.height
+            }
         }
     }
 }
 
 screen {
-    uword scrollx
-    uword scrolly
-    byte scrolldx = 1
-    byte scrolldy = 1
+    word scrollx
+    word scrolly
 
+    sub set_scroll_pos(uword sx, uword sy) {
+        scrollx = sx as word
+        scrolly = sy as word
+    }
 
     ubyte old_vera_displaymode
     sub disable() {
@@ -86,23 +99,55 @@ _loop           lda  (attr_ptr),y
         }
         ; cx16.vpoke(1,$fa00,$00)
         screen.update_animations()
+        screen.update_scrollpos()
     }
 
     sub update_scrollpos() {
-        scrollx += scrolldx as uword
-        scrolly += scrolldy as uword
-        if scrollx==0 or scrollx >= (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
-            scrolldx = -scrolldx
-        if scrolly==0 or scrolly >= (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
-            scrolldy = -scrolldy
-    }
+        ; try to recenter rockford in the visible screen
+        word target_scrollx = (cave.player_x as word - cave.VISIBLE_CELLS_H/2) * 16
+        word target_scrolly = (cave.player_y as word - cave.VISIBLE_CELLS_V/2) * 16
+        if target_scrollx < 0
+            target_scrollx = 0
+        if target_scrolly < 0
+            target_scrolly = 0
+        if target_scrollx > (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
+            target_scrollx = (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
+        if target_scrolly > (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
+            target_scrolly = (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
 
-    sub scroll(uword sx, uword sy) {
-        ; smooth scroll the screen to top left pixel at sx, sy
-        cx16.VERA_L1_HSCROLL_H = msb(sx)
-        cx16.VERA_L1_HSCROLL_L = lsb(sx)
-        cx16.VERA_L1_VSCROLL_H = msb(sy)
-        cx16.VERA_L1_VSCROLL_L = lsb(sy)
+        ; ease the scroll towards the target scroll position
+        word dd = 0
+        if target_scrollx > scrollx {
+            dd = (target_scrollx - scrollx) >> 5
+            if dd==0
+                dd = 1
+        }
+        else if target_scrollx < scrollx {
+            dd = (target_scrollx - scrollx) >> 5
+            if dd==0
+                dd = -1
+        }
+        scrollx += dd
+        dd = 0
+        if target_scrolly > scrolly {
+            dd = (target_scrolly - scrolly) >> 5
+            if dd==0
+                dd = 1
+        }
+        else if target_scrolly < scrolly {
+            dd = (target_scrolly - scrolly) >> 5
+            if dd==0
+                dd = -1
+        }
+        scrolly += dd
+        if scrollx < 0
+            scrollx = 0
+        if scrolly < 0
+            scrolly = 0
+        if scrollx > (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
+            scrollx = (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
+        if scrolly > (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
+            scrolly = (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
     }
 
     sub titlescreen() {
@@ -192,12 +237,19 @@ interrupts {
             vsync_counter++
             cx16.save_vera_context()
             ; soft-scrolling is handled in the irq handler itself to avoid stutters
-            screen.scroll(screen.scrollx, screen.scrolly)
-            screen.update_scrollpos()
+            scroll_screen()
             music.update()
             cx16.restore_vera_context()
             psg.envelopes_irq()     ; note: does its own vera save/restore context
         }
+    }
+
+    sub scroll_screen() {
+        ; smooth scroll the screen to top left pixel at sx, sy
+        cx16.VERA_L1_HSCROLL_H = msb(screen.scrollx)
+        cx16.VERA_L1_HSCROLL_L = lsb(screen.scrollx)
+        cx16.VERA_L1_VSCROLL_H = msb(screen.scrolly)
+        cx16.VERA_L1_VSCROLL_L = lsb(screen.scrolly)
     }
 }
 

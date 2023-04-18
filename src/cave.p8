@@ -18,6 +18,9 @@ cave {
     bool intermission
     bool covered
     ubyte scan_frame
+    ubyte player_x
+    ubyte player_y
+    ubyte rockford_birth_time       ; in frames, default = 120  (2 seconds)
 
     ; The attribute of a cell.
     ; Can only have one of these active attributes at a time, except the FLAG ones.
@@ -33,6 +36,7 @@ cave {
     sub init() {
         sys.memset(cells, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, objects.dirt)
         cover_all()
+        rockford_birth_time = 120
     }
 
     sub set_tile(ubyte col, ubyte row, ubyte id, ubyte attr) {
@@ -53,18 +57,23 @@ cave {
     sub scan() {
         if covered
             return
+
+        if rockford_birth_time
+            rockford_birth_time--
+
         scan_frame++
-        if scan_frame==7            ; cave scan is done once every 7 frames
+        if scan_frame==7            ; cave scan is done once every 7 frames TODO configurable
             scan_frame = 0
         else
             return
 
         ; TODO finish cavescan
         ubyte @zp y
-        for y in 0 to height {
+        for y in 0 to height-1 {
             uword cell_ptr = cells + (y as uword) * MAX_CAVE_WIDTH
             uword attr_ptr = cell_attributes + (y as uword) * MAX_CAVE_WIDTH
-            repeat width {
+            ubyte @zp x
+            for x in 0 to width-1 {
                 ubyte @requirezp attr = @(attr_ptr)
                 if attr & ATTR_SCANNED_FLAG == 0 {
                     ubyte @requirezp obj = @(cell_ptr)
@@ -85,6 +94,23 @@ cave {
                         }
                         objects.butterfly, objects.altbutterfly, objects.stonefly -> {
                             handle_butterfly()
+                        }
+                        objects.rockfordleft, objects.rockfordright,
+                        objects.rockfordpushleft, objects.rockfordpushright,
+                        objects.rockfordblink, objects.rockfordtap,
+                        objects.rockfordtapblink -> {
+                            ; TODO handle rockford. Player movement also should update player_x and player_y
+                        }
+                        objects.inboxclosed -> @(cell_ptr) = objects.inboxblinking
+                        objects.inboxblinking -> {
+                            if rockford_birth_time==0 {
+                                @(cell_ptr) = objects.rockfordbirth
+                                objects.anim_frame[objects.rockfordbirth] = 0   ; reset animation
+                            }
+                        }
+                        objects.rockfordbirth -> {
+                            if objects.anim_frame[objects.rockfordbirth] == objects.anim_sizes[objects.rockfordbirth]-1
+                                @(cell_ptr) = objects.rockfordblink     ; TODO what is initial rockford state?
                         }
                         ; TODO handle other objects
                     }
