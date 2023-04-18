@@ -19,6 +19,7 @@ main {
         screen.set_tiles_screenmode()
         screen.load_tiles()
         bd1caves.decode(8)
+        cave.cover_all()
 
         repeat {
             ; the game loop, executed every frame.
@@ -34,8 +35,8 @@ main {
 screen {
     uword scrollx
     uword scrolly
-    byte scrolldx=1
-    byte scrolldy=1
+    byte scrolldx = 1
+    byte scrolldy = 1
 
     sub update() {
         ; set the tiles in video ram for the visible cells.

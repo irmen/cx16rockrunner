@@ -101,7 +101,7 @@ bd1caves {
     }
 
     sub draw_single(ubyte obj, ubyte x, ubyte y) {
-        cave.set_tile(x, y, obj)
+        cave.set_tile(x, y, obj, 0)
     }
 
     sub draw_rectangle(ubyte obj, ubyte x1, ubyte y1, ubyte width, ubyte height, ubyte fillobj) {
