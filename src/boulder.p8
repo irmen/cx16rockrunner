@@ -9,17 +9,17 @@
 main {
     sub start() {
         music.init()
-        palette.set_all_black()
-        ;; screen.titlescreen()
+        screen.titlescreen()
         cx16.set_irq(&interrupts.handler, true)
         music.playback_enabled = true
-        ;; sys.wait(120)
-        palette.set_all_black()
+        sys.wait(120)
         cave.init()
         screen.set_tiles_screenmode()
+        screen.disable()
         screen.load_tiles()
         bd1caves.decode(8)
         cave.cover_all()
+        screen.enable()
 
         repeat {
             ; the game loop, executed every frame.
@@ -38,6 +38,18 @@ screen {
     byte scrolldx = 1
     byte scrolldy = 1
 
+
+    ubyte old_vera_displaymode
+    sub disable() {
+        old_vera_displaymode = cx16.VERA_DC_VIDEO
+        cx16.VERA_CTRL = 0
+        cx16.VERA_DC_VIDEO &= %10001111
+    }
+    sub enable() {
+        cx16.VERA_CTRL = 0
+        cx16.VERA_DC_VIDEO = old_vera_displaymode
+    }
+
     sub update() {
         ; set the tiles in video ram for the visible cells.
         ; cx16.vpoke(1,$fa00,$0f)
@@ -47,14 +59,14 @@ screen {
         for row in row_offset to row_offset+cave.VISIBLE_CELLS_V {
             cx16.vaddr(1, $b000 + row*$0080 + col_offset*2, 0, 1)
             uword cells_offset = (row as uword)*cave.MAX_CAVE_WIDTH + col_offset
-            uword @requirezp cell_ptr = cave.cells + cells_offset
-            uword @requirezp attr_ptr = cave.cell_attributes + cells_offset
+            uword @requirezp @shared cell_ptr = cave.cells + cells_offset
+            uword @requirezp @shared attr_ptr = cave.cell_attributes + cells_offset
             %asm {{
                 phx
                 ldy  #0
 _loop           lda  (attr_ptr),y
-                cmp  #cave.ATTR_COVERED
-                bne  +
+                and  #cave.ATTR_COVERED_FLAG
+                beq  +
                 ldx  #objects.covered
                 bra  ++
 +               lda  (cell_ptr),y
@@ -96,26 +108,21 @@ _loop           lda  (attr_ptr),y
     sub titlescreen() {
         ; 320x240 bitmap mode 4bpp (16 colors)
         cx16.VERA_CTRL = 0
-        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & $0f | %00010000       ; layer 0 active
+        cx16.VERA_DC_BORDER = 0
+        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & %10001111      ; no layers visible
         cx16.VERA_DC_HSCALE = 64
         cx16.VERA_DC_VSCALE = 64
         cx16.VERA_L0_CONFIG = %00000110
         cx16.VERA_L0_TILEBASE = 0
 
-        if not cx16diskio.vload_raw("titlescreen.bin", 8, 0, $0000)
-           or not cx16diskio.vload_raw("titlescreen.pal", 8, 1, $fa00) {
-            txt.print("load error\n")
-            sys.exit(1)
-        }
+        void cx16diskio.vload_raw("titlescreen.bin", 8, 0, $0000)
+        void cx16diskio.vload_raw("titlescreen.pal", 8, 1, $fa00)
+        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %00010000       ; layer 0 active
     }
 
     sub load_tiles() {
-        if not cx16diskio.vload_raw("tiles.bin", 8, 0, $0000)
-           or not cx16diskio.vload_raw("tiles.pal", 8, 1, $fa00) {
-            txt.print("load error\n")
-            sys.exit(1)
-        }
-        sys.wait(5)
+        void cx16diskio.vload_raw("tiles.bin", 8, 0, $0000)
+        void cx16diskio.vload_raw("tiles.pal", 8, 1, $fa00)
     }
 
     sub update_animations() {
@@ -154,6 +161,7 @@ _loop           lda  (attr_ptr),y
         }
 
         cx16.VERA_CTRL = 0
+        cx16.VERA_DC_BORDER = 0
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & $0f | %00100000       ; layer 1 active
         cx16.VERA_DC_HSCALE = 64
         cx16.VERA_DC_VSCALE = 64

@@ -13,6 +13,10 @@ bd1caves {
         ubyte rnd_object1 = translate_objects[data_ptr[$19]]
         ubyte rnd_object2 = translate_objects[data_ptr[$1a]]
         ubyte rnd_object3 = translate_objects[data_ptr[$1b]]
+        ubyte rnd_attr0 = initial_attributes(data_ptr[$18])
+        ubyte rnd_attr1 = initial_attributes(data_ptr[$19])
+        ubyte rnd_attr2 = initial_attributes(data_ptr[$1a])
+        ubyte rnd_attr3 = initial_attributes(data_ptr[$1b])
         ubyte rnd_probability0 = data_ptr[$1c]
         ubyte rnd_probability1 = data_ptr[$1d]
         ubyte rnd_probability2 = data_ptr[$1e]
@@ -28,40 +32,49 @@ bd1caves {
             for x in 0 to cave.width-1 {
                 cx16.r0L = objects.dirt
                 bdrandom()
-                if seed1 < rnd_probability0
+                if seed1 < rnd_probability0 {
                     cx16.r0L = rnd_object0
-                if seed1 < rnd_probability1
+                    cx16.r1L = rnd_attr0
+                }
+                if seed1 < rnd_probability1 {
                     cx16.r0L = rnd_object1
-                if seed1 < rnd_probability2
+                    cx16.r1L = rnd_attr1
+                }
+                if seed1 < rnd_probability2 {
                     cx16.r0L = rnd_object2
-                if seed1 < rnd_probability3
+                    cx16.r1L = rnd_attr2
+                }
+                if seed1 < rnd_probability3 {
                     cx16.r0L = rnd_object3
-                draw_single(cx16.r0L, x, y)
+                    cx16.r1L = rnd_attr3
+                }
+                draw_single(cx16.r0L, cx16.r1L, x, y)
             }
         }
-        draw_rectangle(objects.steel, 0, 0, cave.width, cave.height, 0)    ; the boundary
+        draw_rectangle(objects.steel, 0, 0, 0, cave.width, cave.height, 0, 0)    ; the boundary
 
         data_ptr += $20
         while @(data_ptr) != $ff {
             ubyte obj = translate_objects[@(data_ptr) & $3f]
+            ubyte attr = initial_attributes(@(data_ptr) & $3f)
             ubyte kind = (@(data_ptr) & $c0) >> 6
             x = data_ptr[1]
             y = data_ptr[2] - 2   ; apparently need to adjust for top 2 lines where score is shown on c64
             when kind {
                 0 -> {
-                    draw_single(obj, x, y)
+                    draw_single(obj, attr, x, y)
                     data_ptr += 3
                 }
                 1 -> {
-                    draw_line(obj, x, y, data_ptr[3], data_ptr[4])
+                    draw_line(obj, attr, x, y, data_ptr[3], data_ptr[4])
                     data_ptr += 5
                 }
                 2 -> {
-                    draw_rectangle(obj, x, y, data_ptr[3], data_ptr[4], translate_objects[data_ptr[5]])
+                    draw_rectangle(obj, attr, x, y, data_ptr[3], data_ptr[4], translate_objects[data_ptr[5]], initial_attributes(data_ptr[5]))
                     data_ptr += 6
                 }
                 3 -> {
-                    draw_rectangle(obj, x, y, data_ptr[3], data_ptr[4], 0)
+                    draw_rectangle(obj, attr, x, y, data_ptr[3], data_ptr[4], 0, 0)
                     data_ptr += 5
                 }
             }
@@ -100,36 +113,35 @@ bd1caves {
         }}
     }
 
-    sub draw_single(ubyte obj, ubyte x, ubyte y) {
-        cave.set_tile(x, y, obj, 0)
+    sub draw_single(ubyte obj, ubyte attr, ubyte x, ubyte y) {
+        cave.set_tile(x, y, obj, attr)
     }
 
-    sub draw_rectangle(ubyte obj, ubyte x1, ubyte y1, ubyte width, ubyte height, ubyte fillobj) {
-        draw_line(obj, x1, y1, width, 2)
-        draw_line(obj, x1, y1 + height - 1, width, 2)
-        draw_line(obj, x1, y1 + 1, height - 2, 4)
-        draw_line(obj, x1 + width - 1, y1 + 1, height - 2, 4)
+    sub draw_rectangle(ubyte obj, ubyte attr, ubyte x1, ubyte y1, ubyte width, ubyte height, ubyte fillobj, ubyte fillattr) {
+        draw_line(obj, attr, x1, y1, width, 2)
+        draw_line(obj, attr, x1, y1 + height - 1, width, 2)
+        draw_line(obj, attr, x1, y1 + 1, height - 2, 4)
+        draw_line(obj, attr, x1 + width - 1, y1 + 1, height - 2, 4)
         if fillobj {
             ubyte y
             for y in y1 + 1 to y1 + height - 2
-                draw_line(fillobj, x1 + 1, y, width - 2, 2)
+                draw_line(fillobj, fillattr, x1 + 1, y, width - 2, 2)
         }
     }
 
-    sub draw_line(ubyte obj, ubyte x, ubyte y, ubyte length, ubyte direction) {
+    sub draw_line(ubyte obj, ubyte attr, ubyte x, ubyte y, ubyte length, ubyte direction) {
         ubyte[] deltax = [ 0, 1, 1, 1, 0,-1,-1,-1]
         ubyte[] deltay = [-1,-1, 0, 1, 1, 1, 0,-1]
         ubyte dx = deltax[direction]
         ubyte dy = deltay[direction]
         repeat length {
-            draw_single(obj, x, y)
+            draw_single(obj, attr, x, y)
             x+=dx
             y+=dy
         }
     }
 
     ubyte[64] translate_objects = [
-        ; TODO directions
         objects.space,          ; 00
         objects.dirt,           ; 01
         objects.wall,           ; 02
@@ -195,6 +207,17 @@ bd1caves {
         objects.horizexpander,  ; 3e
         0                       ; 3f
     ]
+
+    sub initial_attributes(ubyte id) -> ubyte {
+        when id {
+            $08, $31 -> return cave.ATTR_MOVING_LEFT
+            $09, $32 -> return cave.ATTR_MOVING_UP
+            $0a, $33 -> return cave.ATTR_MOVING_RIGHT
+            $0b, $30 -> return cave.ATTR_MOVING_DOWN
+            else -> return 0
+        }
+    }
+
     
     ; The format of the demo data is as follows.
     ; The low nybble of each byte indicates the direction that Rockford is to move
