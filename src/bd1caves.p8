@@ -3,15 +3,17 @@ bd1caves {
     const ubyte NUM_CAVES = 20
 
     sub decode(ubyte level) {
+
         cave.player_x = 0
         cave.player_y = 0
         cave.name_ptr = names[level]
         cave.description_ptr = descriptions[level]
-        uword data_ptr = caves[level]
         cave.width = 40        ; hardcoded for these caves, also intermissions
         cave.height = 22       ; hardcoded for these caves, also intermissions
         cave.intermission = (level+1)/5 == 0
         cave.rockford_state = 0
+
+        uword data_ptr = caves[level]
         ubyte rnd_object0 = translate_objects[data_ptr[$18]]
         ubyte rnd_object1 = translate_objects[data_ptr[$19]]
         ubyte rnd_object2 = translate_objects[data_ptr[$1a]]

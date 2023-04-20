@@ -5,6 +5,7 @@
 %import objects
 %import cave
 %import bd1caves
+%import bdcff
 
 main {
     sub start() {
@@ -17,7 +18,8 @@ main {
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        bd1caves.decode(1)
+        bdcff.load_test_cave()
+        ;; bd1caves.decode(1)
         cave.cover_all()
         screen.set_scroll_pos((cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16/2, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16/2)
         screen.enable()

@@ -31,7 +31,7 @@ cave {
     ubyte scan_frame
     ubyte player_x
     ubyte player_y
-    ubyte rockford_birth_time       ; in frames, default = 120  (2 seconds)
+    byte rockford_birth_time       ; in frames, default = 120  (2 seconds)
     ubyte rockford_state
     ubyte rockford_face_direction
     ubyte rockford_animation_frame
@@ -69,11 +69,9 @@ cave {
 
     sub scan() {
         if covered
-            return
+            return      ; we do nothing as long as the cave is still (partially) covered.
 
-        if rockford_birth_time
-            rockford_birth_time--
-
+        rockford_birth_time--
         handle_rockford_animation()
 
         scan_frame++
@@ -97,11 +95,16 @@ cave {
                             if attr==ATTR_FALLING {
                                 handle_falling_object()
                             } else {
-                                if @(cell_ptr + MAX_CAVE_WIDTH)==objects.space {
-                                    ; immediately start falling 1 cell down
-                                    fall_down_one_cell()
+                                when @(cell_ptr + MAX_CAVE_WIDTH) {
+                                    objects.space -> {
+                                        ; immediately start falling 1 cell down
+                                        fall_down_one_cell()
+                                    }
+                                    objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
+                                        ; stationary boulders and diamonds can roll off something as well
+                                        roll_off()
+                                    }
                                 }
-                                ; TODO stationary boulders and diamonds can roll off to the left/right as well
                             }
                         }
                         objects.firefly, objects.altfirefly -> {
@@ -122,7 +125,7 @@ cave {
                             rockford_birth_time = 120
                         }
                         objects.inboxblinking -> {
-                            if rockford_birth_time==0 {
+                            if rockford_birth_time<=0 {
                                 ; spawn our guy
                                 restart_anim(objects.rockfordbirth)
                                 rockford_state = ROCKFORD_BIRTH
@@ -150,21 +153,7 @@ cave {
                     fall_down_one_cell()
                 }
                 objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
-                    if @(attr_ptr + MAX_CAVE_WIDTH) != ATTR_FALLING {
-                        ; roll off a stationary round object under us, to the left or right, if there's room
-                        if @(cell_ptr-1) == objects.space and @(cell_ptr-1+MAX_CAVE_WIDTH) == objects.space {
-                            ; roll left
-                            @(cell_ptr) = objects.space
-                            @(cell_ptr-1) = obj
-                            @(attr_ptr-1) = attr | ATTR_FALLING
-                        } else if @(cell_ptr+1) == objects.space and @(cell_ptr+1+MAX_CAVE_WIDTH) == objects.space {
-                            ; roll right
-                            @(cell_ptr) = objects.space
-                            @(cell_ptr+1) = obj
-                            @(attr_ptr+1) = attr | ATTR_FALLING
-                        }
-                        @(attr_ptr) = 0   ; previous position: no falling anymore.
-                    }
+                    roll_off()
                 }
                 objects.rockford,
                 objects.rockfordleft, objects.rockfordright,
@@ -320,6 +309,24 @@ cave {
             @(attr_ptr + MAX_CAVE_WIDTH) = ATTR_FALLING | ATTR_SCANNED_FLAG
         }
 
+        sub roll_off() {
+            if @(attr_ptr + MAX_CAVE_WIDTH) != ATTR_FALLING {
+                ; roll off a stationary round object under us, to the left or right, if there's room
+                if @(cell_ptr-1) == objects.space and @(cell_ptr-1+MAX_CAVE_WIDTH) == objects.space {
+                    ; roll left
+                    @(cell_ptr) = objects.space
+                    @(cell_ptr-1) = obj
+                    @(attr_ptr-1) = attr | ATTR_FALLING
+                } else if @(cell_ptr+1) == objects.space and @(cell_ptr+1+MAX_CAVE_WIDTH) == objects.space {
+                    ; roll right
+                    @(cell_ptr) = objects.space
+                    @(cell_ptr+1) = obj
+                    @(attr_ptr+1) = attr | ATTR_FALLING
+                }
+                @(attr_ptr) = 0   ; previous position: no falling anymore.
+            }
+        }
+
         sub get_cell_ptr_for_direction(ubyte dir) -> uword{
             when dir {
                 ATTR_MOVING_UP -> return cell_ptr - MAX_CAVE_WIDTH
@@ -396,13 +403,13 @@ cave {
     sub uncover_more() {
         if not covered
             return
-        repeat 8 {
+        repeat 10 {
             ubyte x = math.rnd() % width
             ubyte y = math.rnd() % height
             @(cell_attributes + (y as uword)*MAX_CAVE_WIDTH + x) &= ~ATTR_COVERED_FLAG
         }
         uncover_cnt++
-        if uncover_cnt>180          ; TODO what is the correct time uncovering should take?
+        if uncover_cnt>180
             uncover_all()
     }
 }
