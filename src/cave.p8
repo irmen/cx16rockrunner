@@ -1,3 +1,4 @@
+%import math
 
 ; documentation about object behaviors:
 ; https://codeincomplete.com/articles/javascript-boulderdash/objects.pdf
@@ -8,6 +9,16 @@ cave {
     const ubyte MAX_CAVE_HEIGHT = 22
     const ubyte VISIBLE_CELLS_H = 320/16
     const ubyte VISIBLE_CELLS_V = 240/16
+
+    const ubyte ROCKFORD_IDLE = 1
+    const ubyte ROCKFORD_MOVING = 2
+    const ubyte ROCKFORD_PUSHING = 3
+    const ubyte ROCKFORD_BLINKING = 4
+    const ubyte ROCKFORD_TAPPING = 5
+    const ubyte ROCKFORD_TAPBLINK = 6
+    const ubyte ROCKFORD_BIRTH = 7
+    const ubyte ROCKFORD_FACE_LEFT = 1
+    const ubyte ROCKFORD_FACE_RIGHT = 2
 
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
@@ -21,6 +32,9 @@ cave {
     ubyte player_x
     ubyte player_y
     ubyte rockford_birth_time       ; in frames, default = 120  (2 seconds)
+    ubyte rockford_state
+    ubyte rockford_face_direction
+    ubyte rockford_animation_frame
 
     ; The attribute of a cell.
     ; Can only have one of these active attributes at a time, except the FLAG ones.
@@ -36,7 +50,6 @@ cave {
     sub init() {
         sys.memset(cells, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, objects.dirt)
         cover_all()
-        rockford_birth_time = 120
     }
 
     sub set_tile(ubyte col, ubyte row, ubyte id, ubyte attr) {
@@ -61,6 +74,8 @@ cave {
         if rockford_birth_time
             rockford_birth_time--
 
+        handle_rockford_animation()
+
         scan_frame++
         if scan_frame==7            ; cave scan is done once every 7 frames TODO configurable
             scan_frame = 0
@@ -70,13 +85,13 @@ cave {
         ; TODO finish cavescan
         ubyte @zp y
         for y in 0 to height-1 {
-            uword cell_ptr = cells + (y as uword) * MAX_CAVE_WIDTH
-            uword attr_ptr = cell_attributes + (y as uword) * MAX_CAVE_WIDTH
+            uword @requirezp cell_ptr = cells + (y as uword) * MAX_CAVE_WIDTH
+            uword @requirezp attr_ptr = cell_attributes + (y as uword) * MAX_CAVE_WIDTH
             ubyte @zp x
             for x in 0 to width-1 {
-                ubyte @requirezp attr = @(attr_ptr)
+                ubyte @zp attr = @(attr_ptr)
                 if attr & ATTR_SCANNED_FLAG == 0 {
-                    ubyte @requirezp obj = @(cell_ptr)
+                    ubyte @zp obj = @(cell_ptr)
                     when obj {
                         objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
                             if attr==ATTR_FALLING {
@@ -95,22 +110,27 @@ cave {
                         objects.butterfly, objects.altbutterfly, objects.stonefly -> {
                             handle_butterfly()
                         }
+                        objects.rockford,
                         objects.rockfordleft, objects.rockfordright,
                         objects.rockfordpushleft, objects.rockfordpushright,
                         objects.rockfordblink, objects.rockfordtap,
-                        objects.rockfordtapblink -> {
-                            ; TODO handle rockford. Player movement also should update player_x and player_y
+                        objects.rockfordtapblink, objects.rockfordbirth -> {
+                            handle_rockford()
                         }
-                        objects.inboxclosed -> @(cell_ptr) = objects.inboxblinking
+                        objects.inboxclosed -> {
+                            @(cell_ptr) = objects.inboxblinking
+                            rockford_birth_time = 120
+                        }
                         objects.inboxblinking -> {
                             if rockford_birth_time==0 {
-                                @(cell_ptr) = objects.rockfordbirth
-                                objects.anim_frame[objects.rockfordbirth] = 0   ; reset animation
+                                ; spawn our guy
+                                restart_anim(objects.rockfordbirth)
+                                rockford_state = ROCKFORD_BIRTH
+                                rockford_face_direction = ROCKFORD_FACE_LEFT
+                                rockford_animation_frame = 0
+                                player_x = x
+                                player_y = y
                             }
-                        }
-                        objects.rockfordbirth -> {
-                            if objects.anim_frame[objects.rockfordbirth] == objects.anim_sizes[objects.rockfordbirth]-1
-                                @(cell_ptr) = objects.rockfordblink     ; TODO what is initial rockford state?
                         }
                         ; TODO handle other objects
                     }
@@ -122,14 +142,6 @@ cave {
 
         ; TODO amoeba growth
         clear_all_scanned()
-
-
-        sub fall_down_one_cell() {
-            @(cell_ptr) = objects.space
-            @(attr_ptr) = 0
-            @(cell_ptr + MAX_CAVE_WIDTH) = obj
-            @(attr_ptr + MAX_CAVE_WIDTH) = ATTR_FALLING | ATTR_SCANNED_FLAG
-        }
 
         sub handle_falling_object() {
             when @(cell_ptr + MAX_CAVE_WIDTH) {
@@ -154,6 +166,7 @@ cave {
                         @(attr_ptr) = 0   ; previous position: no falling anymore.
                     }
                 }
+                objects.rockford,
                 objects.rockfordleft, objects.rockfordright,
                 objects.rockfordpushleft, objects.rockfordpushright,
                 objects.rockfordblink, objects.rockfordtap,
@@ -222,6 +235,91 @@ cave {
             @(attr_ptr) = rotate_90_left(attr)
         }
 
+        sub handle_rockford() {
+            ; TODO handle rockford. Player movement also should update player_x and player_y
+            ; rockford animation is done independently.
+
+        }
+
+        sub handle_rockford_animation() {
+            ; per frame, not per cave scan
+            if not rockford_state
+                return
+
+            rockford_animation_frame++
+            if rockford_animation_frame==8*2  {
+                ; shortcut: we know that each rockford animation sequence is 8 steps times 2 frames each.
+                rockford_animation_frame = 0
+                if rockford_state!=ROCKFORD_MOVING and rockford_state!=ROCKFORD_PUSHING
+                    choose_new_anim()
+            }
+
+            cell_ptr = cells + (player_y as uword) * MAX_CAVE_WIDTH + player_x
+
+            when rockford_state {
+                ROCKFORD_MOVING -> {
+                    if rockford_face_direction == ROCKFORD_FACE_LEFT
+                        @(cell_ptr) = objects.rockfordleft
+                    else
+                        @(cell_ptr) = objects.rockfordright
+                }
+                ROCKFORD_PUSHING -> {
+                    if rockford_face_direction == ROCKFORD_FACE_LEFT
+                        @(cell_ptr) = objects.rockfordpushleft
+                    else
+                        @(cell_ptr) = objects.rockfordpushright
+                }
+                ROCKFORD_BIRTH -> {
+                    @(cell_ptr) = objects.rockfordbirth
+                    if objects.anim_frame[objects.rockfordbirth] == objects.anim_sizes[objects.rockfordbirth]-1 {
+                        rockford_state = ROCKFORD_IDLE
+                        rockford_animation_frame = 0
+                    }
+                }
+                ROCKFORD_TAPPING -> @(cell_ptr) = objects.rockfordtap
+                ROCKFORD_BLINKING -> @(cell_ptr) = objects.rockfordblink
+                ROCKFORD_TAPBLINK -> @(cell_ptr) = objects.rockfordtapblink
+                ROCKFORD_IDLE -> @(cell_ptr) = objects.rockford
+            }
+
+            sub choose_new_anim() {
+                ubyte random = math.rnd()
+                bool set_blinking = false
+                bool set_tapping = rockford_state==ROCKFORD_TAPBLINK or rockford_state==ROCKFORD_TAPPING
+                if random < 64 {
+                    ; 25% chance to blink
+                    set_blinking = true
+                }
+                if random < 16 {
+                    ; 6.25% chance to start or stop tapping
+                    set_tapping = not set_tapping
+                }
+                if set_blinking {
+                    if set_tapping {
+                        rockford_state = ROCKFORD_TAPBLINK
+                        restart_anim(objects.rockfordtapblink)
+                    } else {
+                        rockford_state = ROCKFORD_BLINKING
+                        restart_anim(objects.rockfordblink)
+                    }
+                } else {
+                    if set_tapping {
+                        rockford_state = ROCKFORD_TAPPING
+                        restart_anim(objects.rockfordtap)
+                    } else {
+                        rockford_state = ROCKFORD_IDLE
+                    }
+                }
+            }
+        }
+
+        sub fall_down_one_cell() {
+            @(cell_ptr) = objects.space
+            @(attr_ptr) = 0
+            @(cell_ptr + MAX_CAVE_WIDTH) = obj
+            @(attr_ptr + MAX_CAVE_WIDTH) = ATTR_FALLING | ATTR_SCANNED_FLAG
+        }
+
         sub get_cell_ptr_for_direction(ubyte dir) -> uword{
             when dir {
                 ATTR_MOVING_UP -> return cell_ptr - MAX_CAVE_WIDTH
@@ -261,6 +359,10 @@ cave {
                 else -> return dir
             }
         }
+    }
+
+    sub restart_anim(ubyte object) {
+        objects.anim_frame[object] = 0
     }
 
     sub clear_all_scanned() {

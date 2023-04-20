@@ -11,6 +11,7 @@ bd1caves {
         cave.width = 40        ; hardcoded for these caves, also intermissions
         cave.height = 22       ; hardcoded for these caves, also intermissions
         cave.intermission = (level+1)/5 == 0
+        cave.rockford_state = 0
         ubyte rnd_object0 = translate_objects[data_ptr[$18]]
         ubyte rnd_object1 = translate_objects[data_ptr[$19]]
         ubyte rnd_object2 = translate_objects[data_ptr[$1a]]
