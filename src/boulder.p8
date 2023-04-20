@@ -8,6 +8,8 @@
 %import bdcff
 
 main {
+    ubyte joystick = 0      ; TODO selectable
+
     sub start() {
         music.init()
         ;; screen.titlescreen()
@@ -32,15 +34,6 @@ main {
             cave.scan()
             if cave.covered
                 cave.uncover_more()
-
-            ; TODO temporary: enter (firebutton) jumps to another scroll position
-            if firebutton_down and cx16.joystick_get2(0) & %0000000000010000
-                firebutton_down = false
-            if not firebutton_down and cx16.joystick_get2(0) & %0000000000010000 == 0 {
-                firebutton_down = true
-                cave.player_x = math.rnd() % cave.width
-                cave.player_y = math.rnd() % cave.height
-            }
         }
     }
 }
@@ -48,6 +41,8 @@ main {
 screen {
     word scrollx
     word scrolly
+    bool scrolling_into_view_x = false
+    bool scrolling_into_view_y = false
 
     sub set_scroll_pos(uword sx, uword sy) {
         scrollx = sx as word
@@ -108,40 +103,37 @@ _loop           lda  (attr_ptr),y
         ; try to recenter rockford in the visible screen
         word target_scrollx = (cave.player_x as word - cave.VISIBLE_CELLS_H/2) * 16
         word target_scrolly = (cave.player_y as word - cave.VISIBLE_CELLS_V/2) * 16
-        if target_scrollx < 0
-            target_scrollx = 0
-        if target_scrolly < 0
-            target_scrolly = 0
-        if target_scrollx > (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
-            target_scrollx = (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
-        if target_scrolly > (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
-            target_scrolly = (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
+        word dx = target_scrollx - scrollx
+        word dy = target_scrolly - scrolly
+        if not scrolling_into_view_x {
+            if abs(dx) < cave.VISIBLE_CELLS_H/4*16
+                dx = 0
+            else
+                scrolling_into_view_x = true
+        }
+        if not scrolling_into_view_y {
+            if abs(dy) < cave.VISIBLE_CELLS_V/4*16
+                dy = 0
+            else
+                scrolling_into_view_y = true
+        }
 
-        ; ease the scroll towards the target scroll position
-        word dd = 0
-        if target_scrollx > scrollx {
-            dd = (target_scrollx - scrollx) >> 5
-            if dd==0
-                dd = 1
+        scrolling_into_view_x = dx!=0
+        scrolling_into_view_y = dy!=0
+        if scrolling_into_view_x {
+            dx >>= 5
+            if dx==0
+                scrollx++
+            else
+                scrollx += dx
         }
-        else if target_scrollx < scrollx {
-            dd = (target_scrollx - scrollx) >> 5
-            if dd==0
-                dd = -1
+        if scrolling_into_view_y {
+            dy >>= 5
+            if dy==0
+                scrolly++
+            else
+                scrolly += dy
         }
-        scrollx += dd
-        dd = 0
-        if target_scrolly > scrolly {
-            dd = (target_scrolly - scrolly) >> 5
-            if dd==0
-                dd = 1
-        }
-        else if target_scrolly < scrolly {
-            dd = (target_scrolly - scrolly) >> 5
-            if dd==0
-                dd = -1
-        }
-        scrolly += dd
         if scrollx < 0
             scrollx = 0
         if scrolly < 0

@@ -161,6 +161,7 @@ cave {
                 objects.rockfordblink, objects.rockfordtap,
                 objects.rockfordtapblink, objects.rockfordbirth -> {
                     ; TODO explode Rockford
+                    @(attr_ptr) = 0
                 }
                 ; TODO check if another explosive object is below the boulder (firefly, butterfly, ...?)
                 ; TODO check if falling boulder hits a magic wall
@@ -225,9 +226,144 @@ cave {
         }
 
         sub handle_rockford() {
-            ; TODO handle rockford. Player movement also should update player_x and player_y
-            ; rockford animation is done independently.
+            ; note: rockford animation is done independently (each frame).
+            uword joy = cx16.joystick_get2(main.joystick)
+            bool firebutton = joy & %1100000001100000 != %1100000001100000
+            ubyte targetcell
+            bool consumable
+            ubyte afterboulder
+            ubyte moved = false
 
+            if lsb(joy) & %0010 == 0 left()
+            else if lsb(joy) & %0001 == 0 right()
+            else if lsb(joy) & %1000 == 0 up()
+            else if lsb(joy) & %0100 == 0 down()
+            else if rockford_state==ROCKFORD_MOVING or rockford_state==ROCKFORD_PUSHING
+                rockford_state=ROCKFORD_IDLE
+
+            if moved {
+                @(cell_ptr) = objects.space
+                cell_ptr = cells + (player_y as uword) * MAX_CAVE_WIDTH + player_x
+                attr_ptr = cell_attributes + (player_y as uword) * MAX_CAVE_WIDTH + player_x
+                @(cell_ptr) = objects.rockford      ; exact tile will be set by rockford animation routine
+                @(attr_ptr) = ATTR_SCANNED_FLAG
+            }
+
+            sub left() {
+                rockford_face_direction = ROCKFORD_FACE_LEFT
+                targetcell = @(cell_ptr-1)
+                consumable = is_consumable_or_space(targetcell)
+                if targetcell==objects.boulder or targetcell==objects.megaboulder {
+                    rockford_state = ROCKFORD_PUSHING
+                    if @(attr_ptr-1) != ATTR_FALLING {
+                        afterboulder = @(cell_ptr-2)
+                        if afterboulder==objects.space or afterboulder==objects.bonusbg {
+                            ; 1/8 chance to push boulder left
+                            if math.rnd() < 32 {
+                                @(cell_ptr-2) = targetcell
+                                @(cell_ptr-1) = objects.space
+                                if not firebutton {
+                                    player_x--
+                                    moved = true
+                                }
+                            }
+                        }
+                    }
+                } else if firebutton {
+                    rockford_state = ROCKFORD_PUSHING
+                    if consumable
+                        @(cell_ptr-1) = objects.space
+                } else {
+                    rockford_state = ROCKFORD_MOVING
+                    if consumable {
+                        player_x--
+                        moved = true
+                    }
+                }
+            }
+
+            sub right() {
+                rockford_face_direction = ROCKFORD_FACE_RIGHT
+                targetcell = @(cell_ptr+1)
+                consumable = is_consumable_or_space(targetcell)
+                if targetcell==objects.boulder or targetcell==objects.megaboulder {
+                    rockford_state = ROCKFORD_PUSHING
+                    if @(attr_ptr+1) != ATTR_FALLING {
+                        afterboulder = @(cell_ptr+2)
+                        if afterboulder==objects.space or afterboulder==objects.bonusbg {
+                            ; 1/8 chance to push boulder right
+                            if math.rnd() < 32 {
+                                @(cell_ptr+2) = targetcell
+                                @(attr_ptr+2) |= ATTR_SCANNED_FLAG | ATTR_FALLING           ; falling to avoid rolling over a hole
+                                @(cell_ptr+1) = objects.space
+                                @(attr_ptr+1) |= ATTR_SCANNED_FLAG
+                                if not firebutton {
+                                    player_x++
+                                    moved = true
+                                }
+                            }
+                        }
+                    }
+                } else if firebutton {
+                    rockford_state = ROCKFORD_PUSHING
+                    if consumable
+                        @(cell_ptr+1) = objects.space
+                        @(attr_ptr+1) |= ATTR_SCANNED_FLAG
+                } else {
+                    rockford_state = ROCKFORD_MOVING
+                    if consumable {
+                        player_x++
+                        moved = true
+                    }
+                }
+            }
+
+            sub up() {
+                targetcell = @(cell_ptr-MAX_CAVE_WIDTH)
+                consumable = is_consumable_or_space(targetcell)
+                if targetcell==objects.boulder or targetcell==objects.megaboulder {
+                    ; cannot push or snip boulder up so do nothing.
+                    rockford_state = ROCKFORD_MOVING
+                } else if firebutton {
+                    rockford_state = ROCKFORD_PUSHING
+                    if consumable
+                        @(cell_ptr-MAX_CAVE_WIDTH) = objects.space
+                } else {
+                    rockford_state = ROCKFORD_MOVING
+                    if consumable {
+                        player_y--
+                        moved = true
+                    }
+                }
+            }
+
+            sub down() {
+                targetcell = @(cell_ptr+MAX_CAVE_WIDTH)
+                consumable = is_consumable_or_space(targetcell)
+                if targetcell==objects.boulder or targetcell==objects.megaboulder {
+                    ; cannot push or snip boulder down so do nothing.
+                    rockford_state = ROCKFORD_MOVING
+                } else if firebutton {
+                    rockford_state = ROCKFORD_PUSHING
+                    if consumable
+                        @(cell_ptr+MAX_CAVE_WIDTH) = objects.space
+                        @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                } else {
+                    rockford_state = ROCKFORD_MOVING
+                    if consumable {
+                        player_y++
+                        moved = true
+                    }
+                }
+            }
+
+            sub is_consumable_or_space(ubyte object) -> bool {
+                ; TODO based on attributes? consumable list?
+                when object {
+                    objects.space, objects.dirt, objects.bonusbg, objects.diamond, objects.diamond2 -> return true
+                    else -> return false
+                }
+            }
         }
 
         sub handle_rockford_animation() {
