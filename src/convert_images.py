@@ -77,8 +77,7 @@ def combine_parts() -> Tuple[Image.Image, int, list[TilesPart]]:
         total_tiles += num_tiles
         palette_offset += 1
     for part in parts:
-        print(
-            f"{part.name} tile offset={part.tile_idx_offset} palette offset={part.palette_offset} ({part.num_tiles} tiles)")
+        print(f"{part.name} tile offset={part.tile_idx_offset} palette offset={part.palette_offset} ({part.num_tiles} tiles)")
     # we assume every palette differs from every other,
     # so every partial image gets its own 16 colors in the final palette
     # not all colors might be used though, but that can't be helped.
@@ -139,7 +138,10 @@ def make_catalog(parts: list[TilesPart]) -> None:
     anim_speeds = []
     rounded = []
     consumable = []
-    explodable = []
+    explodable_spaces = []
+    explodable_diamonds = []
+    isrockford = []
+    isfallable = []
     with open("src/objects.p8", "wt") as out:
         out.write("objects {\n")
         for part in parts:
@@ -172,8 +174,32 @@ def make_catalog(parts: list[TilesPart]) -> None:
                     tile_idx.append(tilenum + part.tile_idx_offset)
                     anim_sizes.append(0)
                 object_id += 1
+                rounded.append('R' in attributes)
+                consumable.append('C' in attributes)
+                explodable_spaces.append("XS" in attributes)
+                explodable_diamonds.append("XD" in attributes)
+                isrockford.append("P" in attributes)
+                isfallable.append("F" in attributes)
         total_num_tiles = object_id
-        assert len(tile_idx) == len(palette_offsets) == len(anim_sizes) == len(anim_speeds) == total_num_tiles
+        assert len(tile_idx) == len(palette_offsets) == len(anim_sizes) == len(anim_speeds) == len(rounded) == len(consumable) == len(explodable_spaces) == len(explodable_diamonds) == len(isrockford) == len(isfallable) == total_num_tiles
+        attributes_flags = []
+        for ix in range(total_num_tiles):
+            attr_flag = ""
+            if anim_sizes[ix] > 0:
+                attr_flag += "ATTRF_ANIMATED|"
+            if consumable[ix]:
+                attr_flag += "ATTRF_CONSUMABLE|"
+            if rounded[ix]:
+                attr_flag += "ATTRF_ROUNDED|"
+            if explodable_spaces[ix]:
+                attr_flag += "ATTRF_EXPLODE_SPACES|"
+            if explodable_diamonds[ix]:
+                attr_flag += "ATTRF_EXPLODE_DIAMONDS|"
+            if isrockford[ix]:
+                attr_flag += "ATTRF_ROCKFORD|"
+            if isfallable[ix]:
+                attr_flag += "ATTRF_FALLABLE|"
+            attributes_flags.append(attr_flag.strip('|') or "0")
         out.write("\n")
         out.write(f"    const ubyte NUM_OBJECTS = {total_num_tiles}\n")
         tile_lo = [t & 255 for t in tile_idx]
@@ -184,6 +210,20 @@ def make_catalog(parts: list[TilesPart]) -> None:
         out.write(f"    ubyte[NUM_OBJECTS] @shared palette_offsets_preshifted = {palette_offsets}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_sizes = {anim_sizes}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_speeds = {anim_speeds}\n")
+        out.write(f"    const ubyte ATTRF_ANIMATED         = %10000000\n")
+        out.write(f"    const ubyte ATTRF_CONSUMABLE       = %00000001\n")
+        out.write(f"    const ubyte ATTRF_ROUNDED          = %00000010\n")
+        out.write(f"    const ubyte ATTRF_EXPLODE_SPACES   = %00000100\n")
+        out.write(f"    const ubyte ATTRF_EXPLODE_DIAMONDS = %00001000\n")
+        out.write(f"    const ubyte ATTRF_FALLABLE         = %00010000\n")
+        out.write(f"    const ubyte ATTRF_ROCKFORD         = %00100000\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared attributes = [\n")
+        for idx, flags in enumerate(attributes_flags):
+            out.write(f"        {flags}")
+            if idx < len(attributes_flags)-1:
+                out.write(',')
+            out.write('\n')
+        out.write(f"    ]\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_frame = 0\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_delay = 0\n")
         out.write("}\n")

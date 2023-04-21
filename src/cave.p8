@@ -91,34 +91,11 @@ cave {
                 if attr & ATTR_SCANNED_FLAG == 0 {
                     ubyte @zp obj = @(cell_ptr)
                     when obj {
-                        objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
-                            if attr==ATTR_FALLING {
-                                handle_falling_object()
-                            } else {
-                                when @(cell_ptr + MAX_CAVE_WIDTH) {
-                                    objects.space -> {
-                                        ; immediately start falling 1 cell down
-                                        fall_down_one_cell()
-                                    }
-                                    objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
-                                        ; stationary boulders and diamonds can roll off something as well
-                                        roll_off()
-                                    }
-                                }
-                            }
-                        }
                         objects.firefly, objects.altfirefly -> {
                             handle_firefly()
                         }
                         objects.butterfly, objects.altbutterfly, objects.stonefly -> {
                             handle_butterfly()
-                        }
-                        objects.rockford,
-                        objects.rockfordleft, objects.rockfordright,
-                        objects.rockfordpushleft, objects.rockfordpushright,
-                        objects.rockfordblink, objects.rockfordtap,
-                        objects.rockfordtapblink, objects.rockfordbirth -> {
-                            handle_rockford()
                         }
                         objects.inboxclosed -> {
                             @(cell_ptr) = objects.inboxblinking
@@ -137,6 +114,25 @@ cave {
                         }
                         ; TODO handle other objects
                     }
+                    if objects.attributes[obj] & objects.ATTRF_ROCKFORD {
+                        handle_rockford()
+                    }
+                    if objects.attributes[obj] & objects.ATTRF_FALLABLE {
+                        if attr==ATTR_FALLING {
+                            handle_falling_object()
+                        } else {
+                            when @(cell_ptr + MAX_CAVE_WIDTH) {
+                                objects.space -> {
+                                    ; immediately start falling 1 cell down
+                                    fall_down_one_cell()
+                                }
+                                objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
+                                    ; stationary boulders and diamonds can roll off something as well
+                                    roll_off()
+                                }
+                            }
+                        }
+                    }
                 }
                 cell_ptr++
                 attr_ptr++
@@ -147,30 +143,28 @@ cave {
         clear_all_scanned()
 
         sub handle_falling_object() {
-            when @(cell_ptr + MAX_CAVE_WIDTH) {
-                objects.space -> {
-                    ; cell below is empty, simply move down and continue falling
-                    fall_down_one_cell()
-                }
-                objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
-                    roll_off()
-                }
-                objects.rockford,
-                objects.rockfordleft, objects.rockfordright,
-                objects.rockfordpushleft, objects.rockfordpushright,
-                objects.rockfordblink, objects.rockfordtap,
-                objects.rockfordtapblink, objects.rockfordbirth -> {
-                    ; TODO explode Rockford
-                    @(attr_ptr) = 0
-                }
-                ; TODO check if another explosive object is below the boulder (firefly, butterfly, ...?)
-                ; TODO check if falling boulder hits a magic wall
-                ; TODO check if falling boulder hits slime
-                else -> {
-                    ; stop falling; it is blocked by something
-                    @(attr_ptr) = 0
-                }
+
+
+            ubyte obj_below = @(cell_ptr + MAX_CAVE_WIDTH)
+            ubyte oattr = objects.attributes[obj_below]
+            if obj_below==objects.space {
+                ; cell below is empty, simply move down and continue falling
+                fall_down_one_cell()
+            } else if oattr & objects.ATTRF_ROUNDED {
+                roll_off()
+            } else if oattr & objects.ATTRF_ROCKFORD {
+                ; TODO explode Rockford
+                @(attr_ptr) = 0
+            } else if oattr & objects.ATTRF_EXPLODE_SPACES {
+                ; TODO explode into spaces
+            } else if oattr & objects.ATTRF_EXPLODE_DIAMONDS {
+                ; TODO explode into diamonds
+            } else {
+                ; stop falling; it is blocked by something
+                @(attr_ptr) = 0
             }
+            ; TODO check if falling boulder hits a magic wall
+            ; TODO check if falling boulder hits permeable slime
         }
 
         sub handle_firefly() {
@@ -358,11 +352,7 @@ cave {
             }
 
             sub is_consumable_or_space(ubyte object) -> bool {
-                ; TODO based on attributes? consumable list?
-                when object {
-                    objects.space, objects.dirt, objects.bonusbg, objects.diamond, objects.diamond2 -> return true
-                    else -> return false
-                }
+                return object == objects.space or objects.attributes[object] & objects.ATTRF_CONSUMABLE
             }
         }
 

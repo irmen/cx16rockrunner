@@ -169,7 +169,7 @@ _loop           lda  (attr_ptr),y
         ; once they reach their target, set it to 0 which will trigger the next animation tile in the sequence
         ; cx16.vpoke(1,$fa00,$f0)
         ubyte idx
-        for idx in 0 to objects.NUM_OBJECTS {
+        for idx in 0 to objects.NUM_OBJECTS-1 {
             if objects.anim_speeds[idx] {
                 cx16.r0L = objects.anim_delay[idx]
                 cx16.r0L++
