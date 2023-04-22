@@ -141,10 +141,10 @@ cave {
                             ; TODO biter behavior
                         }
                         objects.horizexpander -> {
-                            ; TODO horiz expand
+                            handle_horiz_expander()
                         }
                         objects.vertexpander -> {
-                            ; TODO vertical expand
+                            handle_vert_expander()
                         }
                         objects.magicwall -> {
                             ; TODO disable magic wall after certain time
@@ -471,6 +471,26 @@ cave {
             }
         }
 
+        sub handle_horiz_expander() {
+            if @(cell_ptr-1)==objects.space {
+                @(cell_ptr-1) = objects.horizexpander
+            }
+            if @(cell_ptr+1)==objects.space {
+                @(cell_ptr+1) = objects.horizexpander
+                @(attr_ptr+1) |= ATTR_SCANNED_FLAG
+            }
+        }
+
+        sub handle_vert_expander() {
+            if @(cell_ptr-MAX_CAVE_WIDTH)==objects.space {
+                @(cell_ptr-MAX_CAVE_WIDTH) = objects.vertexpander
+            }
+            if @(cell_ptr+MAX_CAVE_WIDTH)==objects.space {
+                @(cell_ptr+MAX_CAVE_WIDTH) = objects.vertexpander
+                @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+            }
+        }
+
         sub anim_ended(ubyte object) -> bool {
             return objects.anim_cycles[object]>0
         }
@@ -548,7 +568,7 @@ cave {
             else if how & objects.ATTRF_EXPLODE_SPACES
                 how = objects.explosion
             else
-                sys.exit(1)
+                return
             restart_anim(how)
             uword @requirezp cell_ptr2 = cells + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
             uword @requirezp attr_ptr2 = cell_attributes + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
@@ -639,11 +659,11 @@ cave {
     }
 
     sub enable_bonusbg() {
-        ubyte tile_lo = objects.tile_lo[objects.space]
-        ubyte tile_hi = objects.tile_hi[objects.space]
-        ubyte palette_offset = objects.palette_offsets_preshifted[objects.space]
-        ubyte animsize = objects.anim_sizes[objects.space]
-        ubyte animspeed = objects.anim_speeds[objects.space]
+        bonusbg_tile_lo = objects.tile_lo[objects.space]
+        bonusbg_tile_hi = objects.tile_hi[objects.space]
+        bonusbg_palette_offset = objects.palette_offsets_preshifted[objects.space]
+        bonusbg_animsize = objects.anim_sizes[objects.space]
+        bonusbg_animspeed = objects.anim_speeds[objects.space]
         objects.tile_lo[objects.space] = objects.tile_lo[objects.bonusbg]
         objects.tile_hi[objects.space] = objects.tile_hi[objects.bonusbg]
         objects.palette_offsets_preshifted[objects.space] = objects.palette_offsets_preshifted[objects.bonusbg]
@@ -655,14 +675,19 @@ cave {
     }
 
     sub disable_bonusbg() {
-        objects.tile_lo[objects.space] = cave.enable_bonusbg.tile_lo
-        objects.tile_hi[objects.space] = cave.enable_bonusbg.tile_hi
-        objects.palette_offsets_preshifted[objects.space] = cave.enable_bonusbg.palette_offset
-        objects.anim_sizes[objects.space] = cave.enable_bonusbg.animsize
-        objects.anim_speeds[objects.space] = cave.enable_bonusbg.animspeed
+        objects.tile_lo[objects.space] = bonusbg_tile_lo
+        objects.tile_hi[objects.space] = bonusbg_tile_hi
+        objects.palette_offsets_preshifted[objects.space] = bonusbg_palette_offset
+        objects.anim_sizes[objects.space] = bonusbg_animsize
+        objects.anim_speeds[objects.space] = bonusbg_animspeed
         objects.anim_frame[objects.space] = 0
         bonusbg_enabled = false
     }
+    ubyte bonusbg_tile_lo
+    ubyte bonusbg_tile_hi
+    ubyte bonusbg_palette_offset
+    ubyte bonusbg_animsize
+    ubyte bonusbg_animspeed
 
     ubyte uncover_cnt
     sub uncover_more() {
