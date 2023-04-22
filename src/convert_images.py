@@ -127,7 +127,6 @@ def get_animspeed(attributes: set[str]) -> int:
             return int(attr.split('=')[1])
     return 0
 
-
 def make_catalog(parts: list[TilesPart]) -> None:
     config = configparser.ConfigParser()
     config.read("images/catalog.ini")
@@ -136,6 +135,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
     palette_offsets = []
     anim_sizes = []
     anim_speeds = []
+    anim_looping = []
     rounded = []
     consumable = []
     explodable_spaces = []
@@ -143,6 +143,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
     isrockford = []
     isfallable = []
     iseatable = []
+    object_ids = {}
     with open("src/objects.p8", "wt") as out:
         out.write("objects {\n")
         for part in parts:
@@ -154,6 +155,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
                     attributes = set(attributes.strip().split(','))
                 else:
                     attributes = set()
+                object_ids[tilename] = object_id
                 out.write(f"    const ubyte {tilename} = {object_id}\n")
                 palette_offsets.append(part.palette_offset)
                 if '-' in offsets:
@@ -166,6 +168,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
                     end = int(end, 16)
                     tile_idx.append(start + part.tile_idx_offset)
                     anim_sizes.append(end - start + 1)
+                    anim_looping.append(False if 'O' in attributes else True)
                 else:
                     # just 1 tile for this object
                     speed = get_animspeed(attributes)
@@ -174,6 +177,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
                     tilenum = int(offsets, 16)
                     tile_idx.append(tilenum + part.tile_idx_offset)
                     anim_sizes.append(0)
+                    anim_looping.append(False)
                 object_id += 1
                 rounded.append("R" in attributes)
                 consumable.append("C" in attributes)
@@ -184,13 +188,13 @@ def make_catalog(parts: list[TilesPart]) -> None:
                 iseatable.append("E" in attributes)
         total_num_tiles = object_id
         assert len(tile_idx) == len(palette_offsets) == len(anim_sizes) == len(anim_speeds) == len(rounded) == \
-               len(consumable) == len(explodable_spaces) == len(explodable_diamonds) == \
+               len(anim_looping) == len(consumable) == len(explodable_spaces) == len(explodable_diamonds) == \
                len(isrockford) == len(isfallable) == len(iseatable) == total_num_tiles
         attributes_flags = []
         for ix in range(total_num_tiles):
             attr_flag = ""
-            if anim_sizes[ix] > 0:
-                attr_flag += "ATTRF_ANIMATED|"
+            if anim_looping[ix]:
+                attr_flag += "ATTRF_LOOPINGANIM|"
             if consumable[ix]:
                 attr_flag += "ATTRF_CONSUMABLE|"
             if rounded[ix]:
@@ -223,7 +227,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
         out.write(f"    const ubyte ATTRF_FALLABLE         = %00010000\n")
         out.write(f"    const ubyte ATTRF_EATABLE          = %00100000\n")
         out.write(f"    const ubyte ATTRF_ROCKFORD         = %01000000\n")
-        out.write(f"    const ubyte ATTRF_ANIMATED         = %10000000\n")
+        out.write(f"    const ubyte ATTRF_LOOPINGANIM      = %10000000\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared attributes = [\n")
         for idx, flags in enumerate(attributes_flags):
             out.write(f"        {flags}")
@@ -233,6 +237,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
         out.write(f"    ]\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_frame = 0\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_delay = 0\n")
+        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_cycles = 0\n")
         out.write("}\n")
 
 

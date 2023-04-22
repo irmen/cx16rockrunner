@@ -35,6 +35,8 @@ cave {
     ubyte rockford_state            ; 0 = no player in the cave at all
     ubyte rockford_face_direction
     ubyte rockford_animation_frame
+    ubyte bonusbg_timer
+    bool bonusbg_enabled
 
     ; The attribute of a cell.
     ; Can only have one of these active attributes at a time, except the FLAG ones.
@@ -50,6 +52,7 @@ cave {
     sub init() {
         sys.memset(cells, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, objects.dirt)
         cover_all()
+        bonusbg_enabled = false
     }
 
     sub set_tile(ubyte col, ubyte row, ubyte id, ubyte attr) {
@@ -71,6 +74,12 @@ cave {
         else
             return
 
+        if bonusbg_enabled {
+            bonusbg_timer--
+            if_z
+                disable_bonusbg()
+        }
+
         uword @requirezp cell_ptr
         uword @requirezp attr_ptr
         ubyte @zp x
@@ -83,7 +92,7 @@ cave {
                 if attr & ATTR_SCANNED_FLAG == 0 {
                     ubyte @zp obj = @(cell_ptr)
                     when obj {
-                        objects.firefly, objects.altfirefly -> {
+                        objects.firefly, objects.altfirefly, objects.bladder -> {
                             handle_firefly()
                         }
                         objects.butterfly, objects.altbutterfly, objects.stonefly -> {
@@ -109,18 +118,37 @@ cave {
                                 @(cell_ptr) = objects.space
                         }
                         objects.diamondbirth -> {
-                            if anim_ended(objects.explosion)
+                            if anim_ended(objects.diamondbirth)
                                 @(cell_ptr) = objects.diamond
                         }
                         objects.steelbirth -> {
-                            if anim_ended(objects.explosion)
+                            if anim_ended(objects.steelbirth)
                                 @(cell_ptr) = objects.steel
                         }
                         objects.boulderbirth -> {
-                            if anim_ended(objects.explosion)
+                            if anim_ended(objects.boulderbirth)
                                 @(cell_ptr) = objects.boulder
                         }
-                        ; TODO handle other objects
+                        objects.amoeba -> {
+                            ; TODO amoeba handling
+                        }
+                        objects.amoebaexplosion -> {
+                            if anim_ended(objects.amoebaexplosion) {
+                                @(cell_ptr) = objects.boulder   ;  TODO sometimes diamonds instead!
+                            }
+                        }
+                        objects.biter -> {
+                            ; TODO biter behavior
+                        }
+                        objects.horizexpander -> {
+                            ; TODO horiz expand
+                        }
+                        objects.vertexpander -> {
+                            ; TODO vertical expand
+                        }
+                        objects.magicwall -> {
+                            ; TODO disable magic wall after certain time
+                        }
                     }
                     if objects.attributes[obj] & objects.ATTRF_ROCKFORD {
                         handle_rockford()
@@ -152,15 +180,15 @@ cave {
 
         sub handle_falling_object() {
             ubyte obj_below = @(cell_ptr + MAX_CAVE_WIDTH)
-            ubyte oattr = objects.attributes[obj_below]
+            ubyte attr_below = objects.attributes[obj_below]
             if obj_below==objects.space {
                 ; cell below is empty, simply move down and continue falling
                 fall_down_one_cell()
-            } else if oattr & objects.ATTRF_ROUNDED {
+            } else if attr_below & objects.ATTRF_ROUNDED {
                 roll_off()
-            } else if oattr & objects.ATTRF_ROCKFORD {
+            } else if attr_below & objects.ATTRF_ROCKFORD {
                 explode(x, y+1)
-            } else if oattr & objects.ATTRF_EXPLODE_SPACES or oattr & objects.ATTRF_EXPLODE_DIAMONDS {
+            } else if attr_below & objects.ATTRF_EXPLODE_SPACES or attr_below & objects.ATTRF_EXPLODE_DIAMONDS {
                 explode(x, y+1)
             } else {
                 ; stop falling; it is blocked by something
@@ -241,6 +269,7 @@ cave {
             ubyte moved = false
 
             ; TODO if cave time runs out, explode and lose a life.
+            ; TODO if x diamonds or points collected, add life + enable_bonusbg()
 
             if lsb(joy) & %0010 == 0 left()
             else if lsb(joy) & %0001 == 0 right()
@@ -265,7 +294,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if @(attr_ptr-1) != ATTR_FALLING {
                         afterboulder = @(cell_ptr-2)
-                        if afterboulder==objects.space or afterboulder==objects.bonusbg {
+                        if afterboulder==objects.space {
                             ; 1/8 chance to push boulder left
                             if math.rnd() < 32 {
                                 @(cell_ptr-2) = targetcell
@@ -298,7 +327,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if @(attr_ptr+1) != ATTR_FALLING {
                         afterboulder = @(cell_ptr+2)
-                        if afterboulder==objects.space or afterboulder==objects.bonusbg {
+                        if afterboulder==objects.space {
                             ; 1/8 chance to push boulder right
                             if math.rnd() < 32 {
                                 @(cell_ptr+2) = targetcell
@@ -443,7 +472,7 @@ cave {
         }
 
         sub anim_ended(ubyte object) -> bool {
-            return objects.anim_frame[object] == objects.anim_sizes[object]-1
+            return objects.anim_cycles[object]>0
         }
 
         sub fall_down_one_cell() {
@@ -519,7 +548,7 @@ cave {
             else if how & objects.ATTRF_EXPLODE_SPACES
                 how = objects.explosion
             else
-                how = objects.explosion
+                sys.exit(1)
             restart_anim(how)
             uword @requirezp cell_ptr2 = cells + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
             uword @requirezp attr_ptr2 = cell_attributes + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
@@ -552,6 +581,7 @@ cave {
             sub explode_cell() {
                 if objects.attributes[@(cell_ptr2)] & objects.ATTRF_ROCKFORD {
                     rockford_state = 0
+                    @(cell_ptr2) = how
                     @(attr_ptr2) |= ATTR_SCANNED_FLAG
                     ; TODO lose a life
                 }
@@ -577,6 +607,8 @@ cave {
 
     sub restart_anim(ubyte object) {
         objects.anim_frame[object] = 0
+        objects.anim_delay[object] = 0
+        objects.anim_cycles[object] = 0
     }
 
     sub clear_all_scanned() {
@@ -604,6 +636,32 @@ cave {
             ptr++
         }
         covered = false
+    }
+
+    sub enable_bonusbg() {
+        ubyte tile_lo = objects.tile_lo[objects.space]
+        ubyte tile_hi = objects.tile_hi[objects.space]
+        ubyte palette_offset = objects.palette_offsets_preshifted[objects.space]
+        ubyte animsize = objects.anim_sizes[objects.space]
+        ubyte animspeed = objects.anim_speeds[objects.space]
+        objects.tile_lo[objects.space] = objects.tile_lo[objects.bonusbg]
+        objects.tile_hi[objects.space] = objects.tile_hi[objects.bonusbg]
+        objects.palette_offsets_preshifted[objects.space] = objects.palette_offsets_preshifted[objects.bonusbg]
+        objects.anim_sizes[objects.space] = objects.anim_sizes[objects.bonusbg]
+        objects.anim_speeds[objects.space] = objects.anim_speeds[objects.bonusbg]
+        objects.attributes[objects.space] |= objects.ATTRF_LOOPINGANIM
+        bonusbg_enabled = true
+        bonusbg_timer = 35
+    }
+
+    sub disable_bonusbg() {
+        objects.tile_lo[objects.space] = cave.enable_bonusbg.tile_lo
+        objects.tile_hi[objects.space] = cave.enable_bonusbg.tile_hi
+        objects.palette_offsets_preshifted[objects.space] = cave.enable_bonusbg.palette_offset
+        objects.anim_sizes[objects.space] = cave.enable_bonusbg.animsize
+        objects.anim_speeds[objects.space] = cave.enable_bonusbg.animspeed
+        objects.anim_frame[objects.space] = 0
+        bonusbg_enabled = false
     }
 
     ubyte uncover_cnt

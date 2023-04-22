@@ -7,6 +7,7 @@
 %import bd1caves
 %import bdcff
 
+
 main {
     ubyte joystick = 0      ; TODO selectable
 
@@ -23,8 +24,10 @@ main {
         bdcff.load_test_cave()
         ;; bd1caves.decode(1)
         cave.cover_all()
+        cave.bonusbg_enabled=false
         screen.set_scroll_pos((cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16/2, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16/2)
         screen.enable()
+        cave.enable_bonusbg()       ; TODO
 
         repeat {
             ; the game loop, executed every frame.
@@ -176,8 +179,13 @@ _loop           lda  (attr_ptr),y
                     cx16.r0L = 0
                     cx16.r1L = objects.anim_frame[idx]
                     cx16.r1L++
-                    if cx16.r1L == objects.anim_sizes[idx]
-                        cx16.r1L = 0
+                    if cx16.r1L == objects.anim_sizes[idx] {
+                        if objects.attributes[idx] & objects.ATTRF_LOOPINGANIM
+                            cx16.r1L = 0
+                        else
+                            cx16.r1L--
+                        objects.anim_cycles[idx]++
+                    }
                     objects.anim_frame[idx] = cx16.r1L
                 }
                 objects.anim_delay[idx] = cx16.r0L
