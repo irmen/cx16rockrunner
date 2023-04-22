@@ -4,11 +4,10 @@ Boulder (working title)
 A Boulder Dash® clone.
 
 Original Boulder Dash® in 1984 by First Star Software, created by Peter Liepa and Chris Gray.
-Current copyright by BBG Entertainment GmbH. https://boulder-dash.com/legal/
+Current copyright by BBG Entertainment GmbH.
 
 
-Modern tile set is from MIT-licensed GDash (https://bitbucket.org/czirkoszoltan/gdash/) 
-and is based on Boulder Rush by Michael Kowalski / Miksoft.
+Modern tile set is from MIT-licensed GDash and is based on Boulder Rush by Michael Kowalski / Miksoft. See below for links.
 
 
 Development Resources
@@ -24,10 +23,13 @@ Development Resources
 * http://www.gratissaugen.de/erbsen/BD-Inside-FAQ.html
 * https://codeincomplete.com/articles/javascript-boulderdash/
 * https://codeincomplete.com/articles/javascript-boulderdash/objects.pdf
+* https://codeincomplete.com/articles/javascript-boulderdash/sounds.pdf
 * https://codeincomplete.com/articles/javascript-boulderdash/raw_cave_data.pdf
 * http://www.bd-fans.com/FanStuff.html#Programming
 * https://github.com/Agetian/bouldercaves
 * https://github.com/irmen/bouldercaves
+* https://bitbucket.org/czirkoszoltan/gdash/
+* https://bitbucket.org/czirkoszoltan/gdash/src/c8390151fb1181a7d8c81df8eab67ab2cbf018e0/src/misc/helptext.cpp#lines-223
 
 
 ### GDash license (for Boulder Rush tileset):

@@ -2,6 +2,7 @@
 
 ; documentation about object behaviors:
 ; https://codeincomplete.com/articles/javascript-boulderdash/objects.pdf
+; https://bitbucket.org/czirkoszoltan/gdash/src/c8390151fb1181a7d8c81df8eab67ab2cbf018e0/src/misc/helptext.cpp#lines-223
 
 cave {
     ; for now we use the original cave dimension limits
@@ -40,6 +41,9 @@ cave {
     ubyte magicwall_timer
     bool magicwall_enabled
     bool magicwall_expired
+    ubyte amoeba_count
+    bool amoeba_enclosed
+    ubyte amoeba_explodes_to
 
     ; The attribute of a cell.
     ; Can only have one of these active attributes at a time, except the FLAG ones.
@@ -63,6 +67,9 @@ cave {
         @(cells + offset) = id
         @(cell_attributes + offset) = attr
     }
+
+    uword @requirezp cell_ptr2      ; free to use
+    uword @requirezp attr_ptr2      ; free to use
 
     sub scan() {
         if covered
@@ -88,8 +95,24 @@ cave {
                 disable_magicwall()
         }
 
-        uword @requirezp cell_ptr
-        uword @requirezp attr_ptr
+        ; does amoeba explode?
+        if amoeba_count > 20 {      ; TODO configurable max amoeba size? 22.7% of the cave size?
+            replace_object(objects.amoeba, objects.amoebaexplosion)
+            restart_anim(objects.amoebaexplosion)
+            amoeba_explodes_to = objects.boulder
+            amoeba_enclosed = false
+        } else if amoeba_enclosed {
+            replace_object(objects.amoeba, objects.amoebaexplosion)
+            restart_anim(objects.amoebaexplosion)
+            amoeba_explodes_to = objects.diamond
+            amoeba_enclosed = false
+        } else {
+            amoeba_enclosed = amoeba_count>0        ; will be scanned
+        }
+        amoeba_count = 0      ; will be scanned
+
+        uword @requirezp cell_ptr       ; warning: never change this in a handler routine!! use cell_ptr2
+        uword @requirezp attr_ptr       ; warning: never change this in a handler routine!! use attr_ptr2
         ubyte @zp x
         ubyte @zp y
         for y in 0 to height-1 {
@@ -100,18 +123,16 @@ cave {
                 if attr & ATTR_SCANNED_FLAG == 0 {
                     ubyte @zp obj = @(cell_ptr)
                     when obj {
-                        objects.firefly, objects.altfirefly, objects.bladder -> {
+                        objects.firefly, objects.altbutterfly -> {
                             handle_firefly()
                         }
-                        objects.butterfly, objects.altbutterfly, objects.stonefly -> {
+                        objects.butterfly, objects.altfirefly, objects.stonefly -> {
                             handle_butterfly()
                         }
                         objects.amoeba -> {
-                            ; TODO amoeba handling
+                            handle_amoeba()
                         }
-                        objects.biter -> {
-                            ; TODO biter behavior
-                        }
+                        ; TODO add remaining object scans here
                         objects.inboxclosed -> {
                             @(cell_ptr) = objects.inboxblinking
                             rockford_birth_time = 120
@@ -144,9 +165,8 @@ cave {
                                 @(cell_ptr) = objects.boulder
                         }
                         objects.amoebaexplosion -> {
-                            if anim_ended(objects.amoebaexplosion) {
-                                @(cell_ptr) = objects.boulder   ;  TODO sometimes diamonds instead!
-                            }
+                            if anim_ended(objects.amoebaexplosion)
+                                @(cell_ptr) = amoeba_explodes_to
                         }
                         objects.horizexpander -> {
                             handle_horiz_expander()
@@ -180,8 +200,9 @@ cave {
             }
         }
 
-        ; TODO amoeba growth etc...
         clear_all_scanned()
+
+        ; various handler subroutines follow:
 
         sub handle_falling_object() {
             ubyte obj_below = @(cell_ptr + MAX_CAVE_WIDTH)
@@ -200,7 +221,7 @@ cave {
                 roll_off()
             } else if attr_below & objects.ATTRF_ROCKFORD {
                 explode(x, y+1)
-            } else if attr_below & objects.ATTRF_EXPLODE_SPACES or attr_below & objects.ATTRF_EXPLODE_DIAMONDS {
+            } else if attr_below & objects.ATTRF_EXPLODABLE {
                 explode(x, y+1)
             } else {
                 ; stop falling; it is blocked by something
@@ -229,12 +250,48 @@ cave {
             }
 
             sub sink_through_slime() {
-                if math.rnd() > 32      ; TODO configuratble permeability
+                if math.rnd() > 32      ; TODO configurable permeability
                     return
                 if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
                     @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = @(cell_ptr)
                     @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
                     @(cell_ptr) = objects.space
+                }
+            }
+        }
+
+        sub handle_amoeba() {
+            amoeba_count++
+            ubyte obj_up = @(cell_ptr-MAX_CAVE_WIDTH)
+            ubyte obj_left = @(cell_ptr-1)
+            ubyte obj_right = @(cell_ptr+1)
+            ubyte obj_down = @(cell_ptr+MAX_CAVE_WIDTH)
+            ubyte direction = math.rnd() & 3
+            bool grow = math.rnd() < 8       ; TODO configurable growth rate
+            if obj_up == objects.space or obj_up == objects.dirt or obj_up == objects.dirt {
+                amoeba_enclosed = false
+                if grow and direction==0 {
+                    @(cell_ptr-MAX_CAVE_WIDTH) = objects.amoeba
+                }
+            }
+            if obj_down == objects.space or obj_down == objects.dirt or obj_down == objects.dirt2 {
+                amoeba_enclosed = false
+                if grow and direction==1 {
+                    @(cell_ptr+MAX_CAVE_WIDTH) = objects.amoeba
+                    @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                }
+            }
+            if obj_left == objects.space or obj_left == objects.dirt or obj_left == objects.dirt2 {
+                amoeba_enclosed = false
+                if grow and direction==2 {
+                    @(cell_ptr-1) = objects.amoeba
+                }
+            }
+            if obj_right == objects.space or obj_right == objects.dirt or obj_right == objects.dirt2 {
+                amoeba_enclosed = false
+                if grow and direction==3 {
+                    @(cell_ptr+1) = objects.amoeba
+                    @(attr_ptr+1) |= ATTR_SCANNED_FLAG
                 }
             }
         }
@@ -310,7 +367,8 @@ cave {
             ubyte moved = false
 
             ; TODO if cave time runs out, explode and lose a life.
-            ; TODO if x diamonds or points collected, add life + enable_bonusbg()
+            ; TODO every 500 points, add a bonus life and enable_bonusbg()
+            ; TODO if reaching the exit, add remaining time to score
 
             if lsb(joy) & %0010 == 0 left()
             else if lsb(joy) & %0001 == 0 right()
@@ -321,10 +379,10 @@ cave {
 
             if moved {
                 @(cell_ptr) = objects.space
-                cell_ptr = cells + (player_y as uword) * MAX_CAVE_WIDTH + player_x
-                attr_ptr = cell_attributes + (player_y as uword) * MAX_CAVE_WIDTH + player_x
-                @(cell_ptr) = objects.rockford      ; exact tile will be set by rockford animation routine
-                @(attr_ptr) = ATTR_SCANNED_FLAG
+                cell_ptr2 = cells + (player_y as uword) * MAX_CAVE_WIDTH + player_x
+                attr_ptr2 = cell_attributes + (player_y as uword) * MAX_CAVE_WIDTH + player_x
+                @(cell_ptr2) = objects.rockford      ; exact tile will be set by rockford animation routine
+                @(attr_ptr2) = ATTR_SCANNED_FLAG
             }
 
             sub left() {
@@ -333,7 +391,7 @@ cave {
                 eatable = rockford_can_eat(targetcell)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     rockford_state = ROCKFORD_PUSHING
-                    if @(attr_ptr-1) != ATTR_FALLING {
+                    if targetcell!=objects.megaboulder and @(attr_ptr-1) != ATTR_FALLING {
                         afterboulder = @(cell_ptr-2)
                         if afterboulder==objects.space {
                             ; 1/8 chance to push boulder left
@@ -366,7 +424,7 @@ cave {
                 eatable = rockford_can_eat(targetcell)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     rockford_state = ROCKFORD_PUSHING
-                    if @(attr_ptr+1) != ATTR_FALLING {
+                    if targetcell!=objects.megaboulder and @(attr_ptr+1) != ATTR_FALLING {
                         afterboulder = @(cell_ptr+2)
                         if afterboulder==objects.space {
                             ; 1/8 chance to push boulder right
@@ -453,32 +511,32 @@ cave {
                     choose_new_anim()
             }
 
-            cell_ptr = cells + (player_y as uword) * MAX_CAVE_WIDTH + player_x
+            cell_ptr2 = cells + (player_y as uword) * MAX_CAVE_WIDTH + player_x
 
             when rockford_state {
                 ROCKFORD_MOVING -> {
                     if rockford_face_direction == ROCKFORD_FACE_LEFT
-                        @(cell_ptr) = objects.rockfordleft
+                        @(cell_ptr2) = objects.rockfordleft
                     else
-                        @(cell_ptr) = objects.rockfordright
+                        @(cell_ptr2) = objects.rockfordright
                 }
                 ROCKFORD_PUSHING -> {
                     if rockford_face_direction == ROCKFORD_FACE_LEFT
-                        @(cell_ptr) = objects.rockfordpushleft
+                        @(cell_ptr2) = objects.rockfordpushleft
                     else
-                        @(cell_ptr) = objects.rockfordpushright
+                        @(cell_ptr2) = objects.rockfordpushright
                 }
                 ROCKFORD_BIRTH -> {
-                    @(cell_ptr) = objects.rockfordbirth
+                    @(cell_ptr2) = objects.rockfordbirth
                     if anim_ended(objects.rockfordbirth) {
                         rockford_state = ROCKFORD_IDLE
                         rockford_animation_frame = 0
                     }
                 }
-                ROCKFORD_TAPPING -> @(cell_ptr) = objects.rockfordtap
-                ROCKFORD_BLINKING -> @(cell_ptr) = objects.rockfordblink
-                ROCKFORD_TAPBLINK -> @(cell_ptr) = objects.rockfordtapblink
-                ROCKFORD_IDLE -> @(cell_ptr) = objects.rockford
+                ROCKFORD_TAPPING -> @(cell_ptr2) = objects.rockfordtap
+                ROCKFORD_BLINKING -> @(cell_ptr2) = objects.rockfordblink
+                ROCKFORD_TAPBLINK -> @(cell_ptr2) = objects.rockfordtapblink
+                ROCKFORD_IDLE -> @(cell_ptr2) = objects.rockford
             }
 
             sub choose_new_anim() {
@@ -603,16 +661,15 @@ cave {
 
         sub explode(ubyte xx, ubyte yy) {
             ubyte what = @(cells + (yy as uword) * MAX_CAVE_WIDTH + xx)
-            ubyte how = objects.attributes[what]
-            if how & objects.ATTRF_EXPLODE_DIAMONDS
-                how = objects.diamondbirth
-            else if how & objects.ATTRF_EXPLODE_SPACES
-                how = objects.explosion
-            else
-                return
+            ubyte how
+            when what {
+                objects.butterfly, objects.altbutterfly -> how = objects.diamondbirth
+                objects.stonefly -> how = objects.boulderbirth
+                else -> how = objects.explosion
+            }
             restart_anim(how)
-            uword @requirezp cell_ptr2 = cells + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
-            uword @requirezp attr_ptr2 = cell_attributes + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
+            cell_ptr2 = cells + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
+            attr_ptr2 = cell_attributes + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
             explode_cell()
             cell_ptr2++
             attr_ptr2++
@@ -735,22 +792,25 @@ cave {
             return
         magicwall_enabled = true
         magicwall_timer = 30        ; TODO configurable
-        uword @zp ptr = cells
-        repeat MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT {
-            if @(ptr)==objects.magicwallinactive
-                @(ptr) = objects.magicwall
-            ptr++
-        }
+        replace_object(objects.magicwallinactive, objects.magicwall)
     }
 
     sub disable_magicwall() {
         magicwall_enabled = false
         magicwall_expired = true
-        uword @zp ptr = cells
+        replace_object(objects.magicwall, objects.magicwallinactive)
+    }
+
+    sub replace_object(ubyte original, ubyte new) {
+        cell_ptr2 = cells
+        attr_ptr2 = cell_attributes
         repeat MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT {
-            if @(ptr)==objects.magicwall
-                @(ptr) = objects.magicwallinactive
-            ptr++
+            if @(cell_ptr2)==original {
+                @(cell_ptr2) = new
+                @(attr_ptr2) |= ATTR_SCANNED_FLAG
+            }
+            cell_ptr2++
+            attr_ptr2++
         }
     }
 

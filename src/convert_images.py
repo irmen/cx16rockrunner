@@ -138,8 +138,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
     anim_looping = []
     rounded = []
     consumable = []
-    explodable_spaces = []
-    explodable_diamonds = []
+    explodable = []
     isrockford = []
     isfallable = []
     iseatable = []
@@ -181,14 +180,13 @@ def make_catalog(parts: list[TilesPart]) -> None:
                 object_id += 1
                 rounded.append("R" in attributes)
                 consumable.append("C" in attributes)
-                explodable_spaces.append("XS" in attributes)
-                explodable_diamonds.append("XD" in attributes)
+                explodable.append("X" in attributes)
                 isrockford.append("P" in attributes)
                 isfallable.append("F" in attributes)
                 iseatable.append("E" in attributes)
         total_num_tiles = object_id
         assert len(tile_idx) == len(palette_offsets) == len(anim_sizes) == len(anim_speeds) == len(rounded) == \
-               len(anim_looping) == len(consumable) == len(explodable_spaces) == len(explodable_diamonds) == \
+               len(anim_looping) == len(consumable) == len(explodable) == \
                len(isrockford) == len(isfallable) == len(iseatable) == total_num_tiles
         attributes_flags = []
         for ix in range(total_num_tiles):
@@ -199,10 +197,8 @@ def make_catalog(parts: list[TilesPart]) -> None:
                 attr_flag += "ATTRF_CONSUMABLE|"
             if rounded[ix]:
                 attr_flag += "ATTRF_ROUNDED|"
-            if explodable_spaces[ix]:
-                attr_flag += "ATTRF_EXPLODE_SPACES|"
-            if explodable_diamonds[ix]:
-                attr_flag += "ATTRF_EXPLODE_DIAMONDS|"
+            if explodable[ix]:
+                attr_flag += "ATTRF_EXPLODABLE|"
             if isrockford[ix]:
                 attr_flag += "ATTRF_ROCKFORD|"
             if isfallable[ix]:
@@ -220,10 +216,9 @@ def make_catalog(parts: list[TilesPart]) -> None:
         out.write(f"    ubyte[NUM_OBJECTS] @shared palette_offsets_preshifted = {palette_offsets}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_sizes = {anim_sizes}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_speeds = {anim_speeds}\n")
-        out.write(f"    const ubyte ATTRF_CONSUMABLE       = %00000001\n")
-        out.write(f"    const ubyte ATTRF_ROUNDED          = %00000010\n")
-        out.write(f"    const ubyte ATTRF_EXPLODE_SPACES   = %00000100\n")
-        out.write(f"    const ubyte ATTRF_EXPLODE_DIAMONDS = %00001000\n")
+        out.write(f"    const ubyte ATTRF_CONSUMABLE       = %00000010\n")
+        out.write(f"    const ubyte ATTRF_ROUNDED          = %00000100\n")
+        out.write(f"    const ubyte ATTRF_EXPLODABLE       = %00001000\n")
         out.write(f"    const ubyte ATTRF_FALLABLE         = %00010000\n")
         out.write(f"    const ubyte ATTRF_EATABLE          = %00100000\n")
         out.write(f"    const ubyte ATTRF_ROCKFORD         = %01000000\n")

@@ -27,6 +27,8 @@ main {
         cave.bonusbg_enabled=false
         cave.magicwall_enabled=false
         cave.magicwall_expired=false
+        cave.amoeba_count=0
+        cave.amoeba_enclosed=false
         screen.set_scroll_pos((cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16/2, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16/2)
         screen.enable()
 
