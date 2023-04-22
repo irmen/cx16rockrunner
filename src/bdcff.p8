@@ -50,6 +50,7 @@ bdcff {
             'B' -> return objects.butterfly
             'r' -> return objects.boulder
             'd' -> return objects.diamond
+            'D' -> return objects.diamond2
             'P' -> return objects.inboxclosed
             'a' -> return objects.amoeba
             'F' -> return objects.voodoo
@@ -83,16 +84,16 @@ bdcff {
 .text "W        dr r                          W"
 .text "W       rd  d                          W"
 .text "W       r   r                          W"
-.text "W      d  P d                          W"
+.text "W      d    d                          W"
 .text "W     r     r         Q  Q  Q  Q       W"
 .text "W......................................W"
 .text "W          C  C  C  C                  W"
 .text "W                                      W"
 .text "Wssss...sssssssssssssssssssssssssssssssW"
-.text "W                                      W"
-.text "W                                      W"
-.text "W      .r.    .d.                      W"
-.text "W      ...    ...                      W"
+.text "W          P                           W"
+.text "W                        rrr%%%ddDD    W"
+.text "W      .r.    .d.        ..........    W"
+.text "W      ...    ...        ssssssssss    W"
 .text "W      . .   .. .x.                    W"
 .text "W      . .   v. .                      W"
 .text "W      . .   .. .                      W"

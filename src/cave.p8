@@ -37,6 +37,9 @@ cave {
     ubyte rockford_animation_frame
     ubyte bonusbg_timer
     bool bonusbg_enabled
+    ubyte magicwall_timer
+    bool magicwall_enabled
+    bool magicwall_expired
 
     ; The attribute of a cell.
     ; Can only have one of these active attributes at a time, except the FLAG ones.
@@ -79,6 +82,11 @@ cave {
             if_z
                 disable_bonusbg()
         }
+        if magicwall_enabled {
+            magicwall_timer--
+            if_z
+                disable_magicwall()
+        }
 
         uword @requirezp cell_ptr
         uword @requirezp attr_ptr
@@ -97,6 +105,12 @@ cave {
                         }
                         objects.butterfly, objects.altbutterfly, objects.stonefly -> {
                             handle_butterfly()
+                        }
+                        objects.amoeba -> {
+                            ; TODO amoeba handling
+                        }
+                        objects.biter -> {
+                            ; TODO biter behavior
                         }
                         objects.inboxclosed -> {
                             @(cell_ptr) = objects.inboxblinking
@@ -129,25 +143,16 @@ cave {
                             if anim_ended(objects.boulderbirth)
                                 @(cell_ptr) = objects.boulder
                         }
-                        objects.amoeba -> {
-                            ; TODO amoeba handling
-                        }
                         objects.amoebaexplosion -> {
                             if anim_ended(objects.amoebaexplosion) {
                                 @(cell_ptr) = objects.boulder   ;  TODO sometimes diamonds instead!
                             }
-                        }
-                        objects.biter -> {
-                            ; TODO biter behavior
                         }
                         objects.horizexpander -> {
                             handle_horiz_expander()
                         }
                         objects.vertexpander -> {
                             handle_vert_expander()
-                        }
-                        objects.magicwall -> {
-                            ; TODO disable magic wall after certain time
                         }
                     }
                     if objects.attributes[obj] & objects.ATTRF_ROCKFORD {
@@ -184,6 +189,13 @@ cave {
             if obj_below==objects.space {
                 ; cell below is empty, simply move down and continue falling
                 fall_down_one_cell()
+            } else if obj_below==objects.magicwallinactive {
+                enable_magicwall()
+                sink_through_magicwall()
+            } else if obj_below==objects.magicwall {
+                sink_through_magicwall()
+            } else if obj_below==objects.slime {
+                sink_through_slime()
             } else if attr_below & objects.ATTRF_ROUNDED {
                 roll_off()
             } else if attr_below & objects.ATTRF_ROCKFORD {
@@ -194,8 +206,37 @@ cave {
                 ; stop falling; it is blocked by something
                 @(attr_ptr) = 0
             }
-            ; TODO check if falling boulder hits a magic wall
-            ; TODO check if falling boulder hits permeable slime
+
+            sub sink_through_magicwall() {
+                if magicwall_expired {
+                    @(cell_ptr) = objects.space
+                } else {
+                    if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
+                        ; fall through the magic wall
+                        ubyte new_object
+                        when @(cell_ptr) {
+                            objects.diamond -> new_object = objects.boulder
+                            objects.diamond2 -> new_object = objects.megaboulder
+                            objects.boulder -> new_object = objects.diamond
+                            objects.megaboulder -> new_object = objects.diamond2
+                            else -> return
+                        }
+                        @(cell_ptr) = objects.space
+                        @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = new_object
+                        @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                    }
+                }
+            }
+
+            sub sink_through_slime() {
+                if math.rnd() > 32      ; TODO configuratble permeability
+                    return
+                if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
+                    @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = @(cell_ptr)
+                    @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                    @(cell_ptr) = objects.space
+                }
+            }
         }
 
         sub handle_firefly() {
@@ -688,6 +729,30 @@ cave {
     ubyte bonusbg_palette_offset
     ubyte bonusbg_animsize
     ubyte bonusbg_animspeed
+
+    sub enable_magicwall() {
+        if magicwall_expired
+            return
+        magicwall_enabled = true
+        magicwall_timer = 30        ; TODO configurable
+        uword @zp ptr = cells
+        repeat MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT {
+            if @(ptr)==objects.magicwallinactive
+                @(ptr) = objects.magicwall
+            ptr++
+        }
+    }
+
+    sub disable_magicwall() {
+        magicwall_enabled = false
+        magicwall_expired = true
+        uword @zp ptr = cells
+        repeat MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT {
+            if @(ptr)==objects.magicwall
+                @(ptr) = objects.magicwallinactive
+            ptr++
+        }
+    }
 
     ubyte uncover_cnt
     sub uncover_more() {
