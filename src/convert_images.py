@@ -142,6 +142,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
     explodable_diamonds = []
     isrockford = []
     isfallable = []
+    iseatable = []
     with open("src/objects.p8", "wt") as out:
         out.write("objects {\n")
         for part in parts:
@@ -174,14 +175,17 @@ def make_catalog(parts: list[TilesPart]) -> None:
                     tile_idx.append(tilenum + part.tile_idx_offset)
                     anim_sizes.append(0)
                 object_id += 1
-                rounded.append('R' in attributes)
-                consumable.append('C' in attributes)
+                rounded.append("R" in attributes)
+                consumable.append("C" in attributes)
                 explodable_spaces.append("XS" in attributes)
                 explodable_diamonds.append("XD" in attributes)
                 isrockford.append("P" in attributes)
                 isfallable.append("F" in attributes)
+                iseatable.append("E" in attributes)
         total_num_tiles = object_id
-        assert len(tile_idx) == len(palette_offsets) == len(anim_sizes) == len(anim_speeds) == len(rounded) == len(consumable) == len(explodable_spaces) == len(explodable_diamonds) == len(isrockford) == len(isfallable) == total_num_tiles
+        assert len(tile_idx) == len(palette_offsets) == len(anim_sizes) == len(anim_speeds) == len(rounded) == \
+               len(consumable) == len(explodable_spaces) == len(explodable_diamonds) == \
+               len(isrockford) == len(isfallable) == len(iseatable) == total_num_tiles
         attributes_flags = []
         for ix in range(total_num_tiles):
             attr_flag = ""
@@ -199,6 +203,8 @@ def make_catalog(parts: list[TilesPart]) -> None:
                 attr_flag += "ATTRF_ROCKFORD|"
             if isfallable[ix]:
                 attr_flag += "ATTRF_FALLABLE|"
+            if iseatable[ix]:
+                attr_flag += "ATTRF_EATABLE|"
             attributes_flags.append(attr_flag.strip('|') or "0")
         out.write("\n")
         out.write(f"    const ubyte NUM_OBJECTS = {total_num_tiles}\n")
@@ -210,13 +216,14 @@ def make_catalog(parts: list[TilesPart]) -> None:
         out.write(f"    ubyte[NUM_OBJECTS] @shared palette_offsets_preshifted = {palette_offsets}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_sizes = {anim_sizes}\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_speeds = {anim_speeds}\n")
-        out.write(f"    const ubyte ATTRF_ANIMATED         = %10000000\n")
         out.write(f"    const ubyte ATTRF_CONSUMABLE       = %00000001\n")
         out.write(f"    const ubyte ATTRF_ROUNDED          = %00000010\n")
         out.write(f"    const ubyte ATTRF_EXPLODE_SPACES   = %00000100\n")
         out.write(f"    const ubyte ATTRF_EXPLODE_DIAMONDS = %00001000\n")
         out.write(f"    const ubyte ATTRF_FALLABLE         = %00010000\n")
-        out.write(f"    const ubyte ATTRF_ROCKFORD         = %00100000\n")
+        out.write(f"    const ubyte ATTRF_EATABLE          = %00100000\n")
+        out.write(f"    const ubyte ATTRF_ROCKFORD         = %01000000\n")
+        out.write(f"    const ubyte ATTRF_ANIMATED         = %10000000\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared attributes = [\n")
         for idx, flags in enumerate(attributes_flags):
             out.write(f"        {flags}")

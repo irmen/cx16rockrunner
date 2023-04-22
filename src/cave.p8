@@ -31,8 +31,8 @@ cave {
     ubyte scan_frame
     ubyte player_x
     ubyte player_y
-    byte rockford_birth_time       ; in frames, default = 120  (2 seconds)
-    ubyte rockford_state
+    byte rockford_birth_time        ; in frames, default = 120  (2 seconds)
+    ubyte rockford_state            ; 0 = no player in the cave at all
     ubyte rockford_face_direction
     ubyte rockford_animation_frame
 
@@ -58,15 +58,6 @@ cave {
         @(cell_attributes + offset) = attr
     }
 
-
-;    sub get_tile(ubyte col, ubyte row, ubyte id) -> ubyte {
-;        return @(cells + (row as uword)*MAX_CAVE_WIDTH + col)
-;    }
-;
-;    sub get_attr(ubyte col, ubyte row) -> ubyte {
-;        return @(cell_attributes + (row as uword)*MAX_CAVE_WIDTH + col)
-;    }
-
     sub scan() {
         if covered
             return      ; we do nothing as long as the cave is still (partially) covered.
@@ -80,12 +71,13 @@ cave {
         else
             return
 
-        ; TODO finish cavescan
+        uword @requirezp cell_ptr
+        uword @requirezp attr_ptr
+        ubyte @zp x
         ubyte @zp y
         for y in 0 to height-1 {
-            uword @requirezp cell_ptr = cells + (y as uword) * MAX_CAVE_WIDTH
-            uword @requirezp attr_ptr = cell_attributes + (y as uword) * MAX_CAVE_WIDTH
-            ubyte @zp x
+            cell_ptr = cells + (y as uword) * MAX_CAVE_WIDTH
+            attr_ptr = cell_attributes + (y as uword) * MAX_CAVE_WIDTH
             for x in 0 to width-1 {
                 ubyte @zp attr = @(attr_ptr)
                 if attr & ATTR_SCANNED_FLAG == 0 {
@@ -111,6 +103,22 @@ cave {
                                 player_x = x
                                 player_y = y
                             }
+                        }
+                        objects.explosion -> {
+                            if anim_ended(objects.explosion)
+                                @(cell_ptr) = objects.space
+                        }
+                        objects.diamondbirth -> {
+                            if anim_ended(objects.explosion)
+                                @(cell_ptr) = objects.diamond
+                        }
+                        objects.steelbirth -> {
+                            if anim_ended(objects.explosion)
+                                @(cell_ptr) = objects.steel
+                        }
+                        objects.boulderbirth -> {
+                            if anim_ended(objects.explosion)
+                                @(cell_ptr) = objects.boulder
                         }
                         ; TODO handle other objects
                     }
@@ -139,12 +147,10 @@ cave {
             }
         }
 
-        ; TODO amoeba growth
+        ; TODO amoeba growth etc...
         clear_all_scanned()
 
         sub handle_falling_object() {
-
-
             ubyte obj_below = @(cell_ptr + MAX_CAVE_WIDTH)
             ubyte oattr = objects.attributes[obj_below]
             if obj_below==objects.space {
@@ -153,12 +159,9 @@ cave {
             } else if oattr & objects.ATTRF_ROUNDED {
                 roll_off()
             } else if oattr & objects.ATTRF_ROCKFORD {
-                ; TODO explode Rockford
-                @(attr_ptr) = 0
-            } else if oattr & objects.ATTRF_EXPLODE_SPACES {
-                ; TODO explode into spaces
-            } else if oattr & objects.ATTRF_EXPLODE_DIAMONDS {
-                ; TODO explode into diamonds
+                explode(x, y+1)
+            } else if oattr & objects.ATTRF_EXPLODE_SPACES or oattr & objects.ATTRF_EXPLODE_DIAMONDS {
+                explode(x, y+1)
             } else {
                 ; stop falling; it is blocked by something
                 @(attr_ptr) = 0
@@ -168,9 +171,14 @@ cave {
         }
 
         sub handle_firefly() {
-            ; Movement rules: if it touches Rockford or Amoeba it explodes  TODO implement explosion
+            ; Movement rules: if it touches Rockford or Amoeba it explodes
             ; tries to rotate 90 degrees left and move to empty cell in new or original direction
             ; if not possible rotate 90 right and wait for next update
+
+            if touches_rockford_or_amoeba(x, y) {
+                explode(x, y)
+                return
+            }
             ubyte new_dir = rotate_90_left(attr)
             uword target_cell_ptr = get_cell_ptr_for_direction(new_dir)
             uword target_attr_ptr = get_attr_ptr_for_direction(new_dir)
@@ -194,9 +202,13 @@ cave {
         }
 
         sub handle_butterfly() {
-            ; Movement rules: if it touches Rockford or Amoeba it explodes TODO implement explosion
+            ; Movement rules: if it touches Rockford or Amoeba it explodes
             ; tries to rotate 90 degrees right and move to empty cell in new or original direction
             ; if not possible rotate 90 left and wait for next update
+            if touches_rockford_or_amoeba(x, y) {
+                explode(x, y)
+                return
+            }
             ubyte new_dir = rotate_90_right(attr)
             uword target_cell_ptr = get_cell_ptr_for_direction(new_dir)
             uword target_attr_ptr = get_attr_ptr_for_direction(new_dir)
@@ -224,9 +236,11 @@ cave {
             uword joy = cx16.joystick_get2(main.joystick)
             bool firebutton = joy & %1100000001100000 != %1100000001100000
             ubyte targetcell
-            bool consumable
+            bool eatable
             ubyte afterboulder
             ubyte moved = false
+
+            ; TODO if cave time runs out, explode and lose a life.
 
             if lsb(joy) & %0010 == 0 left()
             else if lsb(joy) & %0001 == 0 right()
@@ -246,7 +260,7 @@ cave {
             sub left() {
                 rockford_face_direction = ROCKFORD_FACE_LEFT
                 targetcell = @(cell_ptr-1)
-                consumable = is_consumable_or_space(targetcell)
+                eatable = rockford_can_eat(targetcell)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     rockford_state = ROCKFORD_PUSHING
                     if @(attr_ptr-1) != ATTR_FALLING {
@@ -265,11 +279,11 @@ cave {
                     }
                 } else if firebutton {
                     rockford_state = ROCKFORD_PUSHING
-                    if consumable
+                    if eatable
                         @(cell_ptr-1) = objects.space
                 } else {
                     rockford_state = ROCKFORD_MOVING
-                    if consumable {
+                    if eatable {
                         player_x--
                         moved = true
                     }
@@ -279,7 +293,7 @@ cave {
             sub right() {
                 rockford_face_direction = ROCKFORD_FACE_RIGHT
                 targetcell = @(cell_ptr+1)
-                consumable = is_consumable_or_space(targetcell)
+                eatable = rockford_can_eat(targetcell)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     rockford_state = ROCKFORD_PUSHING
                     if @(attr_ptr+1) != ATTR_FALLING {
@@ -300,12 +314,12 @@ cave {
                     }
                 } else if firebutton {
                     rockford_state = ROCKFORD_PUSHING
-                    if consumable
+                    if eatable
                         @(cell_ptr+1) = objects.space
                         @(attr_ptr+1) |= ATTR_SCANNED_FLAG
                 } else {
                     rockford_state = ROCKFORD_MOVING
-                    if consumable {
+                    if eatable {
                         player_x++
                         moved = true
                     }
@@ -314,17 +328,17 @@ cave {
 
             sub up() {
                 targetcell = @(cell_ptr-MAX_CAVE_WIDTH)
-                consumable = is_consumable_or_space(targetcell)
+                eatable = rockford_can_eat(targetcell)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     ; cannot push or snip boulder up so do nothing.
                     rockford_state = ROCKFORD_MOVING
                 } else if firebutton {
                     rockford_state = ROCKFORD_PUSHING
-                    if consumable
+                    if eatable
                         @(cell_ptr-MAX_CAVE_WIDTH) = objects.space
                 } else {
                     rockford_state = ROCKFORD_MOVING
-                    if consumable {
+                    if eatable {
                         player_y--
                         moved = true
                     }
@@ -333,26 +347,26 @@ cave {
 
             sub down() {
                 targetcell = @(cell_ptr+MAX_CAVE_WIDTH)
-                consumable = is_consumable_or_space(targetcell)
+                eatable = rockford_can_eat(targetcell)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     ; cannot push or snip boulder down so do nothing.
                     rockford_state = ROCKFORD_MOVING
                 } else if firebutton {
                     rockford_state = ROCKFORD_PUSHING
-                    if consumable
+                    if eatable
                         @(cell_ptr+MAX_CAVE_WIDTH) = objects.space
                         @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
                 } else {
                     rockford_state = ROCKFORD_MOVING
-                    if consumable {
+                    if eatable {
                         player_y++
                         moved = true
                     }
                 }
             }
 
-            sub is_consumable_or_space(ubyte object) -> bool {
-                return object == objects.space or objects.attributes[object] & objects.ATTRF_CONSUMABLE
+            sub rockford_can_eat(ubyte object) -> bool {
+                return objects.attributes[object] & objects.ATTRF_EATABLE
             }
         }
 
@@ -386,7 +400,7 @@ cave {
                 }
                 ROCKFORD_BIRTH -> {
                     @(cell_ptr) = objects.rockfordbirth
-                    if objects.anim_frame[objects.rockfordbirth] == objects.anim_sizes[objects.rockfordbirth]-1 {
+                    if anim_ended(objects.rockfordbirth) {
                         rockford_state = ROCKFORD_IDLE
                         rockford_animation_frame = 0
                     }
@@ -426,6 +440,10 @@ cave {
                     }
                 }
             }
+        }
+
+        sub anim_ended(ubyte object) -> bool {
+            return objects.anim_frame[object] == objects.anim_sizes[object]-1
         }
 
         sub fall_down_one_cell() {
@@ -491,6 +509,69 @@ cave {
                 ATTR_MOVING_RIGHT -> return ATTR_MOVING_DOWN
                 else -> return dir
             }
+        }
+
+        sub explode(ubyte xx, ubyte yy) {
+            ubyte what = @(cells + (yy as uword) * MAX_CAVE_WIDTH + xx)
+            ubyte how = objects.attributes[what]
+            if how & objects.ATTRF_EXPLODE_DIAMONDS
+                how = objects.diamondbirth
+            else if how & objects.ATTRF_EXPLODE_SPACES
+                how = objects.explosion
+            else
+                how = objects.explosion
+            restart_anim(how)
+            uword @requirezp cell_ptr2 = cells + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
+            uword @requirezp attr_ptr2 = cell_attributes + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
+            explode_cell()
+            cell_ptr2++
+            attr_ptr2++
+            explode_cell()
+            cell_ptr2++
+            attr_ptr2++
+            explode_cell()
+            cell_ptr2 += MAX_CAVE_WIDTH - 2
+            attr_ptr2 += MAX_CAVE_WIDTH - 2
+            explode_cell()
+            cell_ptr2++
+            attr_ptr2++
+            explode_cell()
+            cell_ptr2++
+            attr_ptr2++
+            explode_cell()
+            cell_ptr2 += MAX_CAVE_WIDTH - 2
+            attr_ptr2 += MAX_CAVE_WIDTH - 2
+            explode_cell()
+            cell_ptr2++
+            attr_ptr2++
+            explode_cell()
+            cell_ptr2++
+            attr_ptr2++
+            explode_cell()
+
+            sub explode_cell() {
+                if objects.attributes[@(cell_ptr2)] & objects.ATTRF_ROCKFORD {
+                    rockford_state = 0
+                    @(attr_ptr2) |= ATTR_SCANNED_FLAG
+                    ; TODO lose a life
+                }
+                if objects.attributes[@(cell_ptr2)] & objects.ATTRF_CONSUMABLE {
+                    @(cell_ptr2) = how
+                    @(attr_ptr2) |= ATTR_SCANNED_FLAG
+                }
+            }
+        }
+
+        sub touches_rockford_or_amoeba(ubyte xx, ubyte yy) -> bool {
+            uword @requirezp touch_ptr = cells + (yy as uword) * MAX_CAVE_WIDTH + xx
+            ubyte obj_up = @(touch_ptr-MAX_CAVE_WIDTH)
+            ubyte obj_left = @(touch_ptr-1)
+            ubyte obj_right = @(touch_ptr+1)
+            ubyte obj_down = @(touch_ptr+MAX_CAVE_WIDTH)
+            return obj_up==objects.amoeba or objects.attributes[obj_up] & objects.ATTRF_ROCKFORD
+                or obj_down==objects.amoeba or objects.attributes[obj_down] & objects.ATTRF_ROCKFORD
+                or obj_left==objects.amoeba or objects.attributes[obj_left] & objects.ATTRF_ROCKFORD
+                or obj_right==objects.amoeba or objects.attributes[obj_right] & objects.ATTRF_ROCKFORD
         }
     }
 
