@@ -3,15 +3,15 @@
 bdcff {
 
     sub load_test_cave() {
-
-        cave.player_x = 0
-        cave.player_y = 0
         cave.name_ptr = "test cave"
         cave.description_ptr = "test cave description"
-        cave.width = 40        ; hardcoded for these caves, also intermissions
-        cave.height = 22       ; hardcoded for these caves, also intermissions
         cave.intermission = false
-        cave.rockford_state = 0
+        cave.width = 40
+        cave.height = 22
+        cave.cave_time_sec = 255
+        cave.magicwall_millingtime_sec = 20
+        cave.amoeba_slow_time_sec = 60
+        cave.diamonds_needed = 10
 
         uword @zp ptr = &cave_data
         ubyte x
@@ -92,13 +92,13 @@ bdcff {
 .text "Wssss...sssssssssssssssssssssssssssssssW"
 .text "W          P                           W"
 .text "W                        rrr%%%ddDD    W"
-.text "W      .r.    .d.        ..........    W"
-.text "W      ...    ...        ssssssssss    W"
-.text "W      . .   .. .x.        W.aa. W     W"
-.text "W      . .   v. .          W.... W     W"
-.text "W      . .   .. .          W     W     W"
-.text "W      . .    . .          WWWWWWW     W"
-.text "W      .C.    .Q.                      W"
+.text "W      .r.    .d.        ......d...    W"
+.text "W      ...    ...        MMMMMMMMMM    W"
+.text "W      . .   .. .x.                    W"
+.text "W      . .   v. .                      W"
+.text "W      . .   .. .         W  aa  W     W"
+.text "W      . .    . .         WWWWWWWW     H"
+.text "W      .C.    .Q.                      X"
 .text "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
 .byte 0
     }}

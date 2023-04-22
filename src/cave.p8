@@ -6,7 +6,7 @@
 
 cave {
     ; for now we use the original cave dimension limits
-    const ubyte MAX_CAVE_WIDTH = 40
+    const uword MAX_CAVE_WIDTH = 40             ; word here to avoid having to cast to word all the time
     const ubyte MAX_CAVE_HEIGHT = 22
     const ubyte VISIBLE_CELLS_H = 320/16
     const ubyte VISIBLE_CELLS_V = 240/16
@@ -21,13 +21,28 @@ cave {
     const ubyte ROCKFORD_FACE_LEFT = 1
     const ubyte ROCKFORD_FACE_RIGHT = 2
 
+    const ubyte AMOEBA_SLOW_GROWTH = 8      ; 3.1%
+    const ubyte AMOEBA_FAST_GROWTH = 64     ; 25%
+
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
-    uword name_ptr
-    uword description_ptr
     ubyte width = MAX_CAVE_WIDTH
     ubyte height = MAX_CAVE_HEIGHT
+    uword name_ptr
+    uword description_ptr
     bool intermission
+
+    ubyte cave_number
+    ubyte magicwall_millingtime_sec
+    ubyte amoeba_slow_time_sec
+    ubyte initial_diamond_value
+    ubyte extra_diamond_value
+    ubyte diamonds_needed
+    ubyte cave_time_sec
+    ubyte color_background1
+    ubyte color_background2
+    ubyte color_foreground
+
     bool covered
     ubyte scan_frame
     ubyte player_x
@@ -36,14 +51,26 @@ cave {
     ubyte rockford_state            ; 0 = no player in the cave at all
     ubyte rockford_face_direction
     ubyte rockford_animation_frame
-    ubyte bonusbg_timer
+    uword bonusbg_timer
     bool bonusbg_enabled
-    ubyte magicwall_timer
+    uword magicwall_timer
     bool magicwall_enabled
     bool magicwall_expired
     ubyte amoeba_count
     bool amoeba_enclosed
     ubyte amoeba_explodes_to
+    ubyte amoeba_growth_rate
+    uword amoeba_slow_timer
+    ubyte num_diamonds
+    ubyte num_lives
+    uword cave_time_left            ; frames
+    bool exit_reached
+    bool playing_demo
+    bool joy_fire
+    bool joy_up
+    bool joy_down
+    bool joy_left
+    bool joy_right
 
     ; The attribute of a cell.
     ; Can only have one of these active attributes at a time, except the FLAG ones.
@@ -59,11 +86,40 @@ cave {
     sub init() {
         sys.memset(cells, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, objects.dirt)
         cover_all()
+    }
+
+    sub restart_level() {
+        cover_all()
         bonusbg_enabled = false
+        magicwall_enabled = false
+        magicwall_expired = false
+        playing_demo = false
+        amoeba_count = 0
+        num_diamonds = 0
+        amoeba_enclosed = false
+        amoeba_growth_rate = AMOEBA_SLOW_GROWTH
+        amoeba_slow_timer = (amoeba_slow_time_sec as uword) * 60
+        exit_reached = false
+        rockford_state = 0
+        scan_frame = 0
+        cave_time_left = (cave_time_sec as uword) * 60
+        ; find the initial player position
+        ubyte x
+        ubyte y
+        for y in 0 to height-1 {
+            for x in 0 to width-1 {
+                cx16.r0L = @(cells + y*MAX_CAVE_WIDTH + x)
+                if cx16.r0L == objects.inboxclosed or cx16.r0L == objects.inboxblinking {
+                    player_x = x
+                    player_y = y
+                    break
+                }
+            }
+        }
     }
 
     sub set_tile(ubyte col, ubyte row, ubyte id, ubyte attr) {
-        uword offset = (row as uword)*MAX_CAVE_WIDTH + col
+        uword offset = row*MAX_CAVE_WIDTH + col
         @(cells + offset) = id
         @(cell_attributes + offset) = attr
     }
@@ -72,11 +128,40 @@ cave {
     uword @requirezp attr_ptr2      ; free to use
 
     sub scan() {
-        if covered
-            return      ; we do nothing as long as the cave is still (partially) covered.
+        if covered {
+            uncover_more()
+            return      ; we do nothing else as long as the cave is still (partially) covered.
+        }
 
         rockford_birth_time--
         handle_rockford_animation()
+
+        if bonusbg_enabled {
+            bonusbg_timer--
+            if bonusbg_timer==0
+                disable_bonusbg()
+        }
+        if magicwall_enabled {
+            magicwall_timer--
+            if magicwall_timer==0
+                disable_magicwall()
+        }
+
+        if exit_reached {
+            ; TODO do cave exit stuff
+            return
+        }
+
+        cave_time_left--
+        if cave_time_left==0 {
+            if rockford_state {
+                ; explode (and lose a life in the process)
+                explode(player_x, player_y)
+            }
+        }
+        amoeba_slow_timer--
+        if amoeba_slow_timer==0
+            amoeba_growth_rate = AMOEBA_FAST_GROWTH
 
         scan_frame++
         if scan_frame==7            ; cave scan is done once every 7 frames TODO configurable
@@ -84,19 +169,10 @@ cave {
         else
             return
 
-        if bonusbg_enabled {
-            bonusbg_timer--
-            if_z
-                disable_bonusbg()
-        }
-        if magicwall_enabled {
-            magicwall_timer--
-            if_z
-                disable_magicwall()
-        }
+        ; TODO every 500 points, add a bonus life and enable_bonusbg()
 
         ; does amoeba explode?
-        if amoeba_count > 20 {      ; TODO configurable max amoeba size? 22.7% of the cave size?
+        if amoeba_count > 200 {      ; TODO configurable max amoeba size? 22.7% of the cave size?
             replace_object(objects.amoeba, objects.amoebaexplosion)
             restart_anim(objects.amoebaexplosion)
             amoeba_explodes_to = objects.boulder
@@ -116,8 +192,8 @@ cave {
         ubyte @zp x
         ubyte @zp y
         for y in 0 to height-1 {
-            cell_ptr = cells + (y as uword) * MAX_CAVE_WIDTH
-            attr_ptr = cell_attributes + (y as uword) * MAX_CAVE_WIDTH
+            cell_ptr = cells + y*MAX_CAVE_WIDTH
+            attr_ptr = cell_attributes + y*MAX_CAVE_WIDTH
             for x in 0 to width-1 {
                 ubyte @zp attr = @(attr_ptr)
                 if attr & ATTR_SCANNED_FLAG == 0 {
@@ -132,7 +208,13 @@ cave {
                         objects.amoeba -> {
                             handle_amoeba()
                         }
-                        ; TODO add remaining object scans here
+                        ; TODO add other object scans here
+                        objects.outboxclosed -> {
+                            if num_diamonds >= diamonds_needed {
+                                ; TODO flash screen to indicate outbox is now open
+                                @(cell_ptr) = objects.outboxblinking
+                            }
+                        }
                         objects.inboxclosed -> {
                             @(cell_ptr) = objects.inboxblinking
                             rockford_birth_time = 120
@@ -176,7 +258,8 @@ cave {
                         }
                     }
                     if objects.attributes[obj] & objects.ATTRF_ROCKFORD {
-                        handle_rockford()
+                        if not exit_reached
+                            handle_rockford()
                     }
                     if objects.attributes[obj] & objects.ATTRF_FALLABLE {
                         if attr==ATTR_FALLING {
@@ -267,7 +350,7 @@ cave {
             ubyte obj_right = @(cell_ptr+1)
             ubyte obj_down = @(cell_ptr+MAX_CAVE_WIDTH)
             ubyte direction = math.rnd() & 3
-            bool grow = math.rnd() < 8       ; TODO configurable growth rate
+            bool grow = math.rnd() < cave.amoeba_growth_rate
             if obj_up == objects.space or obj_up == objects.dirt or obj_up == objects.dirt {
                 amoeba_enclosed = false
                 if grow and direction==0 {
@@ -359,30 +442,43 @@ cave {
 
         sub handle_rockford() {
             ; note: rockford animation is done independently (each frame).
-            uword joy = cx16.joystick_get2(main.joystick)
-            bool firebutton = joy & %1100000001100000 != %1100000001100000
             ubyte targetcell
             bool eatable
             ubyte afterboulder
             ubyte moved = false
 
-            ; TODO if cave time runs out, explode and lose a life.
-            ; TODO every 500 points, add a bonus life and enable_bonusbg()
-            ; TODO if reaching the exit, add remaining time to score
+            if playing_demo
+                bd1demo.get_movement()
+            else {
+                uword joy = cx16.joystick_get2(main.joystick)
+                joy_left = lsb(joy) & %0010==0
+                joy_right = lsb(joy) & %0001==0
+                joy_up = lsb(joy) & %1000==0
+                joy_down = lsb(joy) & %0100==0
+                joy_fire = joy & %1100000001100000 != %1100000001100000
+            }
 
-            if lsb(joy) & %0010 == 0 left()
-            else if lsb(joy) & %0001 == 0 right()
-            else if lsb(joy) & %1000 == 0 up()
-            else if lsb(joy) & %0100 == 0 down()
+            if joy_left left()
+            else if joy_right right()
+            else if joy_up up()
+            else if joy_down down()
             else if rockford_state==ROCKFORD_MOVING or rockford_state==ROCKFORD_PUSHING
                 rockford_state=ROCKFORD_IDLE
 
             if moved {
                 @(cell_ptr) = objects.space
-                cell_ptr2 = cells + (player_y as uword) * MAX_CAVE_WIDTH + player_x
-                attr_ptr2 = cell_attributes + (player_y as uword) * MAX_CAVE_WIDTH + player_x
+                cell_ptr2 = cells + player_y*MAX_CAVE_WIDTH + player_x
+                attr_ptr2 = cell_attributes + player_y*MAX_CAVE_WIDTH + player_x
+                targetcell = @(cell_ptr2)
                 @(cell_ptr2) = objects.rockford      ; exact tile will be set by rockford animation routine
                 @(attr_ptr2) = ATTR_SCANNED_FLAG
+                if targetcell==objects.outboxhidden or targetcell==objects.outboxblinking {
+                    exit_reached = true
+                    ; TODO add remaining time to score + next level
+                }
+                if targetcell==objects.diamond or targetcell==objects.diamond2 {
+                    num_diamonds++
+                }
             }
 
             sub left() {
@@ -398,16 +494,16 @@ cave {
                             if math.rnd() < 32 {
                                 @(cell_ptr-2) = targetcell
                                 @(cell_ptr-1) = objects.space
-                                if not firebutton {
+                                if not joy_fire {
                                     player_x--
                                     moved = true
                                 }
                             }
                         }
                     }
-                } else if firebutton {
+                } else if joy_fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable
+                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking
                         @(cell_ptr-1) = objects.space
                 } else {
                     rockford_state = ROCKFORD_MOVING
@@ -433,18 +529,19 @@ cave {
                                 @(attr_ptr+2) |= ATTR_SCANNED_FLAG | ATTR_FALLING           ; falling to avoid rolling over a hole
                                 @(cell_ptr+1) = objects.space
                                 @(attr_ptr+1) |= ATTR_SCANNED_FLAG
-                                if not firebutton {
+                                if not joy_fire {
                                     player_x++
                                     moved = true
                                 }
                             }
                         }
                     }
-                } else if firebutton {
+                } else if joy_fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable
+                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         @(cell_ptr+1) = objects.space
                         @(attr_ptr+1) |= ATTR_SCANNED_FLAG
+                    }
                 } else {
                     rockford_state = ROCKFORD_MOVING
                     if eatable {
@@ -460,9 +557,9 @@ cave {
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     ; cannot push or snip boulder up so do nothing.
                     rockford_state = ROCKFORD_MOVING
-                } else if firebutton {
+                } else if joy_fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable
+                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking
                         @(cell_ptr-MAX_CAVE_WIDTH) = objects.space
                 } else {
                     rockford_state = ROCKFORD_MOVING
@@ -479,11 +576,12 @@ cave {
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     ; cannot push or snip boulder down so do nothing.
                     rockford_state = ROCKFORD_MOVING
-                } else if firebutton {
+                } else if joy_fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable
+                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         @(cell_ptr+MAX_CAVE_WIDTH) = objects.space
                         @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                    }
                 } else {
                     rockford_state = ROCKFORD_MOVING
                     if eatable {
@@ -511,7 +609,7 @@ cave {
                     choose_new_anim()
             }
 
-            cell_ptr2 = cells + (player_y as uword) * MAX_CAVE_WIDTH + player_x
+            cell_ptr2 = cells + player_y*MAX_CAVE_WIDTH + player_x
 
             when rockford_state {
                 ROCKFORD_MOVING -> {
@@ -660,7 +758,7 @@ cave {
         }
 
         sub explode(ubyte xx, ubyte yy) {
-            ubyte what = @(cells + (yy as uword) * MAX_CAVE_WIDTH + xx)
+            ubyte what = @(cells + yy*MAX_CAVE_WIDTH + xx)
             ubyte how
             when what {
                 objects.butterfly, objects.altbutterfly -> how = objects.diamondbirth
@@ -668,8 +766,8 @@ cave {
                 else -> how = objects.explosion
             }
             restart_anim(how)
-            cell_ptr2 = cells + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
-            attr_ptr2 = cell_attributes + ((yy-1) as uword) * MAX_CAVE_WIDTH + xx-1
+            cell_ptr2 = cells + (yy-1)*MAX_CAVE_WIDTH + xx-1
+            attr_ptr2 = cell_attributes + (yy-1)*MAX_CAVE_WIDTH + xx-1
             explode_cell()
             cell_ptr2++
             attr_ptr2++
@@ -701,7 +799,7 @@ cave {
                     rockford_state = 0
                     @(cell_ptr2) = how
                     @(attr_ptr2) |= ATTR_SCANNED_FLAG
-                    ; TODO lose a life
+                    num_lives--
                 }
                 if objects.attributes[@(cell_ptr2)] & objects.ATTRF_CONSUMABLE {
                     @(cell_ptr2) = how
@@ -711,7 +809,7 @@ cave {
         }
 
         sub touches_rockford_or_amoeba(ubyte xx, ubyte yy) -> bool {
-            uword @requirezp touch_ptr = cells + (yy as uword) * MAX_CAVE_WIDTH + xx
+            uword @requirezp touch_ptr = cells + yy*MAX_CAVE_WIDTH + xx
             ubyte obj_up = @(touch_ptr-MAX_CAVE_WIDTH)
             ubyte obj_left = @(touch_ptr-1)
             ubyte obj_right = @(touch_ptr+1)
@@ -737,6 +835,23 @@ cave {
         }
     }
 
+    ubyte uncover_cnt
+    sub uncover_more() {
+        if not covered
+            return
+        attr_ptr2 = cell_attributes
+        repeat cave.MAX_CAVE_HEIGHT {
+            if math.rnd() & 1 {
+                ubyte x = math.rnd() % (cave.MAX_CAVE_WIDTH-1)
+                @(attr_ptr2 + x) &= ~ATTR_COVERED_FLAG
+            }
+            attr_ptr2 += MAX_CAVE_WIDTH
+        }
+        uncover_cnt++
+        if uncover_cnt>160
+            uncover_all()
+    }
+
     sub cover_all() {
         uword @zp ptr = cell_attributes
         repeat MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT {
@@ -754,6 +869,7 @@ cave {
             ptr++
         }
         covered = false
+        uncover_cnt = 0
     }
 
     sub enable_bonusbg() {
@@ -769,7 +885,7 @@ cave {
         objects.anim_speeds[objects.space] = objects.anim_speeds[objects.bonusbg]
         objects.attributes[objects.space] |= objects.ATTRF_LOOPINGANIM
         bonusbg_enabled = true
-        bonusbg_timer = 35
+        bonusbg_timer = 5*60
     }
 
     sub disable_bonusbg() {
@@ -791,7 +907,7 @@ cave {
         if magicwall_expired
             return
         magicwall_enabled = true
-        magicwall_timer = 30        ; TODO configurable
+        magicwall_timer = (cave.magicwall_millingtime_sec as uword) * 60
         replace_object(objects.magicwallinactive, objects.magicwall)
     }
 
@@ -812,19 +928,5 @@ cave {
             cell_ptr2++
             attr_ptr2++
         }
-    }
-
-    ubyte uncover_cnt
-    sub uncover_more() {
-        if not covered
-            return
-        repeat 10 {
-            ubyte x = math.rnd() % width
-            ubyte y = math.rnd() % height
-            @(cell_attributes + (y as uword)*MAX_CAVE_WIDTH + x) &= ~ATTR_COVERED_FLAG
-        }
-        uncover_cnt++
-        if uncover_cnt>180
-            uncover_all()
     }
 }

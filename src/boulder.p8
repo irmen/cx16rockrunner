@@ -9,7 +9,7 @@
 
 
 main {
-    ubyte joystick = 0      ; TODO selectable
+    ubyte joystick = 0      ; TODO make this selectable
 
     sub start() {
         music.init()
@@ -21,24 +21,23 @@ main {
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        bdcff.load_test_cave()
-        ;; bd1caves.decode(1)
-        cave.cover_all()
-        cave.bonusbg_enabled=false
-        cave.magicwall_enabled=false
-        cave.magicwall_expired=false
-        cave.amoeba_count=0
-        cave.amoeba_enclosed=false
+        ;; bdcff.load_test_cave()
+        bd1caves.decode(1)      ; load level 1, the first level
+        bd1demo.init()
+        cave.num_lives = 3
+        cave.restart_level()
+        cave.playing_demo=true
         screen.set_scroll_pos((cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16/2, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16/2)
         screen.enable()
 
+        ; TODO show cave name and description for a brief time
+
         repeat {
             ; the game loop, executed every frame.
+            ; TODO difficulty level that influences play speed, see https://www.elmerproductions.com/sp/peterb/insideBoulderdash.html#Timing%20info
             interrupts.waitvsync()
             screen.update()
             cave.scan()
-            if cave.covered
-                cave.uncover_more()
         }
     }
 }
@@ -73,7 +72,7 @@ screen {
         ubyte @zp row
         for row in row_offset to row_offset+cave.VISIBLE_CELLS_V {
             cx16.vaddr(1, $b000 + row*$0080 + col_offset*2, 0, 1)
-            uword cells_offset = (row as uword)*cave.MAX_CAVE_WIDTH + col_offset
+            uword cells_offset = row*cave.MAX_CAVE_WIDTH + col_offset
             uword @requirezp @shared cell_ptr = cave.cells + cells_offset
             uword @requirezp @shared attr_ptr = cave.cell_attributes + cells_offset
             %asm {{

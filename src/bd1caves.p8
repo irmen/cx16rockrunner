@@ -4,16 +4,33 @@ bd1caves {
 
     sub decode(ubyte level) {
 
+        cave.rockford_state = 0
         cave.player_x = 0
         cave.player_y = 0
         cave.name_ptr = names[level]
         cave.description_ptr = descriptions[level]
-        cave.width = 40        ; hardcoded for these caves, also intermissions
-        cave.height = 22       ; hardcoded for these caves, also intermissions
-        cave.intermission = (level+1)/5 == 0
-        cave.rockford_state = 0
-
         uword data_ptr = caves[level]
+        cave.cave_number = data_ptr[$00]
+        cave.intermission = cave.cave_number%5==0
+        if cave.intermission {
+            cave.width = 22
+            cave.height = 12
+        } else {
+            cave.width = 40
+            cave.height = 22
+        }
+        cave.magicwall_millingtime_sec = data_ptr[$01]
+        cave.amoeba_slow_time_sec = data_ptr[$01]       ; shared with milling time
+        cave.initial_diamond_value = data_ptr[$02]
+        cave.extra_diamond_value = data_ptr[$03]
+        seed1 = 0
+        seed2 = data_ptr[$04]                   ; TODO difficulty level selectable (data $04-$08 for level 1-5)
+        cave.diamonds_needed = data_ptr[$09]    ; TODO difficulty level selectable (data $09-$0d for level 1-5)
+        cave.cave_time_sec = data_ptr[$0e]      ; TODO difficulty level selectable (data $0e-$12 for level 1-5)
+        cave.color_background1 = data_ptr[$13]
+        cave.color_background2 = data_ptr[$14]
+        cave.color_foreground = data_ptr[$15]
+        ; $16 and $17 are unused?
         ubyte rnd_object0 = translate_objects[data_ptr[$18]]
         ubyte rnd_object1 = translate_objects[data_ptr[$19]]
         ubyte rnd_object2 = translate_objects[data_ptr[$1a]]
@@ -26,9 +43,6 @@ bd1caves {
         ubyte rnd_probability1 = data_ptr[$1d]
         ubyte rnd_probability2 = data_ptr[$1e]
         ubyte rnd_probability3 = data_ptr[$1f]
-        ; TODO all other missing attributes
-        seed1 = 0
-        seed2 = data_ptr[$04]
 
         ; first fill the cave via the random fill
         ubyte x
@@ -228,21 +242,8 @@ bd1caves {
     }
 
     
-    ; The format of the demo data is as follows.
-    ; The low nybble of each byte indicates the direction that Rockford is to move
-    ; ($0 = end of demo, $7 = Right, $B = Left, $D = Down, $E = Up, $F = no movement).
-    ; The high nybble indicates the number of times (number of frames) to apply that movement.
-    ; The demo finishes when it hits $00. So for example,
-    ; $FF means no movement for 15 turns, $1E means move up one space, $77 means move right 7 spaces, etc.
-    ; (details: https://www.elmerproductions.com/sp/peterb/insideBoulderdash.html)
-    ubyte[] CAVE_A_DEMO = [
-        $4F, $1E, $77, $2D, $97, $4F, $2D, $47, $3E, $1B, $4F, $1E, $B7, $1D, $27,
-        $4F, $6D, $17, $4D, $3B, $4F, $1D, $1B, $47, $3B, $4F, $4E, $5B, $3E, $5B, $4D,
-        $3B, $5F, $3E, $AB, $1E, $3B, $1D, $6B, $4D, $17, $4F, $3D, $47, $4D, $4B, $2E,
-        $27, $3E, $A7, $A7, $1D, $47, $1D, $47, $2D, $5F, $57, $4E, $57, $6F, $1D, $00
-    ]
-
-    str[NUM_CAVES] names = [
+    str[NUM_CAVES+1] names = [
+        "",
         "A - Intro",
         "B - Rooms",
         "C - Maze",
@@ -265,7 +266,9 @@ bd1caves {
         "Intermission 4"
     ]
 
-    str[NUM_CAVES] descriptions = [
+    str[NUM_CAVES+1] descriptions = [
+        ; Cave 0 - not selectable (level starts at 1)
+        "",
         ; Cave A
         "Pick up jewels and exit before time is up.",
         ; Cave B
@@ -308,7 +311,8 @@ bd1caves {
         "Bonus level!"
     ]
 
-    uword[NUM_CAVES] caves = [
+    uword[NUM_CAVES+1] caves = [
+        0,
         &caveA,
         &caveB,
         &caveC,
@@ -441,4 +445,66 @@ bd1caves {
                      $D0, $0B, $03, $03, $02, $80, $0B, $07, $03, $06, $00, $43, $0B, $06, $03, $02, $43, $0B, $0A, $03, $02, $50,
                      $08, $07, $03, $03, $25, $03, $03, $04, $09, $0A, $FF]
 
+}
+
+
+bd1demo {
+
+    ; The format of the demo data is as follows.
+    ; The low nybble of each byte indicates the direction that Rockford is to move
+    ; ($0 = end of demo, $7 = Right, $B = Left, $D = Down, $E = Up, $F = no movement).
+    ; The high nybble indicates the number of times (number of frames) to apply that movement.
+    ; The demo finishes when it hits $00. So for example,
+    ; $FF means no movement for 15 turns, $1E means move up one space, $77 means move right 7 spaces, etc.
+    ; (details: https://www.elmerproductions.com/sp/peterb/insideBoulderdash.html)
+    ubyte[] CAVE_A_DEMO = [
+        $4F, $1E, $77, $2D, $97, $4F, $2D, $47, $3E, $1B, $4F, $1E, $B7, $1D, $27,
+        $4F, $6D, $17, $4D, $3B, $4F, $1D, $1B, $47, $3B, $4F, $4E, $5B, $3E, $5B, $4D,
+        $3B, $5F, $3E, $AB, $1E, $3B, $1D, $6B, $4D, $17, $4F, $3D, $47, $4D, $4B, $2E,
+        $27, $3E, $A7, $A7, $1D, $47, $1D, $47, $2D, $5F, $57, $4E, $57, $6F, $1D, $00
+    ]
+
+    ubyte demo_step
+    ubyte repeats
+    ubyte direction
+    sub init() {
+        demo_step = 0
+        repeats = 0
+        direction = 0
+    }
+
+    sub set_joy_direction(ubyte d) {
+        cave.joy_fire = false
+        cave.joy_left = false
+        cave.joy_right = false
+        cave.joy_up = false
+        cave.joy_down = false
+        when d {
+            $7 -> cave.joy_right=true
+            $b -> cave.joy_left=true
+            $d -> cave.joy_down=true
+            $e -> cave.joy_up=true
+        }
+    }
+
+    sub get_movement() {
+        if repeats==255
+            return
+        if repeats {
+            repeats--
+            set_joy_direction(direction)
+        } else {
+            ubyte move = CAVE_A_DEMO[demo_step]
+            direction = move&15
+            if direction==0 {
+                repeats = 255   ; end of demo
+                set_joy_direction(0)
+            } else {
+                repeats = move>>4
+                set_joy_direction(direction)
+            }
+            repeats--
+            demo_step++
+        }
+    }
 }
