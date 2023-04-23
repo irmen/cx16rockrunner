@@ -10,6 +10,11 @@
 
 main {
     ubyte joystick = 0      ; TODO make this selectable
+    ubyte game_state
+
+    const ubyte STATE_CAVETITLE = 1
+    const ubyte STATE_PLAYING = 2
+    const ubyte STATE_GAMEOVER = 3
 
     sub start() {
         music.init()
@@ -22,24 +27,46 @@ main {
         screen.disable()
         screen.load_tiles()
         ;; bdcff.load_test_cave()
-        bd1caves.decode(2)      ; load level 1, the first level
+        bd1caves.decode(4)      ; load level 1, the first level
         bd1demo.init()
         cave.num_lives = 3
         cave.score = 0
         cave.score_500_for_bonus = 0
         cave.restart_level()
         ; cave.playing_demo=true
-        screen.set_scroll_pos((cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16/2, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16/2)
         screen.enable()
 
-        ; TODO show cave name and description for a brief time
+        game_state = STATE_CAVETITLE
+        ubyte title_timer = 255
+        screen.show_cave_title()
 
         repeat {
             ; the game loop, executed every frame.
             ; TODO difficulty level that influences play speed, see https://www.elmerproductions.com/sp/peterb/insideBoulderdash.html#Timing%20info
             interrupts.waitvsync()
             screen.update()
-            cave.scan()
+
+            when game_state {
+                STATE_CAVETITLE -> {
+                    title_timer--
+                    if_z {
+                        screen.set_scroll_pos((cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16/2, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16/2)
+                        screen.hud_clear()
+                        ; TODO real hud elements
+                        screen.hud_text(5, 1, $f0, "d:99/200")
+                        screen.hud_text(14, 1, $f0, "12345")
+                        screen.hud_text(20, 1, $f0, "l:3")
+                        screen.hud_text(24, 1, $f0, "t:999")
+                        game_state = STATE_PLAYING
+                    }
+                }
+                STATE_PLAYING -> {
+                    cave.scan()
+                }
+                STATE_GAMEOVER -> {
+                    ; TODO
+                }
+            }
         }
     }
 }
@@ -168,6 +195,16 @@ _loop           lda  (attr_ptr),y
     sub load_tiles() {
         void cx16diskio.vload_raw("tiles.bin", 8, 0, $0000)
         void cx16diskio.vload_raw("tiles.pal", 8, 1, $fa00)
+        void cx16diskio.vload_raw("font.bin", 8, 1, $e000)
+        ; fixup the palette for the HUD text font (entries $f0-$ff)
+        cx16.vpoke(1,$fa00+$f0*2,$00)
+        cx16.vpoke(1,$fa00+$f0*2+1,$00)
+        cx16.vpoke(1,$fa00+$f1*2,$24)
+        cx16.vpoke(1,$fa00+$f1*2+1,$05)
+        cx16.vpoke(1,$fa00+$f2*2,$ff)
+        cx16.vpoke(1,$fa00+$f2*2+1,$0f)
+        cx16.vpoke(1,$fa00+$f2*3,$f0)
+        cx16.vpoke(1,$fa00+$f2*3+1,$ff)
     }
 
     sub update_animations() {
@@ -199,8 +236,15 @@ _loop           lda  (attr_ptr),y
     }
 
     sub set_tiles_screenmode() {
-        ; 320x240 tile layer (#1), 4bpp (16 colors) per tile, 16x16 tiles.
-        ; 64x32 tile map at $1B000
+        ; video setup:
+        ; layer 0 = tile layer for the cave itself.
+        ;           320x240 pixels, 4bpp (16 colors) 16x16 tiles.
+        ;           tile map: 64x32 tiles at $1B000.
+        ; layer 1 = tile layer for the text/HUD/score/time/etc.
+        ;           320x240 pixels, 4bpp (16 colors) 16x16 tiles.
+        ;           tile map: 64x32 tiles at $1C000.
+        ;           uses font data at $1E000
+        ; no sprites.
 
         ; pre-fill screen with space tiles
         cx16.vaddr(1, $b000, 0, 1)
@@ -209,15 +253,46 @@ _loop           lda  (attr_ptr),y
             cx16.VERA_DATA0 = space_tile
             cx16.VERA_DATA0 = 0
         }
+        hud_clear()
 
         cx16.VERA_CTRL = 0
         cx16.VERA_DC_BORDER = 0
-        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & $0f | %00100000       ; layer 1 active
+        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & $0f | %00110000       ; layer 0 and 1 active
         cx16.VERA_DC_HSCALE = 64
         cx16.VERA_DC_VSCALE = 64
-        cx16.VERA_L1_CONFIG = %00010010
-        cx16.VERA_L1_MAPBASE = ($1B000 >> 9) as ubyte
-        cx16.VERA_L1_TILEBASE = %00000011
+        cx16.VERA_L0_CONFIG = %00010010                 ; 64x32 tiles, 4bpp
+        cx16.VERA_L0_MAPBASE = ($1B000 >> 9) as ubyte
+        cx16.VERA_L0_TILEBASE = %00000011               ; 16x16 pixel tiles
+        cx16.VERA_L1_CONFIG = %00010001                 ; 64x32 tiles, 2bpp
+        cx16.VERA_L1_MAPBASE = ($1C000 >> 9) as ubyte
+        cx16.VERA_L1_TILEBASE = ($1E000 >>9) as ubyte | %00000000               ; 8x8 pixel tiles
+    }
+
+    sub hud_clear() {
+        cx16.vaddr(1, $c000, 0, 1)
+        repeat 64*32 {
+            cx16.VERA_DATA0 = 32
+            cx16.VERA_DATA0 = $f0
+        }
+    }
+
+    sub hud_text(ubyte col, ubyte row, ubyte color, uword text_ptr) {
+        uword offset = (row as uword) * 128 + col*2
+        cx16.vaddr(1, $c000 + offset, 0, 1)
+        repeat {
+            cx16.r0L = @(text_ptr)
+            if_z
+                break
+            cx16.VERA_DATA0 = cx16.r0L
+            cx16.VERA_DATA0 = color
+            text_ptr++
+        }
+    }
+
+    sub show_cave_title() {
+        screen.hud_text(5, 10, $f0, "cave:")
+        screen.hud_text(11, 10, $f0, cave.name_ptr)
+        screen.hud_text(1, 12, $f0, cave.description_ptr)
     }
 }
 
@@ -250,11 +325,11 @@ interrupts {
     }
 
     sub scroll_screen() {
-        ; smooth scroll the screen to top left pixel at sx, sy
-        cx16.VERA_L1_HSCROLL_H = msb(screen.scrollx)
-        cx16.VERA_L1_HSCROLL_L = lsb(screen.scrollx)
-        cx16.VERA_L1_VSCROLL_H = msb(screen.scrolly)
-        cx16.VERA_L1_VSCROLL_L = lsb(screen.scrolly)
+        ; smooth scroll the cave layer to top left pixel at sx, sy
+        cx16.VERA_L0_HSCROLL_H = msb(screen.scrollx)
+        cx16.VERA_L0_HSCROLL_L = lsb(screen.scrollx)
+        cx16.VERA_L0_VSCROLL_H = msb(screen.scrolly)
+        cx16.VERA_L0_VSCROLL_L = lsb(screen.scrolly)
     }
 }
 

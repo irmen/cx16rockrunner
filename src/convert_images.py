@@ -22,7 +22,7 @@ def cvt(filename: str) -> Image.Image:
     assert num_colors <= 16
     width, height = img.size
     if (width % 16) != 0:
-        raise ValueError("width is not a multiple of 16: "+str(filename))
+        raise ValueError("width is not a multiple of 16: " + str(filename))
     num_tiles = width // 16 * height // 16
     converted = Image.new('P', (num_tiles * 16, 16))
     converted.putpalette(reduce_colorspace(pal))
@@ -77,7 +77,8 @@ def combine_parts() -> Tuple[Image.Image, int, list[TilesPart]]:
         total_tiles += num_tiles
         palette_offset += 1
     for part in parts:
-        print(f"{part.name} tile offset={part.tile_idx_offset} palette offset={part.palette_offset} ({part.num_tiles} tiles)")
+        print(
+            f"{part.name} tile offset={part.tile_idx_offset} palette offset={part.palette_offset} ({part.num_tiles} tiles)")
     # we assume every palette differs from every other,
     # so every partial image gets its own 16 colors in the final palette
     # not all colors might be used though, but that can't be helped.
@@ -126,6 +127,7 @@ def get_animspeed(attributes: set[str]) -> int:
         if attr.startswith('A'):
             return int(attr.split('=')[1])
     return 0
+
 
 def make_catalog(parts: list[TilesPart]) -> None:
     config = configparser.ConfigParser()
@@ -226,7 +228,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
         out.write(f"    ubyte[NUM_OBJECTS] @shared attributes = [\n")
         for idx, flags in enumerate(attributes_flags):
             out.write(f"        {flags}")
-            if idx < len(attributes_flags)-1:
+            if idx < len(attributes_flags) - 1:
                 out.write(',')
             out.write('\n')
         out.write(f"    ]\n")
@@ -250,7 +252,48 @@ def convert_titlescreen():
     open("TITLESCREEN.BIN", "wb").write(data)
 
 
+def convert_font():
+    def extract_letter(img, col, row) -> list[int]:
+        result = []
+        for py in range(row * 8, row * 8 + 8):
+            b = 0
+            for px in range(col * 8, col * 8 + 4):
+                b <<= 2
+                b |= img.getpixel((px, py))
+            result.append(b)
+            b = 0
+            for px in range(col * 8+4, col * 8 + 8):
+                b <<= 2
+                b |= img.getpixel((px, py))
+            result.append(b)
+        assert len(result) == 16
+        return result
+
+    img = Image.open("images/font2.png")
+    font = bytearray(256 * 8 * 2)
+    # misc
+    for col in range(0, 32):
+        bb = extract_letter(img, col, 0)
+        font[(128+col)*16: (128+col+1)*16] = bb
+    # digits
+    for col in range(0, 32):
+        bb = extract_letter(img, col, 1)
+        font[(32+col)*16: (32+col+1)*16] = bb
+    # uppercase letters
+    for col in range(0, 32):
+        bb = extract_letter(img, col, 2)
+        font[(64+col)*16: (64+col+1)*16] = bb
+        font[(64+128+col)*16: (64+128+col+1)*16] = bb
+    # lowercase letters
+    for col in range(0, 32):
+        bb = extract_letter(img, col, 3)
+        font[(64+col)*16: (64+col+1)*16] = bb
+    assert len(font) == 256 * 8 * 2
+    open("FONT.BIN", "wb").write(font)
+
+
 if __name__ == '__main__':
     tiles_parts = convert_tiles()
     make_catalog(tiles_parts)
     convert_titlescreen()
+    convert_font()
