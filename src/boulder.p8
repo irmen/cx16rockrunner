@@ -22,11 +22,13 @@ main {
         screen.disable()
         screen.load_tiles()
         ;; bdcff.load_test_cave()
-        bd1caves.decode(1)      ; load level 1, the first level
+        bd1caves.decode(2)      ; load level 1, the first level
         bd1demo.init()
         cave.num_lives = 3
+        cave.score = 0
+        cave.score_500_for_bonus = 0
         cave.restart_level()
-        cave.playing_demo=true
+        ; cave.playing_demo=true
         screen.set_scroll_pos((cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16/2, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16/2)
         screen.enable()
 

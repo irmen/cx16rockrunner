@@ -23,6 +23,7 @@ cave {
 
     const ubyte AMOEBA_SLOW_GROWTH = 8      ; 3.1%
     const ubyte AMOEBA_FAST_GROWTH = 64     ; 25%
+    const ubyte AMOEBA_MAX_SIZE = 200
 
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
@@ -63,7 +64,10 @@ cave {
     uword amoeba_slow_timer
     ubyte num_diamonds
     ubyte num_lives
+    uword score
+    uword score_500_for_bonus
     uword cave_time_left            ; frames
+    ubyte current_diamond_value
     bool exit_reached
     bool playing_demo
     bool joy_fire
@@ -102,6 +106,7 @@ cave {
         exit_reached = false
         rockford_state = 0
         scan_frame = 0
+        current_diamond_value = initial_diamond_value
         cave_time_left = (cave_time_sec as uword) * 60
         ; find the initial player position
         ubyte x
@@ -148,7 +153,7 @@ cave {
         }
 
         if exit_reached {
-            ; TODO do cave exit stuff
+            ; TODO do cave exit stuff: add remaining time to score + next level
             return
         }
 
@@ -169,10 +174,14 @@ cave {
         else
             return
 
-        ; TODO every 500 points, add a bonus life and enable_bonusbg()
+        if score_500_for_bonus >= 500 {
+            score_500_for_bonus -= 500
+            num_lives++
+            enable_bonusbg()
+        }
 
         ; does amoeba explode?
-        if amoeba_count > 200 {      ; TODO configurable max amoeba size? 22.7% of the cave size?
+        if amoeba_count >= AMOEBA_MAX_SIZE {
             replace_object(objects.amoeba, objects.amoebaexplosion)
             restart_anim(objects.amoebaexplosion)
             amoeba_explodes_to = objects.boulder
@@ -213,6 +222,7 @@ cave {
                             if num_diamonds >= diamonds_needed {
                                 ; TODO flash screen to indicate outbox is now open
                                 @(cell_ptr) = objects.outboxblinking
+                                current_diamond_value = extra_diamond_value
                             }
                         }
                         objects.inboxclosed -> {
@@ -474,10 +484,11 @@ cave {
                 @(attr_ptr2) = ATTR_SCANNED_FLAG
                 if targetcell==objects.outboxhidden or targetcell==objects.outboxblinking {
                     exit_reached = true
-                    ; TODO add remaining time to score + next level
                 }
                 if targetcell==objects.diamond or targetcell==objects.diamond2 {
                     num_diamonds++
+                    score += current_diamond_value
+                    score_500_for_bonus += current_diamond_value
                 }
             }
 
