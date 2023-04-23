@@ -5,7 +5,7 @@ all: BOULDER.PRG
 clean:
 	rm -f *.prg *.PRG *.asm *.vice-* *.BIN *.PAL *.ADPCM *.zip *.7z converted.png src/objects.p8
 
-emu:  BOULDER.PRG
+emu: BOULDER.PRG
 	# PULSE_LATENCY_MSEC=20 box16 -scale 2 -run -prg $<
 	PULSE_LATENCY_MSEC=20 x16emu -scale 2 -quality best -run -prg $<
 
@@ -18,5 +18,3 @@ BOULDER.PRG: src/*.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.B
 
 zip: all
 	7z a boulder.zip BOULDER.PRG TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN
-
-	

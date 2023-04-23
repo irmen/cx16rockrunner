@@ -221,6 +221,7 @@ cave {
                         objects.outboxclosed -> {
                             if num_diamonds >= diamonds_needed {
                                 ; TODO flash screen to indicate outbox is now open
+                                sounds.crack()
                                 @(cell_ptr) = objects.outboxblinking
                                 current_diamond_value = extra_diamond_value
                             }
@@ -232,6 +233,7 @@ cave {
                         objects.inboxblinking -> {
                             if rockford_birth_time<=0 {
                                 ; spawn our guy
+                                sounds.crack()
                                 restart_anim(objects.rockfordbirth)
                                 rockford_state = ROCKFORD_BIRTH
                                 rockford_face_direction = ROCKFORD_FACE_LEFT
@@ -279,6 +281,7 @@ cave {
                                 objects.space -> {
                                     ; immediately start falling 1 cell down
                                     fall_down_one_cell()
+                                    play_fall_sound(obj)
                                 }
                                 objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
                                     ; stationary boulders and diamonds can roll off something as well
@@ -319,9 +322,13 @@ cave {
             } else {
                 ; stop falling; it is blocked by something
                 @(attr_ptr) = 0
+                play_fall_sound(@(cell_ptr))
             }
 
             sub sink_through_magicwall() {
+                ; this only happens when an objects is FALLING on the magic wall,
+                ; if it is already resting on it, it stays in place and this routine isn't called
+                play_fall_magicwall_sound(@(cell_ptr))
                 if magicwall_expired {
                     @(cell_ptr) = objects.space
                 } else {
@@ -338,6 +345,9 @@ cave {
                         @(cell_ptr) = objects.space
                         @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = new_object
                         @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                    } else {
+                        ; cannot fall through the wall, so stop falling
+                        @(attr_ptr) = ATTR_SCANNED_FLAG
                     }
                 }
             }
@@ -489,6 +499,13 @@ cave {
                     num_diamonds++
                     score += current_diamond_value
                     score_500_for_bonus += current_diamond_value
+                    sounds.diamond_pickup()
+                }
+                if targetcell==objects.dirt or targetcell==objects.dirt2 {
+                    sounds.rockfordmove_dirt()
+                }
+                if targetcell==objects.space or targetcell==objects.bonusbg {
+                    sounds.rockfordmove_space()
                 }
             }
 
@@ -503,6 +520,7 @@ cave {
                         if afterboulder==objects.space {
                             ; 1/8 chance to push boulder left
                             if math.rnd() < 32 {
+                                sounds.boulder()
                                 @(cell_ptr-2) = targetcell
                                 @(cell_ptr-1) = objects.space
                                 if not joy_fire {
@@ -514,8 +532,11 @@ cave {
                     }
                 } else if joy_fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking
+                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
+                        if targetcell==objects.diamond or targetcell==objects.diamond2
+                            sounds.diamond_pickup()
                         @(cell_ptr-1) = objects.space
+                    }
                 } else {
                     rockford_state = ROCKFORD_MOVING
                     if eatable {
@@ -536,6 +557,7 @@ cave {
                         if afterboulder==objects.space {
                             ; 1/8 chance to push boulder right
                             if math.rnd() < 32 {
+                                sounds.boulder()
                                 @(cell_ptr+2) = targetcell
                                 @(attr_ptr+2) |= ATTR_SCANNED_FLAG | ATTR_FALLING           ; falling to avoid rolling over a hole
                                 @(cell_ptr+1) = objects.space
@@ -550,6 +572,8 @@ cave {
                 } else if joy_fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
+                        if targetcell==objects.diamond or targetcell==objects.diamond2
+                            sounds.diamond_pickup()
                         @(cell_ptr+1) = objects.space
                         @(attr_ptr+1) |= ATTR_SCANNED_FLAG
                     }
@@ -570,8 +594,11 @@ cave {
                     rockford_state = ROCKFORD_MOVING
                 } else if joy_fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking
+                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
+                        if targetcell==objects.diamond or targetcell==objects.diamond2
+                            sounds.diamond_pickup()
                         @(cell_ptr-MAX_CAVE_WIDTH) = objects.space
+                    }
                 } else {
                     rockford_state = ROCKFORD_MOVING
                     if eatable {
@@ -590,6 +617,8 @@ cave {
                 } else if joy_fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
+                        if targetcell==objects.diamond or targetcell==objects.diamond2
+                            sounds.diamond_pickup()
                         @(cell_ptr+MAX_CAVE_WIDTH) = objects.space
                         @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
                     }
@@ -682,20 +711,24 @@ cave {
         sub handle_horiz_expander() {
             if @(cell_ptr-1)==objects.space {
                 @(cell_ptr-1) = objects.horizexpander
+                sounds.expanding_wall()
             }
             if @(cell_ptr+1)==objects.space {
                 @(cell_ptr+1) = objects.horizexpander
                 @(attr_ptr+1) |= ATTR_SCANNED_FLAG
+                sounds.expanding_wall()
             }
         }
 
         sub handle_vert_expander() {
             if @(cell_ptr-MAX_CAVE_WIDTH)==objects.space {
                 @(cell_ptr-MAX_CAVE_WIDTH) = objects.vertexpander
+                sounds.expanding_wall()
             }
             if @(cell_ptr+MAX_CAVE_WIDTH)==objects.space {
                 @(cell_ptr+MAX_CAVE_WIDTH) = objects.vertexpander
                 @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                sounds.expanding_wall()
             }
         }
 
@@ -715,14 +748,21 @@ cave {
                 ; roll off a stationary round object under us, to the left or right, if there's room
                 if @(cell_ptr-1) == objects.space and @(cell_ptr-1+MAX_CAVE_WIDTH) == objects.space {
                     ; roll left
+                    if @(attr_ptr) != ATTR_FALLING
+                        play_fall_sound(@(cell_ptr))
                     @(cell_ptr) = objects.space
                     @(cell_ptr-1) = obj
                     @(attr_ptr-1) = attr | ATTR_FALLING
                 } else if @(cell_ptr+1) == objects.space and @(cell_ptr+1+MAX_CAVE_WIDTH) == objects.space {
                     ; roll right
+                    if @(attr_ptr) != ATTR_FALLING
+                        play_fall_sound(@(cell_ptr))
                     @(cell_ptr) = objects.space
                     @(cell_ptr+1) = obj
                     @(attr_ptr+1) = attr | ATTR_FALLING
+                } else if @(attr_ptr) == ATTR_FALLING {
+                    ; it stopped falling
+                    play_fall_sound(@(cell_ptr))
                 }
                 @(attr_ptr) = 0   ; previous position: no falling anymore.
             }
@@ -777,6 +817,7 @@ cave {
                 else -> how = objects.explosion
             }
             restart_anim(how)
+            sounds.explosion()
             cell_ptr2 = cells + (yy-1)*MAX_CAVE_WIDTH + xx-1
             attr_ptr2 = cell_attributes + (yy-1)*MAX_CAVE_WIDTH + xx-1
             explode_cell()
@@ -832,6 +873,20 @@ cave {
         }
     }
 
+    sub play_fall_sound(ubyte object) {
+        if object==objects.diamond or object==objects.diamond2
+            sounds.diamond()
+        else if object==objects.boulder or object==objects.megaboulder
+            sounds.boulder()
+    }
+
+    sub play_fall_magicwall_sound(ubyte object) {
+        if object==objects.diamond or object==objects.diamond2
+            sounds.boulder()
+        else if object==objects.boulder or object==objects.megaboulder
+            sounds.diamond()
+    }
+    
     sub restart_anim(ubyte object) {
         objects.anim_frame[object] = 0
         objects.anim_delay[object] = 0
@@ -861,6 +916,9 @@ cave {
         uncover_cnt++
         if uncover_cnt>160
             uncover_all()
+
+        if uncover_cnt & 3 == 0
+            sounds.uncover()
     }
 
     sub cover_all() {
