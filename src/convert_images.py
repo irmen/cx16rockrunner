@@ -284,7 +284,7 @@ def convert_font():
     # uppercase letters
     for col in range(0, 32):
         bb = extract_letter(img, col, 2)
-        font[(64+col)*16: (64+col+1)*16] = bb
+        font[(64+32+col)*16: (64+32+col+1)*16] = bb
         font[(64+128+col)*16: (64+128+col+1)*16] = bb
     # lowercase letters
     for col in range(0, 32):

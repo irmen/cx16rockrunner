@@ -161,6 +161,8 @@ main {
         screen.hud_text(5,2,$f0,joystick_str)
         screen.hud_text(5,3,$f0,cave_letter_str)
         screen.hud_text(5,5,$f0,"Press ENTER to start.")
+        screen.hud_text(1,25,$f0,"<Game title> - a Boulder Dash (R) clone")
+        screen.hud_text(3,26,$f0,"by DesertFish. Written in Prog8")
     }
 }
 
@@ -403,16 +405,16 @@ _loop           lda  (attr_ptr),y
 
     sub hud_update() {
         const ubyte xpos = 8
-        screen.hud_text(xpos+1, 1, $f0, "d")
+        screen.hud_text(xpos+1, 1, $f0, "\x8e")     ; diamond symbol
         conv.str_ub0(cave.num_diamonds)
         screen.hud_text(xpos+3, 1, $f0, conv.string_out)
         screen.hud_text(xpos+6, 1, $f0, "/")
         conv.str_ub0(cave.diamonds_needed)
         screen.hud_text(xpos+7, 1, $f0, conv.string_out)
-        screen.hud_text(xpos+12, 1, $f0, "l")
+        screen.hud_text(xpos+12, 1, $f0, "\x88")       ; rockford symbol
         conv.str_ub0(cave.num_lives)
         screen.hud_text(xpos+14, 1, $f0, conv.string_out)
-        screen.hud_text(xpos+19, 1, $f0, "t")
+        screen.hud_text(xpos+19, 1, $f0, "\x8f")     ; clock symbol
         conv.str_ub0(cave.time_left_secs)
         screen.hud_text(xpos+21, 1, $f0, conv.string_out)
         conv.str_uw0(cave.score)
