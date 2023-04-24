@@ -25,6 +25,10 @@ cave {
     const ubyte AMOEBA_FAST_GROWTH = 64     ; 25%
     const ubyte AMOEBA_MAX_SIZE = 200
 
+    const ubyte ACTION_NOTHING = 0
+    const ubyte ACTION_NEXTLEVEL = 1
+    const ubyte ACTION_GAMEOVER = 2
+
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     ubyte width = MAX_CAVE_WIDTH
@@ -89,7 +93,6 @@ cave {
 
     sub init() {
         sys.memset(cells, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, objects.dirt)
-        cover_all()
     }
 
     sub restart_level() {
@@ -160,13 +163,12 @@ cave {
     }
 
 
-    sub scan() {
+    sub scan() -> ubyte {
         if covered
-            return  ; we do nothing else as long as the cave is still (partially) covered.
+            return ACTION_NOTHING  ; we do nothing else as long as the cave is still (partially) covered.
 
         rockford_birth_time--
         if exit_reached {
-            ; TODO advance to next level
             magicwall_enabled = false
             amoeba_count = 0
             if time_left_secs and interrupts.vsync_counter % 3 == 0 {
@@ -174,7 +176,7 @@ cave {
                 sounds.bonus(time_left_secs)
                 time_left_secs--
             }
-            return
+            return ACTION_NOTHING       ; TODO next level when
         }
 
         if bonusbg_enabled {
@@ -196,7 +198,7 @@ cave {
         if scan_frame==7            ; cave scan is done once every 7 frames TODO configurable
             scan_frame = 0
         else
-            return
+            return ACTION_NOTHING
 
         ; amoeba handling
         if amoeba_count >= AMOEBA_MAX_SIZE {
@@ -319,6 +321,7 @@ cave {
         }
 
         clear_all_scanned()
+        return ACTION_NOTHING
 
         ; various handler subroutines follow:
 

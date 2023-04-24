@@ -14,34 +14,36 @@ main {
     ubyte game_state
 
     const ubyte STATE_CAVETITLE = 1
-    const ubyte STATE_UNCOVERING = 2
-    const ubyte STATE_PLAYING = 3
-    const ubyte STATE_GAMEOVER = 4
+    const ubyte STATE_CHOOSE_LEVEL = 2
+    const ubyte STATE_UNCOVERING = 3
+    const ubyte STATE_PLAYING = 4
+    const ubyte STATE_GAMEOVER = 5
 
     sub start() {
         music.init()
         ;; screen.titlescreen()
         cx16.set_irq(&interrupts.handler, true)
-        ;; music.playback_enabled = true
+        music.playback_enabled = true
         ;; sys.wait(120)
         cave.init()
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        bdcff.load_test_cave()
-        ;; bd1caves.decode(2)      ; load level 1, the first level
-        bd1demo.init()
-        cave.num_lives = 3
-        cave.score = 0
-        cave.score_500_for_bonus = 0
-        cave.restart_level()
-        ;; cave.playing_demo=true
-        screen.enable()
-        music.playback_enabled = false
 
-        ubyte title_timer = 255
-        screen.show_cave_title()
-        game_state = STATE_CAVETITLE
+        const bool PLAY_DEMO_CAVE = false
+        if PLAY_DEMO_CAVE {
+            ;;bdcff.load_test_cave()
+            bd1caves.decode(1)
+            bd1demo.init()
+            cave.playing_demo=true
+            cave.cover_all()
+            screen.show_cave_title()
+            game_state = STATE_CAVETITLE
+        } else {
+            game_state = STATE_CHOOSE_LEVEL
+        }
+        screen.enable()
+        ubyte title_timer
 
         repeat {
             ; the game loop, executed every frame.
@@ -50,6 +52,9 @@ main {
             screen.update()
 
             when game_state {
+                STATE_CHOOSE_LEVEL -> {
+                    choose_level()
+                }
                 STATE_CAVETITLE -> {
                     title_timer--
                     if_z {
@@ -61,6 +66,7 @@ main {
                             screen.hud_text(12,13,$f0,"**** Playing ****")
                             screen.hud_text(12,16,$f0,"****  Demo   ****")
                         }
+                        music.playback_enabled = false
                         game_state = STATE_UNCOVERING
                     }
                 }
@@ -70,16 +76,54 @@ main {
                         game_state = STATE_PLAYING
                 }
                 STATE_PLAYING -> {
-                    cave.scan()
+                    ubyte action = cave.scan()
                     if interrupts.vsync_counter % 3 == 0
                         screen.hud_update()
-                    ; TODO wait for user, restart covered level if lives>0 else game over.
+                    when action {
+                        cave.ACTION_GAMEOVER -> game_state = STATE_GAMEOVER
+                        cave.ACTION_NEXTLEVEL -> choose_level()
+                    }
                 }
                 STATE_GAMEOVER -> {
-                    ; TODO game over screen
+                    screen.hud_text(10,10,$f0,"Game Over")
+                    ; TODO proper game over screen
                 }
             }
         }
+    }
+
+    ubyte chosen_level = 1
+
+    sub choose_level() {
+        game_state = STATE_CHOOSE_LEVEL
+        ubyte letter = chosen_level + 'A'-1
+        str cave_letter_str = "press A-T for cave select: A"
+        letter = c64.GETIN()
+        if letter {
+            if letter==13 {
+                ; load the level
+                bd1caves.decode(chosen_level)
+                cave.cover_all()
+                cave.restart_level()
+                cave.num_lives = 3
+                cave.score = 0
+                cave.score_500_for_bonus = 0
+                main.start.title_timer = 250
+                game_state = STATE_CAVETITLE
+                screen.hud_clear()
+                screen.show_cave_title()
+                return
+            } else if letter>='a' and letter <= 't' {
+                chosen_level = letter - 'a' + 1
+                cave_letter_str[len(cave_letter_str)-1] = letter | 128
+                bd1caves.decode(chosen_level)
+                ;; TODO once cave decoding is fixed: cave.cover_all()
+                screen.hud_clear()
+                screen.show_cave_title()
+            }
+        }
+        screen.hud_text(5,3,$f0,cave_letter_str)
+        screen.hud_text(5,5,$f0,"Press ENTER to start.")
     }
 }
 
