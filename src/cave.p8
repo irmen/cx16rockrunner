@@ -4,6 +4,8 @@
 ; https://codeincomplete.com/articles/javascript-boulderdash/objects.pdf
 ; https://bitbucket.org/czirkoszoltan/gdash/src/c8390151fb1181a7d8c81df8eab67ab2cbf018e0/src/misc/helptext.cpp#lines-223
 
+; TODO BUG: sometimes a diamond pickup is missed, for instance in intermission 1
+
 cave {
     ; for now we use the original cave dimension limits
     const uword MAX_CAVE_WIDTH = 40             ; word here to avoid having to cast to word all the time
@@ -110,7 +112,7 @@ cave {
         rockford_state = 0
         scan_frame = 0
         current_diamond_value = initial_diamond_value
-        time_left_secs = cave_time_sec
+        time_left_secs = 0
         screen.white_flash = false
         ; find the initial player position
         ubyte x
@@ -309,7 +311,7 @@ cave {
                                 play_fall_sound(obj)
                             }
                             else if objects.attributes[@(cell_ptr + MAX_CAVE_WIDTH)] & objects.ATTRF_ROUNDED {
-                                ; stationary boulders and diamonds can roll off something as well
+                                ; stationary boulders and diamonds can roll off something as well, as long as that is stationary
                                 roll_off()
                             }
                         }
@@ -506,7 +508,7 @@ cave {
                 joy_right = lsb(joy) & %0001==0
                 joy_up = lsb(joy) & %1000==0
                 joy_down = lsb(joy) & %0100==0
-                joy_fire = joy & %1100000001100000 != %1100000001100000
+                joy_fire = joy & %1100000011000000 != %1100000011000000
             }
 
             if joy_left left()
@@ -517,24 +519,18 @@ cave {
                 rockford_state=ROCKFORD_IDLE
 
             if moved {
-                @(cell_ptr) = objects.space
                 cell_ptr2 = cells + player_y*MAX_CAVE_WIDTH + player_x
                 attr_ptr2 = cell_attributes + player_y*MAX_CAVE_WIDTH + player_x
-                targetcell = @(cell_ptr2)
+                when @(cell_ptr2) {
+                    objects.outboxhidden, objects.outboxblinking -> exit_reached = true
+                    objects.diamond, objects.diamond2 -> pickup_diamond()
+                    objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
+                    objects.space -> sounds.rockfordmove_space()
+                }
+                @(cell_ptr) = objects.space
+                @(attr_ptr) = ATTR_SCANNED_FLAG
                 @(cell_ptr2) = objects.rockford      ; exact tile will be set by rockford animation routine
                 @(attr_ptr2) = ATTR_SCANNED_FLAG
-                if targetcell==objects.outboxhidden or targetcell==objects.outboxblinking {
-                    exit_reached = true
-                }
-                if targetcell==objects.diamond or targetcell==objects.diamond2 {
-                    pickup_diamond()
-                }
-                if targetcell==objects.dirt or targetcell==objects.dirt2 {
-                    sounds.rockfordmove_dirt()
-                }
-                if targetcell==objects.space or targetcell==objects.bonusbg {
-                    sounds.rockfordmove_space()
-                }
             }
 
             sub left() {
@@ -704,14 +700,14 @@ cave {
                         play_fall_sound(@(cell_ptr))
                     @(cell_ptr) = objects.space
                     @(cell_ptr-1) = obj
-                    @(attr_ptr-1) = attr | ATTR_FALLING
+                    @(attr_ptr-1) = attr | ATTR_FALLING | ATTR_SCANNED_FLAG
                 } else if @(cell_ptr+1) == objects.space and @(cell_ptr+1+MAX_CAVE_WIDTH) == objects.space {
                     ; roll right
                     if @(attr_ptr) != ATTR_FALLING
                         play_fall_sound(@(cell_ptr))
                     @(cell_ptr) = objects.space
                     @(cell_ptr+1) = obj
-                    @(attr_ptr+1) = attr | ATTR_FALLING
+                    @(attr_ptr+1) = attr | ATTR_FALLING | ATTR_SCANNED_FLAG
                 } else if @(attr_ptr) == ATTR_FALLING {
                     ; it stopped falling
                     play_fall_sound(@(cell_ptr))

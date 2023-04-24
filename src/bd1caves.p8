@@ -70,30 +70,30 @@ bd1caves {
                 draw_single(cx16.r0L, cx16.r1L, x, y)
             }
         }
-        draw_rectangle(objects.steel, 0, 0, 0, cave.width, cave.height, 0, 0)    ; the boundary
+        draw_rectangle(objects.steel, 0, 0, 0, cave.width, cave.height, 255, 0)    ; the boundary
 
         data_ptr += $20
         while @(data_ptr) != $ff {
             ubyte obj = translate_objects[@(data_ptr) & $3f]
             ubyte attr = initial_attributes(@(data_ptr) & $3f)
-            ubyte kind = (@(data_ptr) & $c0) >> 6
+            ubyte kind = @(data_ptr) & $c0
             x = data_ptr[1]
             y = data_ptr[2] - 2   ; apparently need to adjust for top 2 lines where score is shown on c64
             when kind {
-                0 -> {
+                %00000000 -> {
                     draw_single(obj, attr, x, y)
                     data_ptr += 3
                 }
-                1 -> {
+                %01000000 -> {
                     draw_line(obj, attr, x, y, data_ptr[3], data_ptr[4])
                     data_ptr += 5
                 }
-                2 -> {
+                %10000000 -> {
                     draw_rectangle(obj, attr, x, y, data_ptr[3], data_ptr[4], translate_objects[data_ptr[5]], initial_attributes(data_ptr[5]))
                     data_ptr += 6
                 }
-                3 -> {
-                    draw_rectangle(obj, attr, x, y, data_ptr[3], data_ptr[4], 0, 0)
+                %11000000 -> {
+                    draw_rectangle(obj, attr, x, y, data_ptr[3], data_ptr[4], 255, 0)
                     data_ptr += 5
                 }
             }
@@ -145,7 +145,7 @@ bd1caves {
         draw_line(obj, attr, x1, y1 + height - 1, width, 2)
         draw_line(obj, attr, x1, y1 + 1, height - 2, 4)
         draw_line(obj, attr, x1 + width - 1, y1 + 1, height - 2, 4)
-        if fillobj {
+        if fillobj!=255 {
             ubyte y
             for y in y1 + 1 to y1 + height - 2
                 draw_line(fillobj, fillattr, x1 + 1, y, width - 2, 2)

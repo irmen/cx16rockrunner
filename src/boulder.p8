@@ -20,6 +20,14 @@ main {
     const ubyte STATE_GAMEOVER = 5
 
     sub start() {
+;        repeat {
+;            ubyte k = c64.GETIN()
+;            if k {
+;                txt.print_ub(k)
+;                txt.spc()
+;            }
+;        }
+
         music.init()
         ;; screen.titlescreen()
         cx16.set_irq(&interrupts.handler, true)
@@ -36,12 +44,12 @@ main {
             bd1caves.decode(1)
             bd1demo.init()
             cave.playing_demo=true
-            cave.cover_all()
             screen.show_cave_title()
             game_state = STATE_CAVETITLE
         } else {
             game_state = STATE_CHOOSE_LEVEL
         }
+        cave.cover_all()
         screen.enable()
         ubyte title_timer
 
@@ -97,6 +105,7 @@ main {
     sub choose_level() {
         game_state = STATE_CHOOSE_LEVEL
         ubyte letter = chosen_level + 'A'-1
+        str joystick_str = "press F1 to select joystick: 0"
         str cave_letter_str = "press A-T for cave select: A"
         letter = c64.GETIN()
         if letter {
@@ -117,11 +126,18 @@ main {
                 chosen_level = letter - 'a' + 1
                 cave_letter_str[len(cave_letter_str)-1] = letter | 128
                 bd1caves.decode(chosen_level)
-                ;; TODO once cave decoding is fixed: cave.cover_all()
+                cave.cover_all()
                 screen.hud_clear()
                 screen.show_cave_title()
+            } else if letter==133 {
+                joystick++
+                if joystick==5
+                    joystick=0
+                joystick_str[29] = joystick + '0'
+            } else if letter==137 {
             }
         }
+        screen.hud_text(5,2,$f0,joystick_str)
         screen.hud_text(5,3,$f0,cave_letter_str)
         screen.hud_text(5,5,$f0,"Press ENTER to start.")
     }
