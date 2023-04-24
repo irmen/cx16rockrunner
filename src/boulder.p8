@@ -1,3 +1,4 @@
+%import conv
 %import diskio
 %import cx16diskio
 %import psg
@@ -13,8 +14,9 @@ main {
     ubyte game_state
 
     const ubyte STATE_CAVETITLE = 1
-    const ubyte STATE_PLAYING = 2
-    const ubyte STATE_GAMEOVER = 3
+    const ubyte STATE_UNCOVERING = 2
+    const ubyte STATE_PLAYING = 3
+    const ubyte STATE_GAMEOVER = 4
 
     sub start() {
         music.init()
@@ -26,20 +28,20 @@ main {
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        bdcff.load_test_cave()
-        ;; bd1caves.decode(1)      ; load level 1, the first level
+        ;; bdcff.load_test_cave()
+        bd1caves.decode(1)      ; load level 1, the first level
         bd1demo.init()
         cave.num_lives = 3
         cave.score = 0
         cave.score_500_for_bonus = 0
         cave.restart_level()
-        ;; cave.playing_demo=true
+        cave.playing_demo=true
         screen.enable()
         music.playback_enabled = false
 
         ubyte title_timer = 255
-        ;; screen.show_cave_title()
-        game_state = STATE_PLAYING ;; TODO should be STATE_CAVETITLE
+        screen.show_cave_title()
+        game_state = STATE_CAVETITLE
 
         repeat {
             ; the game loop, executed every frame.
@@ -55,19 +57,26 @@ main {
                         cx16.r1 = (math.rnd() % (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)) * $0010
                         screen.set_scroll_pos(cx16.r0, cx16.r1)
                         screen.hud_clear()
-                        ; TODO real hud elements
-                        screen.hud_text(5, 1, $f0, "d:99/200")
-                        screen.hud_text(14, 1, $f0, "12345")
-                        screen.hud_text(20, 1, $f0, "l:3")
-                        screen.hud_text(24, 1, $f0, "t:999")
-                        game_state = STATE_PLAYING
+                        if cave.playing_demo {
+                            screen.hud_text(12,13,$f0,"**** Playing ****")
+                            screen.hud_text(12,16,$f0,"****  Demo   ****")
+                        }
+                        game_state = STATE_UNCOVERING
                     }
+                }
+                STATE_UNCOVERING -> {
+                    cave.uncover_more()
+                    if not cave.covered
+                        game_state = STATE_PLAYING
                 }
                 STATE_PLAYING -> {
                     cave.scan()
+                    if interrupts.vsync_counter % 3 == 0
+                        screen.hud_update()
+                    ; TODO wait for user, restart covered level if lives>0 else game over.
                 }
                 STATE_GAMEOVER -> {
-                    ; TODO
+                    ; TODO game over screen
                 }
             }
         }
@@ -285,24 +294,62 @@ _loop           lda  (attr_ptr),y
         repeat {
             cx16.r0L = @(text_ptr)
             if_z
-                break
+                return
             cx16.VERA_DATA0 = cx16.r0L
             cx16.VERA_DATA0 = color
             text_ptr++
         }
     }
 
+    sub hud_wrap_text(ubyte col, ubyte row, ubyte color, uword text_ptr) {
+        repeat {
+            uword offset = (row as uword) * 128 + col*2
+            cx16.vaddr(1, $c000 + offset, 0, 1)
+            repeat {
+                cx16.r0L = @(text_ptr)
+                if_z
+                    return
+                if cx16.r0L=='|'
+                    break
+                cx16.VERA_DATA0 = cx16.r0L
+                cx16.VERA_DATA0 = color
+                text_ptr++
+            }
+            text_ptr++
+            row++
+        }
+    }
+
+    sub hud_update() {
+        const ubyte xpos = 8
+        screen.hud_text(xpos+1, 1, $f0, "d")
+        conv.str_ub0(cave.num_diamonds)
+        screen.hud_text(xpos+3, 1, $f0, conv.string_out)
+        screen.hud_text(xpos+6, 1, $f0, "/")
+        conv.str_ub0(cave.diamonds_needed)
+        screen.hud_text(xpos+7, 1, $f0, conv.string_out)
+        screen.hud_text(xpos+12, 1, $f0, "l")
+        conv.str_ub0(cave.num_lives)
+        screen.hud_text(xpos+14, 1, $f0, conv.string_out)
+        screen.hud_text(xpos+19, 1, $f0, "t")
+        conv.str_ub0(cave.time_left_secs)
+        screen.hud_text(xpos+21, 1, $f0, conv.string_out)
+        conv.str_uw0(cave.score)
+        screen.hud_text(xpos+26, 1, $f0, conv.string_out)
+    }
+
     sub show_cave_title() {
-        screen.hud_text(5, 10, $f0, "cave:")
-        screen.hud_text(11, 10, $f0, cave.name_ptr)
-        screen.hud_text(1, 12, $f0, cave.description_ptr)
+        const ubyte xpos = 3
+        const ubyte ypos = 8
+        screen.hud_text(xpos+4, ypos, $f0, "cave:")
+        screen.hud_text(xpos+10, ypos, $f0, cave.name_ptr)
+        screen.hud_wrap_text(xpos, ypos+5, $f0, cave.description_ptr)
     }
 }
 
 interrupts {
     ubyte vsync_counter = 0
     ubyte vsync_semaphore = 1
-    ubyte jiffy
 
     asmsub waitvsync() {
         ; an improved waitvsync() routine over the one in the sys lib
@@ -319,13 +366,11 @@ interrupts {
         if cx16.VERA_ISR & %00000001 {
             vsync_semaphore=0
             vsync_counter++
-            jiffy++
-            if jiffy==60
-                jiffy=0
             cx16.save_vera_context()
             ; soft-scrolling is handled in the irq handler itself to avoid stutters
             scroll_screen()
             music.update()
+            cave.do_each_frame()    ; for timing critical stuff
             cx16.restore_vera_context()
             psg.envelopes_irq()     ; note: does its own vera save/restore context
         }

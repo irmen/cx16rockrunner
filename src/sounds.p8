@@ -12,8 +12,6 @@
 ;    release time:   MAXVOL/15/release seconds.   higher vaule = faster release.
 
 
-; TODO: sounds sometimes don't seem to trigger! (falling diamond, falling boulder,...)
-
 sounds {
     const ubyte VOICE_EXPLOSION = 8
     const ubyte VOICE_DIAMONDS = 9
@@ -59,9 +57,9 @@ sounds {
 
     sub timeout(ubyte timeleft) {
         psg.voice(VOICE_TIMEOUTUNCOVERBONUS, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
-        if timeleft>9
-            timeleft=9
-        uword[10] freqs = [1634, 1592, 1550, 1508, 1466, 1424, 1382, 1340, 1299, 1257]
+        if timeleft>10
+            timeleft=10
+        uword[11] freqs = [1676, 1634, 1592, 1550, 1508, 1466, 1424, 1382, 1340, 1299, 1257]
         psg.freq(VOICE_TIMEOUTUNCOVERBONUS, freqs[timeleft])
         psg.envelope(VOICE_TIMEOUTUNCOVERBONUS, 63, 255, 1, 4)
     }

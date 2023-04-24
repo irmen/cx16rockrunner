@@ -8,10 +8,12 @@ bdcff {
         cave.intermission = false
         cave.width = 40
         cave.height = 22
-        cave.cave_time_sec = 30
+        cave.cave_time_sec = 200
         cave.magicwall_millingtime_sec = 20
         cave.amoeba_slow_time_sec = 60
         cave.diamonds_needed = 10
+        cave.initial_diamond_value = 1
+        cave.extra_diamond_value = 2
 
         uword @zp ptr = &cave_data
         ubyte x

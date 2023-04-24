@@ -66,7 +66,7 @@ cave {
     ubyte num_lives
     uword score
     uword score_500_for_bonus
-    ubyte cave_time_left_secs
+    ubyte time_left_secs
     ubyte current_diamond_value
     bool exit_reached
     bool playing_demo
@@ -107,7 +107,7 @@ cave {
         rockford_state = 0
         scan_frame = 0
         current_diamond_value = initial_diamond_value
-        cave_time_left_secs = cave_time_sec
+        time_left_secs = cave_time_sec
         ; find the initial player position
         ubyte x
         ubyte y
@@ -132,20 +132,46 @@ cave {
     uword @requirezp cell_ptr2      ; free to use
     uword @requirezp attr_ptr2      ; free to use
 
-    sub scan() {
-        if covered {
-            uncover_more()
-            return      ; we do nothing else as long as the cave is still (partially) covered.
-        }
+    ubyte jiffy_counter
 
-        rockford_birth_time--
+    sub do_each_frame() {
+        ; called by vsync irq handler to do timing critical stuff that should
+        ; be independent of how many frames a full cave scan takes.
+        if covered
+            return
+
         handle_rockford_animation()
 
+        jiffy_counter++
+        if jiffy_counter==60 {
+            jiffy_counter=0
+            if time_left_secs {
+                time_left_secs--
+                if time_left_secs <= 10
+                    sounds.timeout(time_left_secs)
+            }
+        }
+
+        if amoeba_count and (jiffy_counter & 3 == 0)
+            sounds.amoeba()
+        if magicwall_enabled and (jiffy_counter & 3 == 1)
+            sounds.magicwall()
+    }
+
+
+    sub scan() {
+        if covered
+            return  ; we do nothing else as long as the cave is still (partially) covered.
+
+        rockford_birth_time--
         if exit_reached {
-            ; TODO do cave exit stuff: add remaining time to score + next level
-            if cave_time_left_secs and interrupts.vsync_counter % 3 == 0 {
-                sounds.bonus(cave_time_left_secs)
-                cave_time_left_secs--
+            ; TODO advance to next level
+            magicwall_enabled = false
+            amoeba_count = 0
+            if time_left_secs and interrupts.vsync_counter % 3 == 0 {
+                add_score(1) ; TODO add difficulty level instead, 1-5
+                sounds.bonus(time_left_secs)
+                time_left_secs--
             }
             return
         }
@@ -156,40 +182,20 @@ cave {
                 disable_bonusbg()
         }
         if magicwall_enabled {
-            if magicwall_timer & 3 == 0
-                sounds.magicwall()
             magicwall_timer--
             if magicwall_timer==0
                 disable_magicwall()
         }
 
-        if interrupts.jiffy==0 {
-            cave_time_left_secs--
-            if cave_time_left_secs==0 and rockford_state {
-                ; explode (and lose a life in the process)
-                explode(player_x, player_y)
-            } else if cave_time_left_secs <= 9 {
-                sounds.timeout(cave_time_left_secs)
-            }
-        }
-
         amoeba_slow_timer--
         if amoeba_slow_timer==0
             amoeba_growth_rate = AMOEBA_FAST_GROWTH
-        if amoeba_count and (interrupts.vsync_counter & 3 == 0)
-            sounds.amoeba()
 
         scan_frame++
         if scan_frame==7            ; cave scan is done once every 7 frames TODO configurable
             scan_frame = 0
         else
             return
-
-        if score_500_for_bonus >= 500 {
-            score_500_for_bonus -= 500
-            num_lives++
-            enable_bonusbg()
-        }
 
         ; amoeba handling
         if amoeba_count >= AMOEBA_MAX_SIZE {
@@ -251,8 +257,8 @@ cave {
                                 rockford_animation_frame = 0
                                 player_x = x
                                 player_y = y
-                                interrupts.jiffy = 1
-                                cave_time_left_secs = cave_time_sec
+                                jiffy_counter = 1
+                                time_left_secs = cave_time_sec
                             }
                         }
                         objects.explosion -> {
@@ -480,6 +486,12 @@ cave {
             ubyte afterboulder
             ubyte moved = false
 
+            if time_left_secs==0 and rockford_state {
+                ; explode (and lose a life in the process)
+                explode(player_x, player_y)
+                return
+            }
+
             if playing_demo
                 bd1demo.get_movement()
             else {
@@ -646,78 +658,6 @@ cave {
             }
         }
 
-        sub handle_rockford_animation() {
-            ; per frame, not per cave scan
-            if not rockford_state
-                return
-
-            rockford_animation_frame++
-            if rockford_animation_frame==8*2  {
-                ; shortcut: we know that each rockford animation sequence is 8 steps times 2 frames each.
-                rockford_animation_frame = 0
-                if rockford_state!=ROCKFORD_MOVING and rockford_state!=ROCKFORD_PUSHING
-                    choose_new_anim()
-            }
-
-            cell_ptr2 = cells + player_y*MAX_CAVE_WIDTH + player_x
-
-            when rockford_state {
-                ROCKFORD_MOVING -> {
-                    if rockford_face_direction == ROCKFORD_FACE_LEFT
-                        @(cell_ptr2) = objects.rockfordleft
-                    else
-                        @(cell_ptr2) = objects.rockfordright
-                }
-                ROCKFORD_PUSHING -> {
-                    if rockford_face_direction == ROCKFORD_FACE_LEFT
-                        @(cell_ptr2) = objects.rockfordpushleft
-                    else
-                        @(cell_ptr2) = objects.rockfordpushright
-                }
-                ROCKFORD_BIRTH -> {
-                    @(cell_ptr2) = objects.rockfordbirth
-                    if anim_ended(objects.rockfordbirth) {
-                        rockford_state = ROCKFORD_IDLE
-                        rockford_animation_frame = 0
-                    }
-                }
-                ROCKFORD_TAPPING -> @(cell_ptr2) = objects.rockfordtap
-                ROCKFORD_BLINKING -> @(cell_ptr2) = objects.rockfordblink
-                ROCKFORD_TAPBLINK -> @(cell_ptr2) = objects.rockfordtapblink
-                ROCKFORD_IDLE -> @(cell_ptr2) = objects.rockford
-            }
-
-            sub choose_new_anim() {
-                ubyte random = math.rnd()
-                bool set_blinking = false
-                bool set_tapping = rockford_state==ROCKFORD_TAPBLINK or rockford_state==ROCKFORD_TAPPING
-                if random < 64 {
-                    ; 25% chance to blink
-                    set_blinking = true
-                }
-                if random < 16 {
-                    ; 6.25% chance to start or stop tapping
-                    set_tapping = not set_tapping
-                }
-                if set_blinking {
-                    if set_tapping {
-                        rockford_state = ROCKFORD_TAPBLINK
-                        restart_anim(objects.rockfordtapblink)
-                    } else {
-                        rockford_state = ROCKFORD_BLINKING
-                        restart_anim(objects.rockfordblink)
-                    }
-                } else {
-                    if set_tapping {
-                        rockford_state = ROCKFORD_TAPPING
-                        restart_anim(objects.rockfordtap)
-                    } else {
-                        rockford_state = ROCKFORD_IDLE
-                    }
-                }
-            }
-        }
-
         sub handle_horiz_expander() {
             if @(cell_ptr-1)==objects.space {
                 @(cell_ptr-1) = objects.horizexpander
@@ -740,10 +680,6 @@ cave {
                 @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
                 sounds.expanding_wall()
             }
-        }
-
-        sub anim_ended(ubyte object) -> bool {
-            return objects.anim_cycles[object]>0
         }
 
         sub fall_down_one_cell() {
@@ -885,9 +821,18 @@ cave {
 
     sub pickup_diamond() {
         num_diamonds++
-        score += current_diamond_value
-        score_500_for_bonus += current_diamond_value
+        add_score(current_diamond_value)
         sounds.diamond_pickup()
+    }
+
+    sub add_score(ubyte amount) {
+        score += amount
+        score_500_for_bonus += amount
+        if score_500_for_bonus >= 500 {
+            score_500_for_bonus -= 500
+            num_lives++
+            enable_bonusbg()
+        }
     }
 
     sub play_fall_sound(ubyte object) {
@@ -904,6 +849,82 @@ cave {
             sounds.diamond()
     }
     
+    sub handle_rockford_animation() {
+        ; per frame, not per cave scan
+        if not rockford_state
+            return
+
+        rockford_animation_frame++
+        if rockford_animation_frame==8*2  {
+            ; shortcut: we know that each rockford animation sequence is 8 steps times 2 frames each.
+            rockford_animation_frame = 0
+            if rockford_state!=ROCKFORD_MOVING and rockford_state!=ROCKFORD_PUSHING
+                choose_new_anim()
+        }
+
+        cell_ptr2 = cells + player_y*MAX_CAVE_WIDTH + player_x
+
+        when rockford_state {
+            ROCKFORD_MOVING -> {
+                if rockford_face_direction == ROCKFORD_FACE_LEFT
+                    @(cell_ptr2) = objects.rockfordleft
+                else
+                    @(cell_ptr2) = objects.rockfordright
+            }
+            ROCKFORD_PUSHING -> {
+                if rockford_face_direction == ROCKFORD_FACE_LEFT
+                    @(cell_ptr2) = objects.rockfordpushleft
+                else
+                    @(cell_ptr2) = objects.rockfordpushright
+            }
+            ROCKFORD_BIRTH -> {
+                @(cell_ptr2) = objects.rockfordbirth
+                if anim_ended(objects.rockfordbirth) {
+                    rockford_state = ROCKFORD_IDLE
+                    rockford_animation_frame = 0
+                }
+            }
+            ROCKFORD_TAPPING -> @(cell_ptr2) = objects.rockfordtap
+            ROCKFORD_BLINKING -> @(cell_ptr2) = objects.rockfordblink
+            ROCKFORD_TAPBLINK -> @(cell_ptr2) = objects.rockfordtapblink
+            ROCKFORD_IDLE -> @(cell_ptr2) = objects.rockford
+        }
+
+        sub choose_new_anim() {
+            ubyte random = math.rnd()
+            bool set_blinking = false
+            bool set_tapping = rockford_state==ROCKFORD_TAPBLINK or rockford_state==ROCKFORD_TAPPING
+            if random < 64 {
+                ; 25% chance to blink
+                set_blinking = true
+            }
+            if random < 16 {
+                ; 6.25% chance to start or stop tapping
+                set_tapping = not set_tapping
+            }
+            if set_blinking {
+                if set_tapping {
+                    rockford_state = ROCKFORD_TAPBLINK
+                    restart_anim(objects.rockfordtapblink)
+                } else {
+                    rockford_state = ROCKFORD_BLINKING
+                    restart_anim(objects.rockfordblink)
+                }
+            } else {
+                if set_tapping {
+                    rockford_state = ROCKFORD_TAPPING
+                    restart_anim(objects.rockfordtap)
+                } else {
+                    rockford_state = ROCKFORD_IDLE
+                }
+            }
+        }
+    }
+
+    sub anim_ended(ubyte object) -> bool {
+        return objects.anim_cycles[object]>0
+    }
+
     sub restart_anim(ubyte object) {
         objects.anim_frame[object] = 0
         objects.anim_delay[object] = 0

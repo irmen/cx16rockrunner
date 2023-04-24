@@ -270,43 +270,43 @@ bd1caves {
         ; Cave 0 - not selectable (level starts at 1)
         "",
         ; Cave A
-        "Pick up jewels and exit before time is up.",
+        "Pick up jewels and exit|before time is up.",
         ; Cave B
-        "Pick up jewels, but you must move boulders to get all jewels.",
+        "Pick up jewels, but you must|move boulders to get all jewels.",
         ; Cave C
-        "Pick up jewels. You must get every jewel to exit.",
+        "Pick up jewels.|You must get every jewel to exit.",
         ; Cave D
-        "Drop boulders on butterflies to create jewels.",
+        "Drop boulders on butterflies|to create jewels.",
         ; Intermission 1
         "Bonus level!",
         ; Cave E
-        "The jewels are there for grabbing, but they are guarded by the deadly fireflies.",
+        "The jewels are there for grabbing,|but they are guarded|by the deadly fireflies.",
         ; Cave F
         "Each firefly is guarding a jewel.",
         ; Cave G
-        "Surround the amoeba with boulders. Pick up jewels when it suffocates.",
+        "Surround the amoeba with boulders.|Pick up jewels when it suffocates.",
         ; Cave H
-        "Activate the enchanted wall and create as many jewels as you can.",
+        "Activate the enchanted wall and|create as many jewels as you can.",
         ; Intermission 2
         "Bonus level!",
         ; Cave I
-        "You have to get a lot of jewels here, lucky there are so many.",
+        "You have to get a lot of jewels|here, lucky there are so many.",
         ; Cave J
         "Get the jewels, avoid the fireflies.",
         ; Cave K
-        "You must move a lot of boulders around in some tight spaces.",
+        "You must move a lot of boulders|around in some tight spaces.",
         ; Cave L
-        "Drop a boulder on a firefly at the right time to blast through walls.",
+        "Drop a boulder on a firefly|at the right time|to blast through walls.",
         ; Intermission 3
         "Bonus level!",
         ; Cave M
-        "Bring the butterflies and amoeba together and watch the jewels fly.",
+        "Bring the butterflies and amoeba|together and watch the jewels fly.",
         ; Cave N
-        "Magically transform the butterflies into jewels, but don't waste any boulders.",
+        "Magically transform the butterflies|into jewels, but don't waste|any boulders.",
         ; Cave O
-        "There is an enchanted wall at the bottom of the rock tunnel.",
+        "There is an enchanted wall at|the bottom of the rock tunnel.",
         ; Cave P
-        "The top of each room is an enchanted wall, but you'll have to blast your way inside.",
+        "The top of each room is an|enchanted wall, but you'll|have to blast your way inside.",
         ; Intermission 4
         "Bonus level!"
     ]
