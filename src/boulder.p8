@@ -302,6 +302,7 @@ _loop           lda  (attr_ptr),y
 interrupts {
     ubyte vsync_counter = 0
     ubyte vsync_semaphore = 1
+    ubyte jiffy
 
     asmsub waitvsync() {
         ; an improved waitvsync() routine over the one in the sys lib
@@ -318,6 +319,9 @@ interrupts {
         if cx16.VERA_ISR & %00000001 {
             vsync_semaphore=0
             vsync_counter++
+            jiffy++
+            if jiffy==60
+                jiffy=0
             cx16.save_vera_context()
             ; soft-scrolling is handled in the irq handler itself to avoid stutters
             scroll_screen()

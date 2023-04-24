@@ -77,7 +77,7 @@ sounds {
         psg.voice(VOICE_AMOEBA, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
         uword f = (math.rndw() % 293) + 335   ; random between 335 and 628
         psg.freq(VOICE_AMOEBA, f)
-        psg.envelope(VOICE_AMOEBA, 63, 160, 0, 160)
+        psg.envelope(VOICE_AMOEBA, 55, 120, 0, 45)
     }
 
     sub magicwall() {

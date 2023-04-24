@@ -66,7 +66,7 @@ cave {
     ubyte num_lives
     uword score
     uword score_500_for_bonus
-    uword cave_time_left            ; frames
+    ubyte cave_time_left_secs
     ubyte current_diamond_value
     bool exit_reached
     bool playing_demo
@@ -107,7 +107,7 @@ cave {
         rockford_state = 0
         scan_frame = 0
         current_diamond_value = initial_diamond_value
-        cave_time_left = (cave_time_sec as uword) * 60
+        cave_time_left_secs = cave_time_sec
         ; find the initial player position
         ubyte x
         ubyte y
@@ -141,32 +141,43 @@ cave {
         rockford_birth_time--
         handle_rockford_animation()
 
+        if exit_reached {
+            ; TODO do cave exit stuff: add remaining time to score + next level
+            if cave_time_left_secs and interrupts.vsync_counter % 3 == 0 {
+                sounds.bonus(cave_time_left_secs)
+                cave_time_left_secs--
+            }
+            return
+        }
+
         if bonusbg_enabled {
             bonusbg_timer--
             if bonusbg_timer==0
                 disable_bonusbg()
         }
         if magicwall_enabled {
+            if magicwall_timer & 3 == 0
+                sounds.magicwall()
             magicwall_timer--
             if magicwall_timer==0
                 disable_magicwall()
         }
 
-        if exit_reached {
-            ; TODO do cave exit stuff: add remaining time to score + next level
-            return
-        }
-
-        cave_time_left--
-        if cave_time_left==0 {
-            if rockford_state {
+        if interrupts.jiffy==0 {
+            cave_time_left_secs--
+            if cave_time_left_secs==0 and rockford_state {
                 ; explode (and lose a life in the process)
                 explode(player_x, player_y)
+            } else if cave_time_left_secs <= 9 {
+                sounds.timeout(cave_time_left_secs)
             }
         }
+
         amoeba_slow_timer--
         if amoeba_slow_timer==0
             amoeba_growth_rate = AMOEBA_FAST_GROWTH
+        if amoeba_count and (interrupts.vsync_counter & 3 == 0)
+            sounds.amoeba()
 
         scan_frame++
         if scan_frame==7            ; cave scan is done once every 7 frames TODO configurable
@@ -180,7 +191,7 @@ cave {
             enable_bonusbg()
         }
 
-        ; does amoeba explode?
+        ; amoeba handling
         if amoeba_count >= AMOEBA_MAX_SIZE {
             replace_object(objects.amoeba, objects.amoebaexplosion)
             restart_anim(objects.amoebaexplosion)
@@ -232,7 +243,7 @@ cave {
                         }
                         objects.inboxblinking -> {
                             if rockford_birth_time<=0 {
-                                ; spawn our guy
+                                ; spawn our guy, start the timer
                                 sounds.crack()
                                 restart_anim(objects.rockfordbirth)
                                 rockford_state = ROCKFORD_BIRTH
@@ -240,6 +251,8 @@ cave {
                                 rockford_animation_frame = 0
                                 player_x = x
                                 player_y = y
+                                interrupts.jiffy = 1
+                                cave_time_left_secs = cave_time_sec
                             }
                         }
                         objects.explosion -> {
@@ -496,10 +509,7 @@ cave {
                     exit_reached = true
                 }
                 if targetcell==objects.diamond or targetcell==objects.diamond2 {
-                    num_diamonds++
-                    score += current_diamond_value
-                    score_500_for_bonus += current_diamond_value
-                    sounds.diamond_pickup()
+                    pickup_diamond()
                 }
                 if targetcell==objects.dirt or targetcell==objects.dirt2 {
                     sounds.rockfordmove_dirt()
@@ -534,7 +544,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         if targetcell==objects.diamond or targetcell==objects.diamond2
-                            sounds.diamond_pickup()
+                            pickup_diamond()
                         @(cell_ptr-1) = objects.space
                     }
                 } else {
@@ -573,7 +583,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         if targetcell==objects.diamond or targetcell==objects.diamond2
-                            sounds.diamond_pickup()
+                            pickup_diamond()
                         @(cell_ptr+1) = objects.space
                         @(attr_ptr+1) |= ATTR_SCANNED_FLAG
                     }
@@ -596,7 +606,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         if targetcell==objects.diamond or targetcell==objects.diamond2
-                            sounds.diamond_pickup()
+                            pickup_diamond()
                         @(cell_ptr-MAX_CAVE_WIDTH) = objects.space
                     }
                 } else {
@@ -618,7 +628,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         if targetcell==objects.diamond or targetcell==objects.diamond2
-                            sounds.diamond_pickup()
+                            pickup_diamond()
                         @(cell_ptr+MAX_CAVE_WIDTH) = objects.space
                         @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
                     }
@@ -871,6 +881,13 @@ cave {
                 or obj_left==objects.amoeba or objects.attributes[obj_left] & objects.ATTRF_ROCKFORD
                 or obj_right==objects.amoeba or objects.attributes[obj_right] & objects.ATTRF_ROCKFORD
         }
+    }
+
+    sub pickup_diamond() {
+        num_diamonds++
+        score += current_diamond_value
+        score_500_for_bonus += current_diamond_value
+        sounds.diamond_pickup()
     }
 
     sub play_fall_sound(ubyte object) {
