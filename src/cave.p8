@@ -296,16 +296,14 @@ cave {
                         if attr==ATTR_FALLING {
                             handle_falling_object()
                         } else {
-                            when @(cell_ptr + MAX_CAVE_WIDTH) {
-                                objects.space -> {
-                                    ; immediately start falling 1 cell down
-                                    fall_down_one_cell()
-                                    play_fall_sound(obj)
-                                }
-                                objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
-                                    ; stationary boulders and diamonds can roll off something as well
-                                    roll_off()
-                                }
+                            if @(cell_ptr + MAX_CAVE_WIDTH) == objects.space {
+                                ; immediately start falling 1 cell down
+                                fall_down_one_cell()
+                                play_fall_sound(obj)
+                            }
+                            else if objects.attributes[@(cell_ptr + MAX_CAVE_WIDTH)] & objects.ATTRF_ROUNDED {
+                                ; stationary boulders and diamonds can roll off something as well
+                                roll_off()
                             }
                         }
                     }

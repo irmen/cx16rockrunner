@@ -45,13 +45,13 @@ sounds {
 
     sub boulder() {
         psg.voice(VOICE_BOULDERS, psg.LEFT|psg.RIGHT, 0, psg.NOISE, 0)
-        psg.freq(VOICE_BOULDERS, 385)
+        psg.freq(VOICE_BOULDERS, 2085)
         psg.envelope(VOICE_BOULDERS, 63, 250, 1, 30)
     }
 
     sub crack() {
         psg.voice(VOICE_CRACK, psg.LEFT|psg.RIGHT, 0, psg.NOISE, 0)
-        psg.freq(VOICE_CRACK, 3977)
+        psg.freq(VOICE_CRACK, 5977)
         psg.envelope(VOICE_CRACK, 63, 250, 1, 10)
     }
 
