@@ -10,7 +10,8 @@
 %import sounds
 
 main {
-    ubyte joystick = 0      ; TODO make this selectable
+    ubyte joystick = 0
+    ubyte chosen_level = 1
     ubyte game_state
 
     const ubyte STATE_CAVETITLE = 1
@@ -89,20 +90,41 @@ main {
                         screen.hud_update()
                     when action {
                         cave.ACTION_GAMEOVER -> game_state = STATE_GAMEOVER
-                        cave.ACTION_NEXTLEVEL -> choose_level()
+                        cave.ACTION_RESTARTLEVEL -> {
+                            if cave.intermission {
+                                ; intermissions are bonus levels and you have one try at them
+                                ; TODO if you die in intermission, do you lose a life at all?
+                                next_level()
+                            } else {
+                                bd1caves.decode(chosen_level)
+                                cave.cover_all()
+                                cave.restart_level()
+                                game_state = STATE_UNCOVERING
+                            }
+                        }
+                        cave.ACTION_NEXTLEVEL -> {
+                            next_level()
+                        }
                     }
                 }
                 STATE_GAMEOVER -> {
-                    screen.hud_text(10,10,$f0,"Game Over")
-                    ; TODO proper game over screen
+                    ; TODO proper game over screen and restart game
+                    screen.hud_text(4,10,$f0,"Game Over - press SPACE to restart")
+                    if c64.GETIN()==' '
+                        next_level()
                 }
             }
         }
     }
 
-    ubyte chosen_level = 1
+    sub next_level() {
+        screen.hud_clear()
+        cave.cover_all()
+        choose_level()
+    }
 
     sub choose_level() {
+        music.playback_enabled = true
         game_state = STATE_CHOOSE_LEVEL
         ubyte letter = chosen_level + 'A'-1
         str joystick_str = "press F1 to select joystick: 0"
@@ -134,7 +156,6 @@ main {
                 if joystick==5
                     joystick=0
                 joystick_str[29] = joystick + '0'
-            } else if letter==137 {
             }
         }
         screen.hud_text(5,2,$f0,joystick_str)

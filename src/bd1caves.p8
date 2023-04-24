@@ -11,7 +11,7 @@ bd1caves {
         cave.description_ptr = descriptions[level]
         uword data_ptr = caves[level]
         cave.cave_number = data_ptr[$00]
-        cave.intermission = cave.cave_number%5==0
+        cave.intermission = cave.cave_number >= $11
         if cave.intermission {
             cave.width = 22
             cave.height = 12

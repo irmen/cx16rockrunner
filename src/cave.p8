@@ -28,8 +28,9 @@ cave {
     const ubyte AMOEBA_MAX_SIZE = 200
 
     const ubyte ACTION_NOTHING = 0
-    const ubyte ACTION_NEXTLEVEL = 1
-    const ubyte ACTION_GAMEOVER = 2
+    const ubyte ACTION_RESTARTLEVEL = 1
+    const ubyte ACTION_NEXTLEVEL = 2
+    const ubyte ACTION_GAMEOVER = 3
 
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
@@ -70,6 +71,8 @@ cave {
     uword amoeba_slow_timer
     ubyte num_diamonds
     ubyte num_lives
+    bool player_died
+    ubyte player_died_timer
     uword score
     uword score_500_for_bonus
     ubyte time_left_secs
@@ -110,6 +113,7 @@ cave {
         amoeba_slow_timer = (amoeba_slow_time_sec as uword) * 60
         exit_reached = false
         rockford_state = 0
+        player_died = false
         scan_frame = 0
         current_diamond_value = initial_diamond_value
         time_left_secs = 0
@@ -178,7 +182,9 @@ cave {
                 sounds.bonus(time_left_secs)
                 time_left_secs--
             }
-            return ACTION_NOTHING       ; TODO next level when
+            if time_left_secs==0
+                return ACTION_NEXTLEVEL
+            return ACTION_NOTHING
         }
 
         if bonusbg_enabled {
@@ -190,6 +196,15 @@ cave {
             magicwall_timer--
             if magicwall_timer==0
                 disable_magicwall()
+        }
+        if player_died {
+            player_died_timer--
+            if player_died_timer==0 {
+                player_died = false
+                if num_lives==0
+                    return ACTION_GAMEOVER
+                return ACTION_RESTARTLEVEL
+            }
         }
 
         amoeba_slow_timer--
@@ -800,6 +815,8 @@ cave {
                     @(cell_ptr2) = how
                     @(attr_ptr2) |= ATTR_SCANNED_FLAG
                     num_lives--
+                    player_died = true
+                    player_died_timer = 150
                 }
                 if objects.attributes[@(cell_ptr2)] & objects.ATTRF_CONSUMABLE {
                     @(cell_ptr2) = how
