@@ -70,8 +70,10 @@ def combine_parts() -> Tuple[Image.Image, int, list[TilesPart]]:
     total_tiles = 0
     palette_offset = 0
     parts = []
-    for fn in sorted(glob.glob("images/bd_*.png")):
-        part = cvt(fn)
+    config = configparser.ConfigParser()
+    config.read("images/catalog.ini")
+    for fn in config.sections():
+        part = cvt("images/"+fn)
         num_tiles = part.size[0] // 16
         parts.append(TilesPart(os.path.basename(fn), total_tiles, palette_offset, num_tiles, part))
         total_tiles += num_tiles
