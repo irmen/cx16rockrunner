@@ -108,6 +108,7 @@ cave {
         scan_frame = 0
         current_diamond_value = initial_diamond_value
         time_left_secs = cave_time_sec
+        screen.white_flash = false
         ; find the initial player position
         ubyte x
         ubyte y
@@ -213,6 +214,9 @@ cave {
         }
         amoeba_count = 0      ; will be scanned
 
+        if screen.white_flash
+            screen.flash_white(false)
+
         uword @requirezp cell_ptr       ; warning: never change this in a handler routine!! use cell_ptr2
         uword @requirezp attr_ptr       ; warning: never change this in a handler routine!! use attr_ptr2
         ubyte @zp x
@@ -239,6 +243,7 @@ cave {
                             if num_diamonds >= diamonds_needed {
                                 ; TODO flash screen to indicate outbox is now open
                                 sounds.crack()
+                                screen.flash_white(true)
                                 @(cell_ptr) = objects.outboxblinking
                                 current_diamond_value = extra_diamond_value
                             }

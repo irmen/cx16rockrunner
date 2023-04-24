@@ -28,14 +28,14 @@ main {
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        ;; bdcff.load_test_cave()
-        bd1caves.decode(1)      ; load level 1, the first level
+        bdcff.load_test_cave()
+        ;; bd1caves.decode(2)      ; load level 1, the first level
         bd1demo.init()
         cave.num_lives = 3
         cave.score = 0
         cave.score_500_for_bonus = 0
         cave.restart_level()
-        cave.playing_demo=true
+        ;; cave.playing_demo=true
         screen.enable()
         music.playback_enabled = false
 
@@ -344,6 +344,50 @@ _loop           lda  (attr_ptr),y
         screen.hud_text(xpos+4, ypos, $f0, "cave:")
         screen.hud_text(xpos+10, ypos, $f0, cave.name_ptr)
         screen.hud_wrap_text(xpos, ypos+5, $f0, cave.description_ptr)
+    }
+
+    bool white_flash
+    ubyte[16*4] palette_save
+
+    sub flash_white(bool white) {
+        white_flash = white
+        ubyte idx=0
+        uword pal = $fa00
+        if white {
+            repeat 16 {
+                palette_save[idx] = cx16.vpeek(1,pal)
+                idx++
+                cx16.vpoke(1,pal,$ff)
+                pal++
+                palette_save[idx] = cx16.vpeek(1,pal)
+                idx++
+                cx16.vpoke(1,pal,$0f)
+                pal++
+                palette_save[idx] = cx16.vpeek(1,pal)
+                idx++
+                cx16.vpoke(1,pal,$ff)
+                pal++
+                palette_save[idx] = cx16.vpeek(1,pal)
+                idx++
+                cx16.vpoke(1,pal,$0f)
+                pal+=29
+            }
+        } else {
+            repeat 16 {
+                cx16.vpoke(1,pal,palette_save[idx])
+                idx++
+                pal++
+                cx16.vpoke(1,pal,palette_save[idx])
+                idx++
+                pal++
+                cx16.vpoke(1,pal,palette_save[idx])
+                idx++
+                pal++
+                cx16.vpoke(1,pal,palette_save[idx])
+                idx++
+                pal+=29
+            }
+        }
     }
 }
 
