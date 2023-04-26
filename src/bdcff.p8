@@ -4,7 +4,7 @@ bdcff {
 
     sub load_test_cave() {
         cave.name_ptr = "test cave"
-        cave.description_ptr = "test cave description"
+        cave.description_ptr = "this is a built-in test cave|to easily test things with"
         cave.intermission = false
         cave.width = 40
         cave.height = 22

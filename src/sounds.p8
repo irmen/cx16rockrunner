@@ -23,13 +23,13 @@ sounds {
     const ubyte VOICE_ROCKFORDMOVE = 15
 
     sub explosion() {
-        psg.voice(VOICE_EXPLOSION, psg.LEFT|psg.RIGHT, 0, psg.NOISE, 0)
+        psg.voice(VOICE_EXPLOSION, psg.LEFT|psg.RIGHT, 63, psg.NOISE, 0)
         psg.freq(VOICE_EXPLOSION, 846)
         psg.envelope(VOICE_EXPLOSION, 63, 250, 0, 2)
     }
 
     sub diamond() {
-        psg.voice(VOICE_DIAMONDS, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
+        psg.voice(VOICE_DIAMONDS, psg.LEFT|psg.RIGHT, 63, psg.TRIANGLE, 0)
         uword f = (math.rndw() % 5070) + 5614   ; random between 5614 and 10684
         f &= %1111111100011111
         f |= %0000000011000000
@@ -38,25 +38,25 @@ sounds {
     }
 
     sub diamond_pickup() {
-        psg.voice(VOICE_DIAMONDS, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
+        psg.voice(VOICE_DIAMONDS, psg.LEFT|psg.RIGHT, 63, psg.TRIANGLE, 0)
         psg.freq(VOICE_DIAMONDS, 856)
         psg.envelope(VOICE_DIAMONDS, 63, 250, 1, 18)
     }
 
     sub boulder() {
-        psg.voice(VOICE_BOULDERS, psg.LEFT|psg.RIGHT, 0, psg.NOISE, 0)
+        psg.voice(VOICE_BOULDERS, psg.LEFT|psg.RIGHT, 63, psg.NOISE, 0)
         psg.freq(VOICE_BOULDERS, 2085)
         psg.envelope(VOICE_BOULDERS, 63, 250, 1, 30)
     }
 
     sub crack() {
-        psg.voice(VOICE_CRACK, psg.LEFT|psg.RIGHT, 0, psg.NOISE, 0)
+        psg.voice(VOICE_CRACK, psg.LEFT|psg.RIGHT, 63, psg.NOISE, 0)
         psg.freq(VOICE_CRACK, 5977)
         psg.envelope(VOICE_CRACK, 63, 250, 1, 10)
     }
 
     sub timeout(ubyte timeleft) {
-        psg.voice(VOICE_TIMEOUTUNCOVERBONUS, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
+        psg.voice(VOICE_TIMEOUTUNCOVERBONUS, psg.LEFT|psg.RIGHT, 63, psg.TRIANGLE, 0)
         if timeleft>10
             timeleft=10
         uword[11] freqs = [1676, 1634, 1592, 1550, 1508, 1466, 1424, 1382, 1340, 1299, 1257]
@@ -65,36 +65,34 @@ sounds {
     }
 
     sub uncover() {
-        psg.voice(VOICE_TIMEOUTUNCOVERBONUS, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
-        uword f = (math.rndw() % 5321) + 4190   ; random between 4190 and 9511
-        psg.freq(VOICE_TIMEOUTUNCOVERBONUS, f)
-        psg.envelope(VOICE_TIMEOUTUNCOVERBONUS, 63, 250, 1, 25)
+        psg.voice(VOICE_TIMEOUTUNCOVERBONUS, psg.LEFT|psg.RIGHT, 60, psg.TRIANGLE, 0)
+        psg.freq(VOICE_TIMEOUTUNCOVERBONUS, math.rndw() % 5321 + 4190)
+        psg.envelope(VOICE_TIMEOUTUNCOVERBONUS, 60, 250, 1, 25)
     }
 
     sub amoeba() {
-        psg.voice(VOICE_AMOEBA, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
-        uword f = (math.rndw() % 293) + 335   ; random between 335 and 628
-        psg.freq(VOICE_AMOEBA, f)
-        psg.envelope(VOICE_AMOEBA, 55, 120, 0, 45)
+        psg.voice(VOICE_AMOEBA, psg.LEFT|psg.RIGHT, 55, psg.TRIANGLE, 0)
+        psg.freq(VOICE_AMOEBA, math.rndw() % 293 + 335)   ; random between 335 and 628
+        psg.envelope(VOICE_AMOEBA, 55, 255, 0, 5)
     }
 
     sub magicwall() {
-        psg.voice(VOICE_MAGICWALL, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
+        psg.voice(VOICE_MAGICWALL, psg.LEFT|psg.RIGHT, 55, psg.TRIANGLE, 0)
         uword f = (math.rndw() % 1047) + 5614   ; random between 5614 and 6661
         f &= %1111001111100000
         f |= %0001000011000000
         psg.freq(VOICE_MAGICWALL, f)
-        psg.envelope(VOICE_MAGICWALL, 63, 250, 1, 40)
+        psg.envelope(VOICE_MAGICWALL, 55, 250, 1, 40)
     }
 
     sub bonus(ubyte secsremaining) {
-        psg.voice(VOICE_TIMEOUTUNCOVERBONUS, psg.LEFT|psg.RIGHT, 0, psg.TRIANGLE, 0)
+        psg.voice(VOICE_TIMEOUTUNCOVERBONUS, psg.LEFT|psg.RIGHT, 56, psg.TRIANGLE, 0)
         uword z = secsremaining + 16
         ubyte x
         for x in 15 downto 1 {
             psg.freq(VOICE_TIMEOUTUNCOVERBONUS, (z-x*2)*64)
-            psg.envelope(VOICE_TIMEOUTUNCOVERBONUS, 63, 250, 1, 200)
-            repeat 200 {
+            psg.envelope(VOICE_TIMEOUTUNCOVERBONUS, 56, 250, 1, 200)
+            repeat 255 {
                 %asm {{
                     nop
                 }}
@@ -103,21 +101,21 @@ sounds {
     }
 
     sub rockfordmove_space() {
-        psg.voice(VOICE_ROCKFORDMOVE, psg.LEFT|psg.RIGHT, 0, psg.NOISE, 0)
+        psg.voice(VOICE_ROCKFORDMOVE, psg.LEFT|psg.RIGHT, 32, psg.NOISE, 0)
         psg.freq(VOICE_ROCKFORDMOVE, 2220)
         psg.envelope(VOICE_ROCKFORDMOVE, 32, 160, 0, 40)
     }
 
     sub rockfordmove_dirt() {
-        psg.voice(VOICE_ROCKFORDMOVE, psg.LEFT|psg.RIGHT, 0, psg.NOISE, 0)
+        psg.voice(VOICE_ROCKFORDMOVE, psg.LEFT|psg.RIGHT, 32, psg.NOISE, 0)
         psg.freq(VOICE_ROCKFORDMOVE, 6913)
         psg.envelope(VOICE_ROCKFORDMOVE, 32, 160, 0, 40)
     }
 
     sub expanding_wall() {
-        psg.voice(VOICE_BOULDERS, psg.LEFT|psg.RIGHT, 0, psg.NOISE, 0)
+        psg.voice(VOICE_BOULDERS, psg.LEFT|psg.RIGHT, 48, psg.NOISE, 0)
         psg.freq(VOICE_BOULDERS, 385)
-        psg.envelope(VOICE_BOULDERS, 45, 250, 1, 20)
+        psg.envelope(VOICE_BOULDERS, 48, 250, 1, 20)
     }
 }
 
@@ -127,11 +125,15 @@ music {
     ; https://www.elmerproductions.com/sp/peterb/sounds.html#Theme%20tune
 
     sub init() {
+         playback_enabled = false
          psg.silent()
          psg.voice(0, psg.LEFT, 0, psg.TRIANGLE, 0)
          psg.voice(1, psg.RIGHT, 0, psg.TRIANGLE, 0)
-         note_idx = 0
-         playback_enabled = false
+         restart()
+    }
+
+    sub restart() {
+        note_idx = 0
     }
 
     bool playback_enabled

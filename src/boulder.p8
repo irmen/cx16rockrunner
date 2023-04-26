@@ -41,9 +41,9 @@ main {
 
         const bool PLAY_DEMO_CAVE = false
         if PLAY_DEMO_CAVE {
-            ;;bdcff.load_test_cave()
-            bd1caves.decode(1)
-            bd1demo.init()
+            bdcff.load_test_cave()
+            ;;bd1caves.decode(1)
+            ;;bd1demo.init()
             cave.playing_demo=true
             screen.show_cave_title()
             game_state = STATE_CAVETITLE
@@ -120,11 +120,12 @@ main {
     sub next_level() {
         screen.hud_clear()
         cave.cover_all()
+        music.init()
+        music.playback_enabled = true
         choose_level()
     }
 
     sub choose_level() {
-        music.playback_enabled = true
         game_state = STATE_CHOOSE_LEVEL
         ubyte letter = chosen_level + 'A'-1
         str joystick_str = "press F1 to select joystick: 0"
@@ -132,19 +133,11 @@ main {
         letter = c64.GETIN()
         if letter {
             if letter==13 {
-                ; load the level
                 bd1caves.decode(chosen_level)
-                cave.cover_all()
-                cave.restart_level()
-                cave.num_lives = 3
-                cave.score = 0
-                cave.score_500_for_bonus = 0
-                main.start.title_timer = 250
-                game_state = STATE_CAVETITLE
-                screen.hud_clear()
-                screen.show_cave_title()
+                start_loaded_level()
                 return
             } else if letter>='a' and letter <= 't' {
+                ; letter- select start cave
                 chosen_level = letter - 'a' + 1
                 cave_letter_str[len(cave_letter_str)-1] = letter | 128
                 bd1caves.decode(chosen_level)
@@ -152,17 +145,44 @@ main {
                 screen.hud_clear()
                 screen.show_cave_title()
             } else if letter==133 {
+                ; F1 - joystick select
                 joystick++
                 if joystick==5
                     joystick=0
                 joystick_str[29] = joystick + '0'
+            } else if letter==137 {
+                ; F2 - play demo
+                chosen_level = 1
+                bd1caves.decode(chosen_level)
+                bd1demo.init()
+                start_loaded_level()
+                cave.playing_demo=true
+                return
+            } else if letter==134 {
+                ; F3 - play debug cave
+                bdcff.load_test_cave()
+                start_loaded_level()
+                return
             }
         }
         screen.hud_text(5,2,$f0,joystick_str)
         screen.hud_text(5,3,$f0,cave_letter_str)
         screen.hud_text(5,5,$f0,"Press ENTER to start.")
+        screen.hud_text(5,7,$f0,"F2: play demo. F3: debug cave.")
         screen.hud_text(1,25,$f0,"<Game title> - a Boulder Dash (R) clone")
         screen.hud_text(3,26,$f0,"by DesertFish. Written in Prog8")
+
+        sub start_loaded_level() {
+            cave.cover_all()
+            cave.restart_level()
+            cave.num_lives = 3
+            cave.score = 0
+            cave.score_500_for_bonus = 0
+            main.start.title_timer = 250
+            game_state = STATE_CAVETITLE
+            screen.hud_clear()
+            screen.show_cave_title()
+        }
     }
 }
 
@@ -423,7 +443,7 @@ _loop           lda  (attr_ptr),y
 
     sub show_cave_title() {
         const ubyte xpos = 3
-        const ubyte ypos = 8
+        const ubyte ypos = 10
         screen.hud_text(xpos+4, ypos, $f0, "cave:")
         screen.hud_text(xpos+10, ypos, $f0, cave.name_ptr)
         screen.hud_wrap_text(xpos, ypos+5, $f0, cave.description_ptr)
