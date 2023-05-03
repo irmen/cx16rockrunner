@@ -1,13 +1,23 @@
-Boulder (working title)
-=======================
+Rock Runner
+===========
 
-A Boulder Dash® clone.
+A Boulder Dash® clone for the Commander X16.
 
 Original Boulder Dash® in 1984 by First Star Software, created by Peter Liepa and Chris Gray.
 Current copyright by BBG Entertainment GmbH.
 
 
 Modern tile set is from MIT-licensed GDash and is based on Boulder Rush by Michael Kowalski / Miksoft. See below for links.
+
+
+TODO
+----
+- add a background sprite layer with subtle rocks patterns?
+- touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
+- selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
+- fix the remaining TODO's in the code such as cave progression and selectable difficulty level
+- add ability to load BDCFF caves from disk files.
+- check with orig game that stuff falling into an expired magicwall simply disappears (cave T)
 
 
 Development Resources

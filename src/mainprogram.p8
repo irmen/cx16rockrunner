@@ -9,6 +9,7 @@
 %import bdcff
 %import sounds
 
+
 main {
     ubyte joystick = 0
     ubyte chosen_level = 1
@@ -30,26 +31,15 @@ main {
 ;        }
 
         music.init()
-        ;; screen.titlescreen()
+        screen.titlescreen()
         cx16.set_irq(&interrupts.handler, true)
         music.playback_enabled = true
-        ;; sys.wait(120)
+        sys.wait(240)
         cave.init()
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-
-        const bool PLAY_DEMO_CAVE = false
-        if PLAY_DEMO_CAVE {
-            bdcff.load_test_cave()
-            ;;bd1caves.decode(1)
-            ;;bd1demo.init()
-            cave.playing_demo=true
-            screen.show_cave_title()
-            game_state = STATE_CAVETITLE
-        } else {
-            game_state = STATE_CHOOSE_LEVEL
-        }
+        game_state = STATE_CHOOSE_LEVEL
         cave.cover_all()
         screen.enable()
         ubyte title_timer
@@ -72,8 +62,13 @@ main {
                         screen.set_scroll_pos(cx16.r0, cx16.r1)
                         screen.hud_clear()
                         if cave.playing_demo {
-                            screen.hud_text(12,13,$f0,"**** Playing ****")
-                            screen.hud_text(12,16,$f0,"****  Demo   ****")
+                            screen.hud_text(11,11,$f0,"\x8d\x88"*9)
+                            screen.hud_text(11,12,$f0,"\x8e                \x8d")
+                            screen.hud_text(11,13,$f0,"\x8d                \x8e")
+                            screen.hud_text(11,14,$f0,"\x8e      Demo      \x8d")
+                            screen.hud_text(11,15,$f0,"\x8d                \x8e")
+                            screen.hud_text(11,16,$f0,"\x8e                \x8d")
+                            screen.hud_text(11,17,$f0,"\x8d\x88"*9)
                         }
                         music.playback_enabled = false
                         game_state = STATE_UNCOVERING
@@ -108,8 +103,9 @@ main {
                     }
                 }
                 STATE_GAMEOVER -> {
-                    ; TODO proper game over screen and restart game
-                    screen.hud_text(4,10,$f0,"Game Over - press SPACE to restart")
+                    screen.hud_text(3,11,$f0,"\x8b"*34)
+                    screen.hud_text(3,13,$f0,"Game Over - press SPACE to restart")
+                    screen.hud_text(3,15,$f0,"\x8b"*34)
                     if c64.GETIN()==' '
                         next_level()
                 }
@@ -127,50 +123,56 @@ main {
 
     sub choose_level() {
         game_state = STATE_CHOOSE_LEVEL
-        ubyte letter = chosen_level + 'A'-1
-        str joystick_str = "press F1 to select joystick: 0"
-        str cave_letter_str = "press A-T for cave select: A"
-        letter = c64.GETIN()
-        if letter {
-            if letter==13 {
-                bd1caves.decode(chosen_level)
-                start_loaded_level()
-                return
-            } else if letter>='a' and letter <= 't' {
-                ; letter- select start cave
-                chosen_level = letter - 'a' + 1
-                cave_letter_str[len(cave_letter_str)-1] = letter | 128
-                bd1caves.decode(chosen_level)
-                cave.cover_all()
-                screen.hud_clear()
-                screen.show_cave_title()
-            } else if letter==133 {
-                ; F1 - joystick select
-                joystick++
-                if joystick==5
-                    joystick=0
-                joystick_str[29] = joystick + '0'
-            } else if letter==137 {
-                ; F2 - play demo
-                chosen_level = 1
-                bd1caves.decode(chosen_level)
-                bd1demo.init()
-                start_loaded_level()
-                cave.playing_demo=true
-                return
-            } else if letter==134 {
-                ; F3 - play debug cave
-                bdcff.load_test_cave()
-                start_loaded_level()
-                return
+        ubyte letter
+        bool joy_start = false
+        for letter in 0 to 4 {
+            ; any joystick START button will select that joystick and start the game
+            if cx16.joystick_get2(letter) & %0000000000010000 == 0 {
+                main.joystick = letter
+                joy_start = true
+                break
             }
         }
-        screen.hud_text(5,2,$f0,joystick_str)
-        screen.hud_text(5,3,$f0,cave_letter_str)
-        screen.hud_text(5,5,$f0,"Press ENTER to start.")
-        screen.hud_text(5,7,$f0,"F2: play demo. F3: debug cave.")
-        screen.hud_text(1,25,$f0,"<Game title> - a Boulder Dash (R) clone")
-        screen.hud_text(3,26,$f0,"by DesertFish. Written in Prog8")
+        str cave_letter_str = "A-T: select start cave [A]"
+        letter = c64.GETIN()
+        if cx16.joystick_get2(4) & %0000000000010000 == 0 {
+            main.joystick = 4
+            joy_start = true
+        }
+        if letter==13 or joy_start {
+            bd1caves.decode(chosen_level)
+            start_loaded_level()
+            return
+        }
+        else if letter>='a' and letter <= 't' {
+            ; letter- select start cave
+            chosen_level = letter - 'a' + 1
+            cave_letter_str[len(cave_letter_str)-2] = letter | 128
+            bd1caves.decode(chosen_level)
+            cave.cover_all()
+            screen.hud_clear()
+            screen.show_cave_title()
+        } else if letter==133 {
+            ; F1 - play demo
+            chosen_level = 1
+            bd1caves.decode(chosen_level)
+            bd1demo.init()
+            start_loaded_level()
+            cave.playing_demo=true
+            return
+        } else if letter==137 {
+            ; F2 - play debug cave
+            bdcff.load_test_cave()
+            start_loaded_level()
+            return
+        }
+        screen.hud_text(8,2,$f0,"F1: play demo")
+        screen.hud_text(8,3,$f0,"F2: play debug cave")
+        screen.hud_text(7,4,$f0,cave_letter_str)
+        screen.hud_text(7,6,$f0,"Any joystick START button")
+        screen.hud_text(10,7,$f0,"to start the game!")
+        screen.hud_text(10,24,$f0,"\x8e\x8e\x8e Rock Runner \x8e\x8e\x8e")
+        screen.hud_text(4,26,$f0,"by DesertFish. Written in Prog8")
 
         sub start_loaded_level() {
             cave.cover_all()
@@ -514,16 +516,15 @@ interrupts {
             vsync_semaphore=0
             vsync_counter++
             cx16.save_vera_context()
-            ; soft-scrolling is handled in the irq handler itself to avoid stutters
-            scroll_screen()
+            set_softscroll()             ; soft-scrolling is handled in this irq handler itself to avoid stutters and tearing
             music.update()
-            cave.do_each_frame()    ; for timing critical stuff
+            cave.do_each_frame()         ; for timing critical stuff
             cx16.restore_vera_context()
-            psg.envelopes_irq()     ; note: does its own vera save/restore context
+            psg.envelopes_irq()          ; note: does its own vera save/restore context
         }
     }
 
-    sub scroll_screen() {
+    sub set_softscroll() {
         ; smooth scroll the cave layer to top left pixel at sx, sy
         cx16.VERA_L0_HSCROLL_H = msb(screen.scrollx)
         cx16.VERA_L0_HSCROLL_L = lsb(screen.scrollx)

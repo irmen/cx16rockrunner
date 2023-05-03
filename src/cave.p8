@@ -257,10 +257,9 @@ cave {
                         objects.amoeba -> {
                             handle_amoeba()
                         }
-                        ; TODO add other object scans here
+                        ; NOTE: add other object scans here.
                         objects.outboxclosed -> {
                             if num_diamonds >= diamonds_needed {
-                                ; TODO flash screen to indicate outbox is now open
                                 sounds.crack()
                                 screen.flash_white(true)
                                 @(cell_ptr) = objects.outboxblinking

@@ -148,6 +148,7 @@ def make_catalog(parts: list[TilesPart]) -> None:
     iseatable = []
     object_ids = {}
     with open("src/objects.p8", "wt") as out:
+        out.write("; NOTE: this code is automatically generated. Do not edit!\n")
         out.write("objects {\n")
         for part in parts:
             section = config[part.name]
