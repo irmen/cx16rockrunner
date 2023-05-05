@@ -5,6 +5,7 @@
 ; https://bitbucket.org/czirkoszoltan/gdash/src/c8390151fb1181a7d8c81df8eab67ab2cbf018e0/src/misc/helptext.cpp#lines-223
 
 ; TODO BUG: sometimes a diamond pickup is missed, for instance in intermission 1
+; TODO BUG: sometimes rockford splits into two.. (when pressing joystick directions during uncover?? not reliable)
 
 cave {
     ; for now we use the original cave dimension limits
@@ -348,7 +349,7 @@ cave {
                 ; cell below is empty, simply move down and continue falling
                 fall_down_one_cell()
             } else if obj_below==objects.magicwallinactive {
-                enable_magicwall()      ; TODO BUGFIX: PUSHING BOULDER/DIAMOND ONTO MAGICWALL SHOULDN'T MAKE IT FALL THROUGH AND ENABLE THE WALL...
+                enable_magicwall()
                 sink_through_magicwall()
             } else if obj_below==objects.magicwall {
                 sink_through_magicwall()
@@ -597,7 +598,9 @@ cave {
                             if math.rnd() < 32 {
                                 sounds.boulder()
                                 @(cell_ptr+2) = targetcell
-                                @(attr_ptr+2) |= ATTR_SCANNED_FLAG | ATTR_FALLING           ; falling to avoid rolling over a hole
+                                @(attr_ptr+2) |= ATTR_SCANNED_FLAG
+                                if @(cell_ptr+2+MAX_CAVE_WIDTH) == objects.space
+                                    @(attr_ptr+2) |= ATTR_FALLING   ; to avoid being able to roll something over a hole
                                 @(cell_ptr+1) = objects.space
                                 @(attr_ptr+1) |= ATTR_SCANNED_FLAG
                                 if not joy_fire {
