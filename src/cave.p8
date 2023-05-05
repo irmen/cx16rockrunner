@@ -41,7 +41,8 @@ cave {
     uword description_ptr
     bool intermission
 
-    ubyte cave_number
+    ubyte cave_number       ; 1+
+    ubyte difficulty        ; 1-5
     ubyte magicwall_millingtime_sec
     ubyte amoeba_slow_time_sec
     ubyte initial_diamond_value
@@ -122,9 +123,9 @@ cave {
         current_diamond_value = initial_diamond_value
         time_left_secs = 0
         if intermission
-            cave_speed = CAVE_SPEED_INTERMISSION
+            cave_speed = CAVE_SPEED_INTERMISSION - difficulty/2
         else
-            cave_speed = CAVE_SPEED_NORMAL
+            cave_speed = CAVE_SPEED_NORMAL - difficulty/2
         screen.white_flash = false
         ; find the initial player position
         ubyte x
@@ -191,7 +192,7 @@ cave {
                 intermission = false
             }
             if time_left_secs and interrupts.vsync_counter % 3 == 0 {
-                add_score(1) ; TODO add difficulty level instead, 1-5
+                add_score(cave.difficulty)
                 sounds.bonus(time_left_secs)
                 time_left_secs--
             }

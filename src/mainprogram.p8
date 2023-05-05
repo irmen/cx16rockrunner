@@ -13,6 +13,7 @@
 main {
     ubyte joystick = 0
     ubyte chosen_level = 1
+    ubyte chosen_difficulty = 1
     ubyte game_state
 
     const ubyte STATE_CAVETITLE = 1
@@ -31,10 +32,10 @@ main {
 ;        }
 
         music.init()
-        ;; screen.titlescreen()
+        screen.titlescreen()
         cx16.set_irq(&interrupts.handler, true)
-        ;; music.playback_enabled = true
-        ;; sys.wait(240)
+        music.playback_enabled = true
+        sys.wait(240)
         cave.init()
         screen.set_tiles_screenmode()
         screen.disable()
@@ -46,7 +47,6 @@ main {
 
         repeat {
             ; the game loop, executed every frame.
-            ; TODO difficulty level that influences play speed, see https://www.elmerproductions.com/sp/peterb/insideBoulderdash.html#Timing%20info
             interrupts.waitvsync()
             screen.update()
 
@@ -90,7 +90,7 @@ main {
                                 ; intermissions are bonus levels and you have only one try at them
                                 next_level()
                             } else {
-                                bd1caves.decode(chosen_level)
+                                bd1caves.decode(chosen_level, chosen_difficulty)
                                 cave.cover_all()
                                 cave.restart_level()
                                 game_state = STATE_UNCOVERING
@@ -132,44 +132,53 @@ main {
                 break
             }
         }
-        str cave_letter_str = "A-T: select start cave [A]"
+        str cave_letter_str     = "A-T: select start cave [A]"
+        str cave_difficulty_str = "1-5: select difficulty [1]"
         letter = c64.GETIN()
         if cx16.joystick_get2(4) & %0000000000010000 == 0 {
             main.joystick = 4
             joy_start = true
         }
         if letter==13 or joy_start {
-            bd1caves.decode(chosen_level)
+            bd1caves.decode(chosen_level, chosen_difficulty)
             start_loaded_level()
             return
         }
         else if letter>='a' and letter <= 't' {
-            ; letter- select start cave
+            ; letter - select start cave
             chosen_level = letter - 'a' + 1
             cave_letter_str[len(cave_letter_str)-2] = letter | 128
-            bd1caves.decode(chosen_level)
+            bd1caves.decode(chosen_level, chosen_difficulty)
             cave.cover_all()
             screen.hud_clear()
             screen.show_cave_title()
-        } else if letter==133 {
+        }
+        else if letter>='1' and letter <= '5' {
+            ; digit - select difficulty
+            chosen_difficulty = letter-'1'
+            cave_difficulty_str[len(cave_difficulty_str)-2] = letter
+        }
+        else if letter==133 {
             ; F1 - play demo
             chosen_level = 1
-            bd1caves.decode(chosen_level)
+            bd1caves.decode(chosen_level, chosen_difficulty)
             bd1demo.init()
             start_loaded_level()
             cave.playing_demo=true
             return
-        } else if letter==137 {
+        }
+        else if letter==137 {
             ; F2 - play debug cave
             bdcff.load_test_cave()
             start_loaded_level()
             return
         }
-        screen.hud_text(8,2,$f0,"F1: play demo")
-        screen.hud_text(8,3,$f0,"F2: play debug cave")
-        screen.hud_text(7,4,$f0,cave_letter_str)
-        screen.hud_text(7,6,$f0,"Any joystick START button")
-        screen.hud_text(10,7,$f0,"to start the game!")
+        screen.hud_text(7,2,$f0,cave_letter_str)
+        screen.hud_text(7,3,$f0,cave_difficulty_str)
+        screen.hud_text(8,4,$f0,"F1: play demo")
+        screen.hud_text(8,5,$f0,"F2: play debug cave")
+        screen.hud_text(7,7,$f0,"Any joystick START button")
+        screen.hud_text(10,8,$f0,"to start the game!")
         screen.hud_text(10,24,$f0,"\x8e\x8e\x8e Rock Runner \x8e\x8e\x8e")
         screen.hud_text(4,26,$f0,"by DesertFish. Written in Prog8")
 
@@ -534,6 +543,24 @@ interrupts {
     }
 
     sub handler() {
+
+        ; Quoted from the documentation:
+        ; " The speed of play is implemented with a delay loop. Each frame, if the CaveDelay is greater than zero,
+        ; BoulderDash enters a time-delay loop for 90 cycles per unit of CaveDelay (remembering that the C64 runs at 1 MHz).
+        ; The actual number of frames per second will vary depending on the objects in the cave;
+        ; a cave full of boulders takes longer to process than a cave full of dirt.
+        ;        Difficulty 1: CaveDelay = 12 (1080 cycles)
+        ;        Difficulty 2: CaveDelay = 6 (540 cycles)
+        ;        Difficulty 3: CaveDelay = 3 (270 cycles)
+        ;        Difficulty 4: CaveDelay = 1 (90 cycles)
+        ;        Difficulty 5: CaveDelay = 0 (no delay)  "
+        ; Now, this is al very difficult to translate to the X16:
+        ;  - it runs at 8 mhz not 1 mhz
+        ;  - the time to process a cave is wildly different from the original game because it's totally different code
+        ;  - it has 60hz refresh mode rather than 50hz (PAL c64)
+        ; So what I've chosen to do is not to implement this "Cave Delay" and rather make cave_speed
+        ; (the number of frames between cave scans) lower for higher difficulty levels.
+
         if cx16.VERA_ISR & %00000001 {
             vsync_semaphore=0
             vsync_counter++

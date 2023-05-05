@@ -2,8 +2,8 @@ bd1caves {
 
     const ubyte NUM_CAVES = 20
 
-    sub decode(ubyte level) {
-
+    sub decode(ubyte level, ubyte difficulty) {
+        ; level = 1 to NUM_CAVES, difficulty = 1 to 5
         cave.rockford_state = 0
         cave.player_x = 0
         cave.player_y = 0
@@ -11,6 +11,7 @@ bd1caves {
         cave.description_ptr = descriptions[level]
         uword data_ptr = caves[level]
         cave.cave_number = data_ptr[$00]
+        cave.difficulty = difficulty
         cave.intermission = cave.cave_number >= $11
         if cave.intermission {
             cave.width = 22
@@ -24,9 +25,9 @@ bd1caves {
         cave.initial_diamond_value = data_ptr[$02]
         cave.extra_diamond_value = data_ptr[$03]
         seed1 = 0
-        seed2 = data_ptr[$04]                   ; TODO difficulty level selectable (data $04-$08 for level 1-5)
-        cave.diamonds_needed = data_ptr[$09]    ; TODO difficulty level selectable (data $09-$0d for level 1-5)
-        cave.cave_time_sec = data_ptr[$0e]      ; TODO difficulty level selectable (data $0e-$12 for level 1-5)
+        seed2 = data_ptr[$04+difficulty-1]
+        cave.diamonds_needed = data_ptr[$09+difficulty-1]
+        cave.cave_time_sec = data_ptr[$0e+difficulty-1]
         cave.color_background1 = data_ptr[$13]
         cave.color_background2 = data_ptr[$14]
         cave.color_foreground = data_ptr[$15]
