@@ -31,10 +31,10 @@ main {
 ;        }
 
         music.init()
-        screen.titlescreen()
+        ;; screen.titlescreen()
         cx16.set_irq(&interrupts.handler, true)
-        music.playback_enabled = true
-        sys.wait(240)
+        ;; music.playback_enabled = true
+        ;; sys.wait(240)
         cave.init()
         screen.set_tiles_screenmode()
         screen.disable()
@@ -375,6 +375,26 @@ _loop           lda  (attr_ptr),y
         }
         hud_clear()
 
+        ; background sprite layer: repeat a big sprite a couple of times across the background.
+        cx16.vaddr(1, $fc00, 0, true)
+        ubyte spr_ypos = 0
+        repeat 4 {
+            ubyte spr_xpos = 8
+            repeat 4 {
+                cx16.VERA_DATA0 = lsb($1f000 >> 5)
+                cx16.VERA_DATA0 = lsb($1f000 >> 13)
+                cx16.VERA_DATA0 = spr_xpos
+                cx16.VERA_DATA0 = 0
+                cx16.VERA_DATA0 = spr_ypos
+                cx16.VERA_DATA0 = 0
+                cx16.VERA_DATA0 = %00000100
+                cx16.VERA_DATA0 = %11110000 | 14
+                spr_xpos += 80
+                spr_ypos += 8
+            }
+            spr_ypos += 80-32
+        }
+
         cx16.VERA_CTRL = 0
         cx16.VERA_DC_BORDER = 0
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & $0f | %01110000       ; layer 0 and 1 active, and sprites
@@ -386,25 +406,6 @@ _loop           lda  (attr_ptr),y
         cx16.VERA_L1_CONFIG = %00010001                 ; 64x32 tiles, 2bpp
         cx16.VERA_L1_MAPBASE = ($1C000 >> 9) as ubyte
         cx16.VERA_L1_TILEBASE = ($1E000 >>9) as ubyte | %00000000               ; 8x8 pixel tiles
-
-        ; background sprite layer: repeat a big sprite a couple of times across the background.
-        uword sprptr = $fc00
-        ubyte spr_ypos = 0
-        repeat 4 {
-            ubyte spr_xpos = 8
-            repeat 4 {
-                cx16.vpoke(1, sprptr+0, lsb($1f000 >> 5))
-                cx16.vpoke(1, sprptr+1, $1f000 >> 13)
-                cx16.vpoke(1, sprptr+2, spr_xpos)
-                cx16.vpoke(1, sprptr+4, spr_ypos)
-                cx16.vpoke(1, sprptr+6, %00000100)
-                cx16.vpoke(1, sprptr+7, %11110000 | 14)
-                sprptr += 8
-                spr_xpos += 80
-                spr_ypos += 8
-            }
-            spr_ypos += 80-32
-        }
     }
 
     sub hud_clear() {
