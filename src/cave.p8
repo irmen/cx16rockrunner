@@ -4,9 +4,6 @@
 ; https://codeincomplete.com/articles/javascript-boulderdash/objects.pdf
 ; https://bitbucket.org/czirkoszoltan/gdash/src/c8390151fb1181a7d8c81df8eab67ab2cbf018e0/src/misc/helptext.cpp#lines-223
 
-; TODO BUG: sometimes a diamond pickup is missed, for instance in cave D or intermission 1, ending up with too few diamonds to finish the level
-; TODO BUG: sometimes rockford splits into two.. (when pressing joystick directions during uncover?? not reliable)
-
 cave {
     ; for now we use the original cave dimension limits
     const uword MAX_CAVE_WIDTH = 40             ; word here to avoid having to cast to word all the time
@@ -62,6 +59,7 @@ cave {
     ubyte player_y
     byte rockford_birth_time        ; in frames, default = 120  (2 seconds)
     ubyte rockford_state            ; 0 = no player in the cave at all
+    bool dont_update_animation
     ubyte rockford_face_direction
     ubyte rockford_animation_frame
     uword bonusbg_timer
@@ -118,6 +116,7 @@ cave {
         amoeba_slow_timer = (amoeba_slow_time_sec as uword) * 60
         exit_reached = false
         rockford_state = 0
+        dont_update_animation = false
         player_died = false
         scan_frame = 0
         current_diamond_value = initial_diamond_value
@@ -539,6 +538,7 @@ cave {
                 joy_fire = joy & %1100000011000000 != %1100000011000000
             }
 
+            dont_update_animation = true        ; to avoid having the IRQ handler mess up player position
             if joy_left left()
             else if joy_right right()
             else if joy_up up()
@@ -560,6 +560,7 @@ cave {
                 @(cell_ptr2) = objects.rockford      ; exact tile will be set by rockford animation routine
                 @(attr_ptr2) = ATTR_SCANNED_FLAG
             }
+            dont_update_animation = false
 
             sub left() {
                 rockford_face_direction = ROCKFORD_FACE_LEFT
@@ -886,7 +887,7 @@ cave {
     
     sub handle_rockford_animation() {
         ; per frame, not per cave scan
-        if not rockford_state
+        if not rockford_state or dont_update_animation
             return
 
         rockford_animation_frame++
