@@ -4,7 +4,7 @@
 ; https://codeincomplete.com/articles/javascript-boulderdash/objects.pdf
 ; https://bitbucket.org/czirkoszoltan/gdash/src/c8390151fb1181a7d8c81df8eab67ab2cbf018e0/src/misc/helptext.cpp#lines-223
 
-; TODO BUG: sometimes a diamond pickup is missed, for instance in intermission 1
+; TODO BUG: sometimes a diamond pickup is missed, for instance in cave D or intermission 1, ending up with too few diamonds to finish the level
 ; TODO BUG: sometimes rockford splits into two.. (when pressing joystick directions during uncover?? not reliable)
 
 cave {
@@ -33,6 +33,9 @@ cave {
     const ubyte ACTION_NEXTLEVEL = 2
     const ubyte ACTION_GAMEOVER = 3
 
+    const ubyte CAVE_SPEED_NORMAL = 8           ; should be 7 officially, but that is too fast on 60hz refresh
+    const ubyte CAVE_SPEED_INTERMISSION = 6     ; intermissions play at a higher movement speed
+
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     ubyte width = MAX_CAVE_WIDTH
@@ -48,6 +51,7 @@ cave {
     ubyte extra_diamond_value
     ubyte diamonds_needed
     ubyte cave_time_sec
+    ubyte cave_speed
     ubyte color_background1
     ubyte color_background2
     ubyte color_foreground
@@ -103,8 +107,8 @@ cave {
 
     sub restart_level() {
         cover_all()
-        bonusbg_enabled = false
-        magicwall_enabled = false
+        disable_bonusbg()
+        disable_magicwall()
         magicwall_expired = false
         playing_demo = false
         amoeba_count = 0
@@ -118,6 +122,10 @@ cave {
         scan_frame = 0
         current_diamond_value = initial_diamond_value
         time_left_secs = 0
+        if intermission
+            cave_speed = CAVE_SPEED_INTERMISSION
+        else
+            cave_speed = CAVE_SPEED_NORMAL
         screen.white_flash = false
         ; find the initial player position
         ubyte x
@@ -178,6 +186,11 @@ cave {
         if exit_reached {
             magicwall_enabled = false
             amoeba_count = 0
+            if intermission {
+                num_lives++
+                enable_bonusbg()
+                intermission = false
+            }
             if time_left_secs and interrupts.vsync_counter % 3 == 0 {
                 add_score(1) ; TODO add difficulty level instead, 1-5
                 sounds.bonus(time_left_secs)
@@ -213,7 +226,7 @@ cave {
             amoeba_growth_rate = AMOEBA_FAST_GROWTH
 
         scan_frame++
-        if scan_frame==7            ; cave scan is done once every 7 frames TODO configurable
+        if scan_frame==cave_speed            ; cave scan is done once every X frames
             scan_frame = 0
         else
             return ACTION_NOTHING
@@ -816,7 +829,8 @@ cave {
                     rockford_state = 0
                     @(cell_ptr2) = how
                     @(attr_ptr2) |= ATTR_SCANNED_FLAG
-                    num_lives--
+                    if intermission==false
+                        num_lives--
                     player_died = true
                     player_died_timer = 150
                 }
@@ -1017,6 +1031,8 @@ cave {
     }
 
     sub disable_bonusbg() {
+        if not bonusbg_enabled
+            return
         objects.tile_lo[objects.space] = bonusbg_tile_lo
         objects.tile_hi[objects.space] = bonusbg_tile_hi
         objects.palette_offsets_preshifted[objects.space] = bonusbg_palette_offset
@@ -1040,6 +1056,8 @@ cave {
     }
 
     sub disable_magicwall() {
+        if not magicwall_enabled
+            return
         magicwall_enabled = false
         magicwall_expired = true
         replace_object(objects.magicwall, objects.magicwallinactive)

@@ -87,8 +87,7 @@ main {
                         cave.ACTION_GAMEOVER -> game_state = STATE_GAMEOVER
                         cave.ACTION_RESTARTLEVEL -> {
                             if cave.intermission {
-                                ; intermissions are bonus levels and you have one try at them
-                                ; TODO if you die in intermission, do you lose a life at all?
+                                ; intermissions are bonus levels and you have only one try at them
                                 next_level()
                             } else {
                                 bd1caves.decode(chosen_level)
