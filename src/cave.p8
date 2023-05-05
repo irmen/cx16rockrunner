@@ -348,7 +348,7 @@ cave {
                 ; cell below is empty, simply move down and continue falling
                 fall_down_one_cell()
             } else if obj_below==objects.magicwallinactive {
-                enable_magicwall()
+                enable_magicwall()      ; TODO BUGFIX: PUSHING BOULDER/DIAMOND ONTO MAGICWALL SHOULDN'T MAKE IT FALL THROUGH AND ENABLE THE WALL...
                 sink_through_magicwall()
             } else if obj_below==objects.magicwall {
                 sink_through_magicwall()

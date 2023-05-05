@@ -295,8 +295,23 @@ def convert_font():
     open("FONT.BIN", "wb").write(font)
 
 
+def convert_bgsprite():
+    img = Image.open("images/bgsprite.png")
+    palette = make_cx16_palette(img.getpalette())
+    assert (len(palette) <= 32)
+    open("BGSPRITE.PAL", "wb").write(palette)
+    data = bytearray()
+    for y in range(64):
+        for x in range(0, 64, 2):
+            color1 = img.getpixel((x, y)) & 15
+            color2 = img.getpixel((x + 1, y)) & 15
+            data.append(color1 << 4 | color2)
+    open("BGSPRITE.BIN", "wb").write(data)
+
+
 if __name__ == '__main__':
     tiles_parts = convert_tiles()
     make_catalog(tiles_parts)
     convert_titlescreen()
     convert_font()
+    convert_bgsprite()

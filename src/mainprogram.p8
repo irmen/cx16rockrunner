@@ -322,6 +322,9 @@ _loop           lda  (attr_ptr),y
         cx16.vpoke(1,$fa00+$f2*2+1,$0f)
         cx16.vpoke(1,$fa00+$f2*3,$f0)
         cx16.vpoke(1,$fa00+$f2*3+1,$ff)
+
+        void cx16diskio.vload_raw("bgsprite.bin", 8, 1, $f000)
+        void cx16diskio.vload_raw("bgsprite.pal", 8, 1, $fa00+14*16*2)
     }
 
     sub update_animations() {
@@ -374,7 +377,7 @@ _loop           lda  (attr_ptr),y
 
         cx16.VERA_CTRL = 0
         cx16.VERA_DC_BORDER = 0
-        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & $0f | %00110000       ; layer 0 and 1 active
+        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO & $0f | %01110000       ; layer 0 and 1 active, and sprites
         cx16.VERA_DC_HSCALE = 64
         cx16.VERA_DC_VSCALE = 64
         cx16.VERA_L0_CONFIG = %00010010                 ; 64x32 tiles, 4bpp
@@ -383,6 +386,25 @@ _loop           lda  (attr_ptr),y
         cx16.VERA_L1_CONFIG = %00010001                 ; 64x32 tiles, 2bpp
         cx16.VERA_L1_MAPBASE = ($1C000 >> 9) as ubyte
         cx16.VERA_L1_TILEBASE = ($1E000 >>9) as ubyte | %00000000               ; 8x8 pixel tiles
+
+        ; background sprite layer: repeat a big sprite a couple of times across the background.
+        uword sprptr = $fc00
+        ubyte spr_ypos = 0
+        repeat 4 {
+            ubyte spr_xpos = 8
+            repeat 4 {
+                cx16.vpoke(1, sprptr+0, lsb($1f000 >> 5))
+                cx16.vpoke(1, sprptr+1, $1f000 >> 13)
+                cx16.vpoke(1, sprptr+2, spr_xpos)
+                cx16.vpoke(1, sprptr+4, spr_ypos)
+                cx16.vpoke(1, sprptr+6, %00000100)
+                cx16.vpoke(1, sprptr+7, %11110000 | 14)
+                sprptr += 8
+                spr_xpos += 80
+                spr_ypos += 8
+            }
+            spr_ypos += 80-32
+        }
     }
 
     sub hud_clear() {

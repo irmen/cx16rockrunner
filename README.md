@@ -12,7 +12,7 @@ Modern tile set is from MIT-licensed GDash and is based on Boulder Rush by Micha
 
 TODO
 ----
-- add a background sprite layer with subtle rocks patterns?
+- support for "cave speed" like in cave T intermission that should move rockford a lot quicker than normal
 - touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
 - fix the remaining TODO's in the code such as cave progression and selectable difficulty level
