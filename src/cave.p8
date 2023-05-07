@@ -32,6 +32,7 @@ cave {
 
     const ubyte CAVE_SPEED_NORMAL = 8           ; should be 7 officially, but that is too fast on 60hz refresh
     const ubyte CAVE_SPEED_INTERMISSION = 6     ; intermissions play at a higher movement speed
+    const ubyte DEFAULT_SLIME_PERMEABILITY = 32
 
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 256)
@@ -68,6 +69,7 @@ cave {
     uword magicwall_timer
     bool magicwall_enabled
     bool magicwall_expired
+    ubyte slime_permeability
     ubyte amoeba_count
     bool amoeba_enclosed
     ubyte amoeba_explodes_to
@@ -112,6 +114,7 @@ cave {
         playing_demo = false
         amoeba_count = 0
         num_diamonds = 0
+        slime_permeability = DEFAULT_SLIME_PERMEABILITY     ; TODO variable for certain levels
         amoeba_enclosed = false
         amoeba_growth_rate = AMOEBA_SLOW_GROWTH
         amoeba_slow_timer = (amoeba_slow_time_sec as uword) * 60
@@ -408,7 +411,7 @@ cave {
             }
 
             sub sink_through_slime() {
-                if math.rnd() > 32      ; TODO configurable permeability
+                if math.rnd() > slime_permeability
                     return
                 if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
                     @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = @(cell_ptr)
