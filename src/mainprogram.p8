@@ -1,6 +1,5 @@
 %import conv
 %import diskio
-%import cx16diskio
 %import psg
 %import palette
 %import objects
@@ -32,10 +31,10 @@ main {
 ;        }
 
         music.init()
-        screen.titlescreen()
-        cx16.set_irq(&interrupts.handler, true)
+        ;; screen.titlescreen()
+        sys.set_irq(&interrupts.handler, true)
         music.playback_enabled = true
-        sys.wait(240)
+        ;; sys.wait(240)
         cave.init()
         screen.set_tiles_screenmode()
         screen.disable()
@@ -105,7 +104,7 @@ main {
                     screen.hud_text(3,11,$f0,"\x8b"*34)
                     screen.hud_text(3,13,$f0,"Game Over - press SPACE to restart")
                     screen.hud_text(3,15,$f0,"\x8b"*34)
-                    if c64.GETIN()==' '
+                    if cbm.GETIN()==' '
                         next_level()
                 }
             }
@@ -134,7 +133,7 @@ main {
         }
         str cave_letter_str     = "A-T: select start cave [A]"
         str cave_difficulty_str = "1-5: select difficulty [1]"
-        letter = c64.GETIN()
+        letter = cbm.GETIN()
         if cx16.joystick_get2(4) & %0000000000010000 == 0 {
             main.joystick = 4
             joy_start = true
@@ -292,14 +291,8 @@ _loop           lda  (attr_ptr),y
             else
                 scrolly += dy
         }
-        if scrollx < 0
-            scrollx = 0
-        if scrolly < 0
-            scrolly = 0
-        if scrollx > (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
-            scrollx = (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16
-        if scrolly > (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
-            scrolly = (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16
+        scrollx = clamp(scrollx, 0, (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)*16 as word)
+        scrolly = clamp(scrolly, 0, (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)*16)
     }
 
     sub titlescreen() {
@@ -312,15 +305,15 @@ _loop           lda  (attr_ptr),y
         cx16.VERA_L0_CONFIG = %00000110
         cx16.VERA_L0_TILEBASE = 0
 
-        void cx16diskio.vload_raw("titlescreen.bin", 8, 0, $0000)
-        void cx16diskio.vload_raw("titlescreen.pal", 8, 1, $fa00)
+        void diskio.vload_raw("titlescreen.bin", 0, $0000)
+        void diskio.vload_raw("titlescreen.pal", 1, $fa00)
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %00010000       ; layer 0 active
     }
 
     sub load_tiles() {
-        void cx16diskio.vload_raw("tiles.bin", 8, 0, $0000)
-        void cx16diskio.vload_raw("tiles.pal", 8, 1, $fa00)
-        void cx16diskio.vload_raw("font.bin", 8, 1, $e000)
+        void diskio.vload_raw("tiles.bin", 0, $0000)
+        void diskio.vload_raw("tiles.pal", 1, $fa00)
+        void diskio.vload_raw("font.bin", 1, $e000)
         ; fixup the palette for the HUD text font (entries $f0-$ff)
         cx16.vpoke(1,$fa00+$f0*2,$00)
         cx16.vpoke(1,$fa00+$f0*2+1,$00)
@@ -331,8 +324,8 @@ _loop           lda  (attr_ptr),y
         cx16.vpoke(1,$fa00+$f2*3,$f0)
         cx16.vpoke(1,$fa00+$f2*3+1,$ff)
 
-        void cx16diskio.vload_raw("bgsprite.bin", 8, 1, $f000)
-        void cx16diskio.vload_raw("bgsprite.pal", 8, 1, $fa00+14*16*2)
+        void diskio.vload_raw("bgsprite.bin", 1, $f000)
+        void diskio.vload_raw("bgsprite.pal", 1, $fa00+14*16*2)
     }
 
     sub update_animations() {

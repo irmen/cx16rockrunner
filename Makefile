@@ -13,7 +13,7 @@ src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSP
 	@python src/convert_images.py
 
 ROCKRUNNER.PRG: src/*.p8 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL
-	@p8compile src/mainprogram.p8 -target cx16
+	@p8compile src/mainprogram.p8 -target cx16 -slowwarn
 	@mv mainprogram.prg ROCKRUNNER.PRG
 	@mv mainprogram.asm ROCKRUNNER.asm
 	@mv mainprogram.vice-mon-list ROCKRUNNER.vice-mon-list
