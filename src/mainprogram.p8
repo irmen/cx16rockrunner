@@ -11,19 +11,22 @@
 
 main {
     ubyte joystick = 0
-    ubyte chosen_level = 1
-    ubyte chosen_difficulty = 1
+    ubyte chosen_level
+    ubyte chosen_difficulty
     ubyte game_state
+    bool demo_requested
 
     const ubyte STATE_CAVETITLE = 1
     const ubyte STATE_CHOOSE_LEVEL = 2
     const ubyte STATE_UNCOVERING = 3
     const ubyte STATE_PLAYING = 4
     const ubyte STATE_GAMEOVER = 5
+    const ubyte STATE_DEMO = 6
+    const uword DEMO_WAIT_TIME = 60 * 21
 
     sub start() {
 ;        repeat {
-;            ubyte k = c64.GETIN()
+;            ubyte k = cbm.GETIN()
 ;            if k {
 ;                txt.print_ub(k)
 ;                txt.spc()
@@ -39,10 +42,10 @@ main {
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        game_state = STATE_CHOOSE_LEVEL
-        cave.cover_all()
+        activate_choose_level()
         screen.enable()
         ubyte title_timer
+        uword start_demo_timer = DEMO_WAIT_TIME
 
         repeat {
             ; the game loop, executed every frame.
@@ -52,6 +55,11 @@ main {
             when game_state {
                 STATE_CHOOSE_LEVEL -> {
                     choose_level()
+                    start_demo_timer--
+                    if start_demo_timer==0 {
+                        start_demo_timer = DEMO_WAIT_TIME
+                        play_demo()
+                    }
                 }
                 STATE_CAVETITLE -> {
                     title_timer--
@@ -60,14 +68,16 @@ main {
                         cx16.r1 = (math.rnd() % (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)) * $0010
                         screen.set_scroll_pos(cx16.r0, cx16.r1)
                         screen.hud_clear()
-                        if cave.playing_demo {
-                            screen.hud_text(11,11,$f0,"\x8d\x88"*9)
-                            screen.hud_text(11,12,$f0,"\x8e                \x8d")
-                            screen.hud_text(11,13,$f0,"\x8d                \x8e")
-                            screen.hud_text(11,14,$f0,"\x8e      Demo      \x8d")
-                            screen.hud_text(11,15,$f0,"\x8d                \x8e")
-                            screen.hud_text(11,16,$f0,"\x8e                \x8d")
-                            screen.hud_text(11,17,$f0,"\x8d\x88"*9)
+                        if demo_requested {
+                            screen.hud_text(9,10,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")
+                            screen.hud_text(9,11,$f0,"\x8e                    \x8d")
+                            screen.hud_text(9,12,$f0,"\x8d    Rock  Runner    \x8e")
+                            screen.hud_text(9,13,$f0,"\x8e                    \x8d")
+                            screen.hud_text(9,14,$f0,"\x8d       Demo !       \x8e")
+                            screen.hud_text(9,15,$f0,"\x8e                    \x8d")
+                            screen.hud_text(9,16,$f0,"\x8d press ESC to abort \x8e")
+                            screen.hud_text(9,17,$f0,"\x8e                    \x8d")
+                            screen.hud_text(9,18,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")
                         }
                         music.playback_enabled = false
                         game_state = STATE_UNCOVERING
@@ -75,8 +85,12 @@ main {
                 }
                 STATE_UNCOVERING -> {
                     cave.uncover_more()
-                    if not cave.covered
-                        game_state = STATE_PLAYING
+                    if not cave.covered {
+                        if demo_requested
+                            game_state = STATE_DEMO
+                        else
+                            game_state = STATE_PLAYING
+                    }
                 }
                 STATE_PLAYING -> {
                     ubyte action = cave.scan()
@@ -100,27 +114,50 @@ main {
                         }
                     }
                 }
+                STATE_DEMO -> {
+                    if cave.scan() != cave.ACTION_NOTHING {
+                        activate_choose_level()
+                    }
+                }
                 STATE_GAMEOVER -> {
-                    screen.hud_text(3,11,$f0,"\x8b"*34)
-                    screen.hud_text(3,13,$f0,"Game Over - press SPACE to restart")
-                    screen.hud_text(3,15,$f0,"\x8b"*34)
-                    if cbm.GETIN()==' '
-                        next_level()
+                    screen.hud_text(2,11,$f0,"\x8b"*36)
+                    screen.hud_text(2,12,$f0,"\x8b")
+                    screen.hud_text(37,12,$f0,"\x8b")
+                    screen.hud_text(2,13,$f0,"\x8b Game Over - press ESC to restart \x8b")
+                    screen.hud_text(2,14,$f0,"\x8b")
+                    screen.hud_text(37,14,$f0,"\x8b")
+                    screen.hud_text(2,15,$f0,"\x8b"*36)
+                    if cbm.GETIN()==27 {
+                        activate_choose_level()
+                    }
                 }
             }
         }
     }
 
     sub next_level() {
+        chosen_level++
+        if chosen_level > bd1caves.NUM_CAVES {
+            chosen_level = 1
+            chosen_difficulty = min(5, chosen_difficulty+1)
+        }
+        bd1caves.decode(chosen_level, chosen_difficulty)
+        start_loaded_level()
+    }
+
+    sub activate_choose_level() {
+        chosen_difficulty = 1
+        chosen_level = 1
+        main.choose_level.update_hud_choices_text()
+        demo_requested = false
         screen.hud_clear()
         cave.cover_all()
         music.init()
         music.playback_enabled = true
-        choose_level()
+        game_state = STATE_CHOOSE_LEVEL
     }
 
     sub choose_level() {
-        game_state = STATE_CHOOSE_LEVEL
         ubyte letter
         bool joy_start = false
         for letter in 0 to 4 {
@@ -134,19 +171,24 @@ main {
         str cave_letter_str     = "A-T: select start cave [A]"
         str cave_difficulty_str = "1-5: select difficulty [1]"
         letter = cbm.GETIN()
+        if letter!=0 {
+            main.start.start_demo_timer = DEMO_WAIT_TIME
+        }
         if cx16.joystick_get2(4) & %0000000000010000 == 0 {
             main.joystick = 4
             joy_start = true
         }
         if letter==13 or joy_start {
+            ; start the game!
             bd1caves.decode(chosen_level, chosen_difficulty)
+            start_new_game()
             start_loaded_level()
             return
         }
         else if letter>='a' and letter <= 't' {
             ; letter - select start cave
             chosen_level = letter - 'a' + 1
-            cave_letter_str[len(cave_letter_str)-2] = letter | 128
+            update_hud_choices_text()
             bd1caves.decode(chosen_level, chosen_difficulty)
             cave.cover_all()
             screen.hud_clear()
@@ -154,44 +196,59 @@ main {
         }
         else if letter>='1' and letter <= '5' {
             ; digit - select difficulty
-            chosen_difficulty = letter-'1'
-            cave_difficulty_str[len(cave_difficulty_str)-2] = letter
+            chosen_difficulty = letter-'0'
+            update_hud_choices_text()
         }
         else if letter==133 {
             ; F1 - play demo
-            chosen_level = 1
-            bd1caves.decode(chosen_level, chosen_difficulty)
-            bd1demo.init()
-            start_loaded_level()
-            cave.playing_demo=true
+            play_demo()
             return
         }
         else if letter==137 {
             ; F2 - play debug cave
             bdcff.load_test_cave()
+            start_new_game()
             start_loaded_level()
             return
         }
-        screen.hud_text(7,2,$f0,cave_letter_str)
-        screen.hud_text(7,3,$f0,cave_difficulty_str)
-        screen.hud_text(8,4,$f0,"F1: play demo")
-        screen.hud_text(8,5,$f0,"F2: play debug cave")
-        screen.hud_text(7,7,$f0,"Any joystick START button")
-        screen.hud_text(10,8,$f0,"to start the game!")
-        screen.hud_text(10,24,$f0,"\x8e\x8e\x8e Rock Runner \x8e\x8e\x8e")
-        screen.hud_text(4,26,$f0,"by DesertFish. Written in Prog8")
+        screen.hud_text(10,2,$f0,"\x8e\x8e\x8e Rock Runner \x8e\x8e\x8e")
+        screen.hud_text(4,4,$f0,"by DesertFish. Written in Prog8")
+        screen.hud_text(7,21,$f0,cave_letter_str)
+        screen.hud_text(7,22,$f0,cave_difficulty_str)
+        screen.hud_text(8,23,$f0,"F1: play demo")
+        screen.hud_text(8,24,$f0,"F2: play debug cave")
+        screen.hud_text(7,26,$f0,"Any joystick START button")
+        screen.hud_text(10,27,$f0,"to start the game!")
 
-        sub start_loaded_level() {
-            cave.cover_all()
-            cave.restart_level()
-            cave.num_lives = 3
-            cave.score = 0
-            cave.score_500_for_bonus = 0
-            main.start.title_timer = 250
-            game_state = STATE_CAVETITLE
-            screen.hud_clear()
-            screen.show_cave_title()
+        sub update_hud_choices_text() {
+            cave_letter_str[len(cave_letter_str)-2] = chosen_level+'A'-1
+            cave_difficulty_str[len(cave_difficulty_str)-2] = chosen_difficulty+'0'
         }
+    }
+
+
+    sub start_new_game() {
+        cave.num_lives = 3
+        cave.score = 0
+        cave.score_500_for_bonus = 0
+    }
+
+    sub start_loaded_level() {
+        cave.cover_all()
+        cave.restart_level()
+        main.start.title_timer = 250
+        game_state = STATE_CAVETITLE
+        screen.hud_clear()
+        screen.show_cave_title()
+    }
+
+    sub play_demo() {
+        chosen_level = 1
+        bd1caves.decode(chosen_level, chosen_difficulty)
+        bd1demo.init()
+        start_loaded_level()
+        demo_requested = true
+        main.start.title_timer = 1
     }
 }
 
@@ -469,10 +526,10 @@ _loop           lda  (attr_ptr),y
 
     sub show_cave_title() {
         const ubyte xpos = 3
-        const ubyte ypos = 10
+        const ubyte ypos = 11
         screen.hud_text(xpos+4, ypos, $f0, "cave:")
         screen.hud_text(xpos+10, ypos, $f0, cave.name_ptr)
-        screen.hud_wrap_text(xpos, ypos+5, $f0, cave.description_ptr)
+        screen.hud_wrap_text(xpos, ypos+3, $f0, cave.description_ptr)
     }
 
     bool white_flash

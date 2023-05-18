@@ -84,7 +84,6 @@ cave {
     ubyte time_left_secs
     ubyte current_diamond_value
     bool exit_reached
-    bool playing_demo
     bool joy_fire
     bool joy_up
     bool joy_down
@@ -111,7 +110,6 @@ cave {
         disable_bonusbg()
         disable_magicwall()
         magicwall_expired = false
-        playing_demo = false
         amoeba_count = 0
         num_diamonds = 0
         slime_permeability = DEFAULT_SLIME_PERMEABILITY     ; TODO variable for certain levels
@@ -531,8 +529,18 @@ cave {
                 return
             }
 
-            if playing_demo
+            if main.game_state==main.STATE_DEMO {
+                if cbm.GETIN()==27 {
+                    ; escape was pressed, abort the demo
+                    exit_reached=true
+                    time_left_secs=0
+                    while cbm.GETIN()==27 {
+                        ; wait until key released
+                    }
+                    return
+                }
                 bd1demo.get_movement()
+            }
             else {
                 uword joy = cx16.joystick_get2(main.joystick)
                 joy_left = lsb(joy) & %0010==0
@@ -555,7 +563,10 @@ cave {
                 attr_ptr2 = cell_attributes + player_y*MAX_CAVE_WIDTH + player_x
                 when @(cell_ptr2) {
                     objects.outboxhidden, objects.outboxblinking -> exit_reached = true
-                    objects.diamond, objects.diamond2 -> pickup_diamond()
+                    objects.diamond, objects.diamond2 -> {
+                        ; TODO there's still a timing?/sync? bug that allows you to eat a diamond while moving, that is not getting added to the score...
+                        pickup_diamond()
+                    }
                     objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
                     objects.space -> sounds.rockfordmove_space()
                 }

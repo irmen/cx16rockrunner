@@ -1,23 +1,26 @@
 Rock Runner
 ===========
 
-A Boulder Dash® clone for the Commander X16.
+A Boulder Dash® clone for the Commander X16, written in [Prog8](https://prog8.readthedocs.io) (requires version 9 or later).
 
 Original Boulder Dash® in 1984 by First Star Software, created by Peter Liepa and Chris Gray.
-Current copyright by BBG Entertainment GmbH.
+Copyright by BBG Entertainment GmbH.
 
 
-Modern tile set is from MIT-licensed GDash and is based on Boulder Rush by Michael Kowalski / Miksoft. See below for links.
+Graphics tile set is from MIT-licensed GDash and is based on Boulder Rush by Michael Kowalski / Miksoft. See below for links.
 
 
 TODO
 ----
-- support for "cave speed" like in cave T intermission that should move rockford a lot quicker than normal
+- it's still possible to eat diamonds that are not getting added to the score
 - touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
-- fix the remaining TODO's in the code such as cave progression and selectable difficulty level
 - add ability to load BDCFF caves from disk files.
-- check with orig game that stuff falling into an expired magicwall simply disappears (cave T)
+- high score table, persistent on disk
+- better title tune (Crisps?)
+- better sound effects for the random sounds (Use random tones from a scale rather than totally random frequencies?)
+- tweak the controls to also register button presses outside of cavescan?
+- fix the remaining TODO's in the code
 
 
 Development Resources
