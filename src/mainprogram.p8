@@ -7,7 +7,7 @@
 %import bd1caves
 %import bdcff
 %import sounds
-
+%import highscore
 
 main {
     ubyte joystick = 0
@@ -22,7 +22,11 @@ main {
     const ubyte STATE_PLAYING = 4
     const ubyte STATE_GAMEOVER = 5
     const ubyte STATE_DEMO = 6
-    const uword DEMO_WAIT_TIME = 60 * 21
+    const ubyte STATE_SHOWING_HISCORE = 7
+    const ubyte STATE_ENTER_NAME = 8
+    const uword HISCORE_WAIT_TIME = 60 * 12
+    const uword HISCORE_DISPLAY_TIME = 60 * 6
+    const uword DEMO_WAIT_TIME = 60 * 21 - HISCORE_DISPLAY_TIME
 
     sub start() {
 ;        repeat {
@@ -39,6 +43,7 @@ main {
         music.playback_enabled = true
         ;; sys.wait(240)
         cave.init()
+        highscore.init()
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
@@ -46,6 +51,8 @@ main {
         screen.enable()
         ubyte title_timer
         uword start_demo_timer = DEMO_WAIT_TIME
+        uword start_hiscore_timer = HISCORE_WAIT_TIME
+        uword display_hiscore_timer
 
         repeat {
             ; the game loop, executed every frame.
@@ -59,6 +66,11 @@ main {
                     if start_demo_timer==0 {
                         start_demo_timer = DEMO_WAIT_TIME
                         play_demo()
+                    }
+                    start_hiscore_timer--
+                    if start_hiscore_timer==0 {
+                        start_hiscore_timer = HISCORE_WAIT_TIME
+                        show_hiscore()
                     }
                 }
                 STATE_CAVETITLE -> {
@@ -119,17 +131,24 @@ main {
                         activate_choose_level()
                     }
                 }
-                STATE_GAMEOVER -> {
-                    screen.hud_text(2,11,$f0,"\x8b"*36)
-                    screen.hud_text(2,12,$f0,"\x8b")
-                    screen.hud_text(37,12,$f0,"\x8b")
-                    screen.hud_text(2,13,$f0,"\x8b Game Over - press ESC to restart \x8b")
-                    screen.hud_text(2,14,$f0,"\x8b")
-                    screen.hud_text(37,14,$f0,"\x8b")
-                    screen.hud_text(2,15,$f0,"\x8b"*36)
-                    if cbm.GETIN()==27 {
+                STATE_SHOWING_HISCORE -> {
+                    display_hiscore_timer--
+                    if display_hiscore_timer==0 or cbm.GETIN()==27 {
                         activate_choose_level()
                     }
+                }
+                STATE_GAMEOVER -> {
+                    if highscore.highscore_pos(cave.score)
+                        activate_highscore_enter_name()
+                    else
+                        show_hiscore()
+                }
+                STATE_ENTER_NAME -> {
+                    if highscore.enter_name() {
+                        highscore.record_score(cave.score, highscore.name_input)
+                        show_hiscore()
+                    } else
+                        screen.hud_text(24,14,$f0,highscore.name_input)
                 }
             }
         }
@@ -152,8 +171,10 @@ main {
         demo_requested = false
         screen.hud_clear()
         cave.cover_all()
-        music.init()
-        music.playback_enabled = true
+        if not music.playback_enabled {
+            music.init()
+            music.playback_enabled = true
+        }
         game_state = STATE_CHOOSE_LEVEL
     }
 
@@ -173,6 +194,7 @@ main {
         letter = cbm.GETIN()
         if letter!=0 {
             main.start.start_demo_timer = DEMO_WAIT_TIME
+            main.start.start_hiscore_timer = HISCORE_WAIT_TIME
         }
         if cx16.joystick_get2(4) & %0000000000010000 == 0 {
             main.joystick = 4
@@ -211,12 +233,18 @@ main {
             start_loaded_level()
             return
         }
-        screen.hud_text(10,2,$f0,"\x8e\x8e\x8e Rock Runner \x8e\x8e\x8e")
+        else if letter==134 {
+            ; F3 - hall of fame
+            show_hiscore()
+            return
+        }
+        screen.hud_text(3,2,$f0,"\x8e\x8e\x8e Rock Runner BETA VERSION \x8e\x8e\x8e")
         screen.hud_text(4,4,$f0,"by DesertFish. Written in Prog8")
-        screen.hud_text(7,21,$f0,cave_letter_str)
-        screen.hud_text(7,22,$f0,cave_difficulty_str)
-        screen.hud_text(8,23,$f0,"F1: play demo")
-        screen.hud_text(8,24,$f0,"F2: play debug cave")
+        screen.hud_text(7,20,$f0,cave_letter_str)
+        screen.hud_text(7,21,$f0,cave_difficulty_str)
+        screen.hud_text(8,22,$f0,"F1: play demo")
+        screen.hud_text(8,23,$f0,"F2: play debug cave")
+        screen.hud_text(8,24,$f0,"F3: show hall of fame")
         screen.hud_text(7,26,$f0,"Any joystick START button")
         screen.hud_text(10,27,$f0,"to start the game!")
 
@@ -249,6 +277,42 @@ main {
         start_loaded_level()
         demo_requested = true
         main.start.title_timer = 1
+    }
+
+    sub show_hiscore() {
+        game_state = STATE_SHOWING_HISCORE
+        main.start.display_hiscore_timer = HISCORE_DISPLAY_TIME
+        screen.hud_clear()
+        screen.hud_text(7,3,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        screen.hud_text(7,5,$f0,"Rock Runner  Hall Of Fame")
+        screen.hud_text(7,7,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        ubyte position
+        str position_str = "?."
+        for position in 0 to 7 {
+            position_str[0] = '1'+position
+            screen.hud_text(10, 10+position*2, $f0, position_str)
+            screen.hud_text(14, 10+position*2, $f0, highscore.get_name(position))
+            conv.str_uw0(highscore.get_score(position))
+            for cx16.r0L in 0 to 7 {
+                if conv.string_out[cx16.r0L] != '0'
+                    break
+                conv.string_out[cx16.r0L] = ' '
+            }
+            screen.hud_text(24, 10+position*2, $f0, conv.string_out)
+        }
+    }
+
+    sub activate_highscore_enter_name() {
+        game_state = STATE_ENTER_NAME
+        music.init()
+        music.playback_enabled = true
+        screen.hud_clear()
+        screen.hud_text(7,10,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        screen.hud_text(7,12,$f0,"You got a new High Score!")
+        screen.hud_text(7,14,$f0,"Enter your name:")
+        screen.hud_text(7,16,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        highscore.start_enter_name()
+        ; name entry is handled in a separate subroutine!
     }
 }
 

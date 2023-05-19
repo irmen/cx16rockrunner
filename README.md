@@ -16,7 +16,6 @@ TODO
 - touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
 - add ability to load BDCFF caves from disk files.
-- high score table, persistent on disk
 - better title tune (Crisps?)
 - better sound effects for the random sounds (Use random tones from a scale rather than totally random frequencies?)
 - tweak the controls to also register button presses outside of cavescan?
