@@ -61,7 +61,6 @@ cave {
     ubyte player_y
     byte rockford_birth_time        ; in frames, default = 120  (2 seconds)
     ubyte rockford_state            ; 0 = no player in the cave at all
-    bool dont_update_animation
     ubyte rockford_face_direction
     ubyte rockford_animation_frame
     uword bonusbg_timer
@@ -118,7 +117,6 @@ cave {
         amoeba_slow_timer = (amoeba_slow_time_sec as uword) * 60
         exit_reached = false
         rockford_state = 0
-        dont_update_animation = false
         player_died = false
         scan_frame = 0
         current_diamond_value = initial_diamond_value
@@ -295,6 +293,8 @@ cave {
                                 rockford_animation_frame = 0
                                 player_x = x
                                 player_y = y
+                                ; note we need to remove the inbox immediately otherwise it keeps blinking
+                                @(cells + player_y*MAX_CAVE_WIDTH+player_x) = objects.rockfordbirth
                                 jiffy_counter = 1
                                 time_left_secs = cave_time_sec
                             }
@@ -550,7 +550,6 @@ cave {
                 joy_fire = joy & %1100000011000000 != %1100000011000000
             }
 
-            dont_update_animation = true        ; to avoid having the IRQ handler mess up player position
             if joy_left left()
             else if joy_right right()
             else if joy_up up()
@@ -558,24 +557,21 @@ cave {
             else if rockford_state==ROCKFORD_MOVING or rockford_state==ROCKFORD_PUSHING
                 rockford_state=ROCKFORD_IDLE
 
+            uword offset = player_y*MAX_CAVE_WIDTH + player_x
+            cell_ptr2 = cells + offset
+            attr_ptr2 = cell_attributes + offset
             if moved {
-                cell_ptr2 = cells + player_y*MAX_CAVE_WIDTH + player_x
-                attr_ptr2 = cell_attributes + player_y*MAX_CAVE_WIDTH + player_x
                 when @(cell_ptr2) {
                     objects.outboxhidden, objects.outboxblinking -> exit_reached = true
-                    objects.diamond, objects.diamond2 -> {
-                        ; TODO there's still a timing?/sync? bug that allows you to eat a diamond while moving, that is not getting added to the score...
-                        pickup_diamond()
-                    }
+                    objects.diamond, objects.diamond2 -> pickup_diamond()
                     objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
                     objects.space -> sounds.rockfordmove_space()
                 }
                 @(cell_ptr) = objects.space
                 @(attr_ptr) = ATTR_SCANNED_FLAG
-                @(cell_ptr2) = objects.rockford      ; exact tile will be set by rockford animation routine
-                @(attr_ptr2) = ATTR_SCANNED_FLAG
             }
-            dont_update_animation = false
+            @(cell_ptr2) = active_rockford_object()
+            @(attr_ptr2) = ATTR_SCANNED_FLAG
 
             sub left() {
                 rockford_face_direction = ROCKFORD_FACE_LEFT
@@ -703,6 +699,34 @@ cave {
 
             sub rockford_can_eat(ubyte object) -> bool {
                 return objects.attributes[object] & objects.ATTRF_EATABLE
+            }
+
+            sub active_rockford_object() -> ubyte {
+                when rockford_state {
+                    ROCKFORD_MOVING -> {
+                        if rockford_face_direction == ROCKFORD_FACE_LEFT
+                            return objects.rockfordleft
+                        else
+                            return objects.rockfordright
+                    }
+                    ROCKFORD_PUSHING -> {
+                        if rockford_face_direction == ROCKFORD_FACE_LEFT
+                            return objects.rockfordpushleft
+                        else
+                            return objects.rockfordpushright
+                    }
+                    ROCKFORD_BIRTH -> {
+                        if anim_ended(objects.rockfordbirth) {
+                            rockford_state = ROCKFORD_IDLE
+                            rockford_animation_frame = 0
+                        }
+                        return objects.rockfordbirth
+                    }
+                    ROCKFORD_TAPPING -> return objects.rockfordtap
+                    ROCKFORD_BLINKING -> return objects.rockfordblink
+                    ROCKFORD_TAPBLINK -> return objects.rockfordtapblink
+                    else -> return objects.rockford
+                }
             }
         }
 
@@ -902,7 +926,7 @@ cave {
     
     sub handle_rockford_animation() {
         ; per frame, not per cave scan
-        if not rockford_state or dont_update_animation
+        if not rockford_state
             return
 
         rockford_animation_frame++
@@ -911,34 +935,6 @@ cave {
             rockford_animation_frame = 0
             if rockford_state!=ROCKFORD_MOVING and rockford_state!=ROCKFORD_PUSHING
                 choose_new_anim()
-        }
-
-        cell_ptr2 = cells + player_y*MAX_CAVE_WIDTH + player_x
-
-        when rockford_state {
-            ROCKFORD_MOVING -> {
-                if rockford_face_direction == ROCKFORD_FACE_LEFT
-                    @(cell_ptr2) = objects.rockfordleft
-                else
-                    @(cell_ptr2) = objects.rockfordright
-            }
-            ROCKFORD_PUSHING -> {
-                if rockford_face_direction == ROCKFORD_FACE_LEFT
-                    @(cell_ptr2) = objects.rockfordpushleft
-                else
-                    @(cell_ptr2) = objects.rockfordpushright
-            }
-            ROCKFORD_BIRTH -> {
-                @(cell_ptr2) = objects.rockfordbirth
-                if anim_ended(objects.rockfordbirth) {
-                    rockford_state = ROCKFORD_IDLE
-                    rockford_animation_frame = 0
-                }
-            }
-            ROCKFORD_TAPPING -> @(cell_ptr2) = objects.rockfordtap
-            ROCKFORD_BLINKING -> @(cell_ptr2) = objects.rockfordblink
-            ROCKFORD_TAPBLINK -> @(cell_ptr2) = objects.rockfordtapblink
-            ROCKFORD_IDLE -> @(cell_ptr2) = objects.rockford
         }
 
         sub choose_new_anim() {

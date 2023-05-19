@@ -12,7 +12,7 @@ Graphics tile set is from MIT-licensed GDash and is based on Boulder Rush by Mic
 
 TODO
 ----
-- it's still possible to eat diamonds that are not getting added to the score
+- it was possible to eat diamonds that are not getting added to the score. Needs thorough playtesting.
 - touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
 - add ability to load BDCFF caves from disk files.
