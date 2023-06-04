@@ -37,11 +37,12 @@ main {
 ;            }
 ;        }
 
+        interrupts.ram_bank = cx16.getrambank()
         music.init()
-        ;; screen.titlescreen()
+        screen.titlescreen()
         sys.set_irq(&interrupts.handler, true)
         music.playback_enabled = true
-        ;; sys.wait(240)
+        sys.wait(240)
         cave.init()
         highscore.init()
         screen.set_tiles_screenmode()
@@ -174,6 +175,9 @@ main {
         if not music.playback_enabled {
             music.init()
             music.playback_enabled = true
+        }
+        while cbm.GETIN() {
+            ; clear any remaining keypresses
         }
         game_state = STATE_CHOOSE_LEVEL
     }
@@ -644,6 +648,8 @@ _loop           lda  (attr_ptr),y
 interrupts {
     ubyte vsync_counter = 0
     ubyte vsync_semaphore = 1
+    ubyte ram_bank
+    ubyte ram_bank_backup
 
     asmsub waitvsync() {
         ; an improved waitvsync() routine over the one in the sys lib
@@ -676,6 +682,8 @@ interrupts {
         ; (the number of frames between cave scans) lower for higher difficulty levels.
 
         if cx16.VERA_ISR & %00000001 {
+            ram_bank_backup = cx16.getrambank()
+            cx16.rambank(ram_bank)       ; make sure we see the correct ram bank
             vsync_semaphore=0
             vsync_counter++
             cx16.save_vera_context()
@@ -684,6 +692,7 @@ interrupts {
             cave.do_each_frame()         ; for timing critical stuff
             cx16.restore_vera_context()
             psg.envelopes_irq()          ; note: does its own vera save/restore context
+            cx16.rambank(ram_bank_backup)
         }
     }
 
