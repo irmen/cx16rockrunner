@@ -4,6 +4,8 @@
 ; https://codeincomplete.com/articles/javascript-boulderdash/objects.pdf
 ; https://bitbucket.org/czirkoszoltan/gdash/src/c8390151fb1181a7d8c81df8eab67ab2cbf018e0/src/misc/helptext.cpp#lines-223
 
+%import sounds
+
 cave {
     ; for now we use the original cave dimension limits
     const uword MAX_CAVE_WIDTH = 40             ; word here to avoid having to cast to word all the time

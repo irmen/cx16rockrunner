@@ -232,7 +232,7 @@ main {
         }
         else if letter==137 {
             ; F2 - play debug cave
-            bdcff.load_test_cave()
+            test_cave.load_test_cave()
             start_new_game()
             start_loaded_level()
             return

@@ -13,9 +13,17 @@ src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSP
 	@python src/convert_images.py
 
 ROCKRUNNER.PRG: src/*.p8 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL
-	@p8compile src/rockrunner.p8 -target cx16 -slowwarn -varshigh
+	@p8compile src/rockrunner.p8 -target cx16 -slowwarn
 	@mv rockrunner.prg ROCKRUNNER.PRG
 
 zip: all
 	rm -f rockrunner.zip
-	7z a rockrunner.zip ROCKRUNNER.PRG TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL manifest.json
+	7z a rockrunner.zip ROCKRUNNER.PRG TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL CAVES manifest.json
+
+bdcffreadertest: BDCFFTEST.PRG
+	PULSE_LATENCY_MSEC=20 x16emu -scale 2 -run -prg $<
+
+BDCFFTEST.PRG: src/*.p8
+	@p8compile src/bdcfftest.p8 -target cx16
+	@mv bdcfftest.prg BDCFFTEST.PRG
+

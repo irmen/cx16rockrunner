@@ -123,6 +123,7 @@ music {
 
     ; details about the boulderdash music can be found here:
     ; https://www.elmerproductions.com/sp/peterb/sounds.html#Theme%20tune
+    ; playable sheet music of the tune: https://musescore.com/user/33594939/scores/5866869
 
     sub init() {
          playback_enabled = false
