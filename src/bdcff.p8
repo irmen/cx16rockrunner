@@ -5,54 +5,6 @@
 %import objects
 
 bdcff {
-
-    sub translate_object(ubyte char) -> ubyte {
-        when char {
-            '.' -> return objects.dirt
-            ' ' -> return objects.space
-            'w' -> return objects.wall
-            'M' -> return objects.magicwallinactive
-            'x' -> return objects.horizexpander
-            'v' -> return objects.vertexpander
-            'H' -> return objects.outboxhidden
-            'X' -> return objects.outboxclosed
-            'W' -> return objects.steel
-            'Q' -> return objects.firefly
-            'q' -> return objects.firefly
-            'O' -> return objects.firefly
-            'o' -> return objects.firefly
-            'c' -> return objects.butterfly
-            'C' -> return objects.butterfly
-            'b' -> return objects.butterfly
-            'B' -> return objects.butterfly
-            'r' -> return objects.boulder
-            'd' -> return objects.diamond
-            'D' -> return objects.diamond2
-            'P' -> return objects.inboxclosed
-            'a' -> return objects.amoeba
-            'F' -> return objects.voodoo
-            's' -> return objects.slime
-            '%' -> return objects.megaboulder
-            ;; '*' -> return objects.lightboulder
-            ;; 'e' -> return objects.expandingwall
-            else -> return objects.space
-        }
-    }
-
-    sub translate_attr(ubyte char) -> ubyte {
-        when char {
-            'Q' -> return cave.ATTR_MOVING_LEFT
-            'q' -> return cave.ATTR_MOVING_RIGHT
-            'O' -> return cave.ATTR_MOVING_UP
-            'o' -> return cave.ATTR_MOVING_DOWN
-            'c' -> return cave.ATTR_MOVING_DOWN
-            'C' -> return cave.ATTR_MOVING_LEFT
-            'b' -> return cave.ATTR_MOVING_UP
-            'B' -> return cave.ATTR_MOVING_RIGHT
-            else -> return 0
-        }
-    }
-
     const ubyte FILE_BANK = 2
     ubyte cs_file_bank
     uword @zp cs_file_ptr
@@ -236,6 +188,44 @@ bdcff {
                             void string.copy(argptr, cave_description)
                             cave.description_ptr = cave_description
                         }
+                        else if string.compare(lineptr, "Size")==0 {
+                            ; TODO  width height [...ignore the rest...]
+                        }
+                        else if string.compare(lineptr, "DiamondValue")==0 {
+                            ; TODO  value [optional extravalue]
+                        }
+                        else if string.compare(lineptr, "DiamondsRequired")==0 {
+                            ; TODO  number [ one for each level in num_levels ]
+                        }
+                        else if string.compare(lineptr, "CaveTime")==0 {
+                            ; TODO  number [ one for each level in num_levels ]
+                        }
+                        else if string.compare(lineptr, "Colors")==0 {
+                            ; TODO c64-style palette colors are not yet supported
+                        }
+                        else if string.compare(lineptr, "RandSeed")==0 {
+                            ; TODO  number [ one for each level in num_levels ]
+                        }
+                        else if string.compare(lineptr, "RandomFill")==0 {
+                            ; TODO  objectname probability  [4 or less pairs of those]
+                        }
+                        else if string.compare(lineptr, "InitialFill")==0 {
+                            ; TODO  objectname
+                        }
+                        else if string.compare(lineptr, "Intermission")==0 {
+                            ; TODO  "true"/"false"
+                        }
+                        else if string.compare(lineptr, "MagicWallTime")==0 {
+                            ; TODO  number
+                        }
+                        else if string.compare(lineptr, "AmoebaTime")==0 {
+                            ; TODO  number
+                        }
+                        else if string.compare(lineptr, "SlimePermeability")==0 {
+                            ; TODO parse floating point number...
+                        }
+                        ;; else if string.compare(lineptr, "AmoebaGrowthProb")==0 { ... }
+                        ;; else if string.compare(lineptr, "AmoebaThreshold")==0 { ... }
                     }
                 }
                 READ_OBJECTS -> {
@@ -256,8 +246,12 @@ bdcff {
                             parse_line()
                         else if string.compare(lineptr, "Rectangle")==0
                             parse_rectangle()
+                        else if string.compare(lineptr, "Raster")==0
+                            parse_raster()
+                        else if string.compare(lineptr, "Add")==0
+                            parse_add()
                         else
-                            sys.exit(1)     ; should never occur
+                            sys.reset_system()     ; should never occur
                     }
                 }
                 READ_MAP -> {
@@ -280,14 +274,10 @@ bdcff {
                 split_words()
                 arg_bytes[0] = conv.str2ubyte(words[0])
                 arg_bytes[1] = conv.str2ubyte(words[1])
-                txt.print("point: ")
-                txt.print_ub(arg_bytes[0])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[1])
-                txt.chrout(',')
-                txt.print(words[2])
-                txt.nl()
+                cx16.r0 = parse_object(words[2])
+                draw_single(cx16.r0, arg_bytes[0], arg_bytes[1])
             }
+
             sub parse_line() {
                 ; X1 Y1 X2 Y2 OBJECT
                 split_words()
@@ -295,18 +285,10 @@ bdcff {
                 arg_bytes[1] = conv.str2ubyte(words[1])
                 arg_bytes[2] = conv.str2ubyte(words[2])
                 arg_bytes[3] = conv.str2ubyte(words[3])
-                txt.print("line: ")
-                txt.print_ub(arg_bytes[0])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[1])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[2])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[3])
-                txt.chrout(',')
-                txt.print(words[4])
-                txt.nl()
+                cx16.r0 = parse_object(words[4])
+                draw_line(cx16.r0, arg_bytes[0], arg_bytes[1], arg_bytes[2], arg_bytes[3])
             }
+
             sub parse_rectangle() {
                 ; X1 Y1 X2 Y2 OBJECT
                 split_words()
@@ -314,18 +296,10 @@ bdcff {
                 arg_bytes[1] = conv.str2ubyte(words[1])
                 arg_bytes[2] = conv.str2ubyte(words[2])
                 arg_bytes[3] = conv.str2ubyte(words[3])
-                txt.print("rect: ")
-                txt.print_ub(arg_bytes[0])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[1])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[2])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[3])
-                txt.chrout(',')
-                txt.print(words[4])
-                txt.nl()
+                cx16.r0 = parse_object(words[4])
+                draw_rectangle(cx16.r0, arg_bytes[0], arg_bytes[1], arg_bytes[2], arg_bytes[3], $00ff)
             }
+
             sub parse_fillrect() {
                 ; X1 Y1 X2 Y2 FILLOBJECT [optional: FILLOBJECT2]
                 ; if 2 objects are specified, the first is the outline (Rect) object.
@@ -334,21 +308,110 @@ bdcff {
                 arg_bytes[1] = conv.str2ubyte(words[1])
                 arg_bytes[2] = conv.str2ubyte(words[2])
                 arg_bytes[3] = conv.str2ubyte(words[3])
-                txt.print("fillrect: ")
-                txt.print_ub(arg_bytes[0])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[1])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[2])
-                txt.chrout(',')
-                txt.print_ub(arg_bytes[3])
-                txt.chrout(',')
-                txt.print(words[4])
-                if words[5] {
-                    txt.chrout('+')
-                    txt.print(words[5])
+                cx16.r0 = parse_object(words[4])
+                cx16.r1 = $00ff
+                if words[5]
+                    cx16.r1 = parse_object(words[5])
+                draw_rectangle(cx16.r0, arg_bytes[0], arg_bytes[1], arg_bytes[2], arg_bytes[3], cx16.r1)
+            }
+
+            sub parse_raster() {
+                ; TODO x y numberx numbery stepx stepy object
+                ; TODO figure out what this is
+            }
+
+            sub parse_add() {
+                ; TODO incx incy searchobject addobject [replaceobject]
+                ; TODO figure out what this is, only used in Boulderdash02?
+            }
+
+            sub parse_object(str name) -> uword {
+                str[] names = [
+                    "SPACE",
+                    "DIRT",
+                    "WALL",
+                    "MAGICWALL",
+                    "OUTBOX",
+                    "HIDDENOUTBOX",
+                    "STEELWALL",
+                    "FIREFLYl",
+                    "FIREFLYu",
+                    "FIREFLYr",
+                    "FIREFLYd",
+                    "BOULDER",
+                    "BOULDERf",
+                    "DIAMOND",
+                    "DIAMONDf",
+                    "INBOX",
+                    "HEXPANDINGWALL",
+                    "VEXPANDINGWALL",
+                    "EXPANDINGWALL",
+                    "BUTTERFLYl",
+                    "BUTTERFLYu",
+                    "BUTTERFLYr",
+                    "BUTTERFLYd",
+                    "AMOEBA",
+                    "SLIME"
+                ]
+                ubyte[len(names)] object = [
+                    objects.space,
+                    objects.dirt,
+                    objects.wall,
+                    objects.magicwall,
+                    objects.outboxclosed,
+                    objects.outboxhidden,
+                    objects.steel,
+                    objects.firefly,
+                    objects.firefly,
+                    objects.firefly,
+                    objects.firefly,
+                    objects.boulder,
+                    objects.boulder,
+                    objects.diamond,
+                    objects.diamond,
+                    objects.inboxclosed,
+                    objects.horizexpander,
+                    objects.vertexpander,
+                    objects.wall,           ; TODO h+v expander !!
+                    objects.butterfly,
+                    objects.butterfly,
+                    objects.butterfly,
+                    objects.butterfly,
+                    objects.amoeba,
+                    objects.slime
+                ]
+                ubyte[len(names)] attrs = [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    cave.ATTR_MOVING_LEFT,
+                    cave.ATTR_MOVING_UP,
+                    cave.ATTR_MOVING_RIGHT,
+                    cave.ATTR_MOVING_DOWN,
+                    0,
+                    cave.ATTR_FALLING,
+                    0,
+                    cave.ATTR_FALLING,
+                    0,
+                    0,
+                    0,
+                    0,
+                    cave.ATTR_MOVING_LEFT,
+                    cave.ATTR_MOVING_UP,
+                    cave.ATTR_MOVING_RIGHT,
+                    cave.ATTR_MOVING_DOWN,
+                    0,
+                    0
+                ]
+                for cx16.r2L in 0 to len(names)-1 {
+                    if string.compare(name, names[cx16.r2L])==0
+                        return mkword(attrs[cx16.r2L], object[cx16.r2L])
                 }
-                txt.nl()
+                sys.reset_system()     ; should never happen, all object names should be recognised
             }
 
             sub split_words() {
@@ -381,6 +444,78 @@ bdcff {
         }
     }
 
+    sub draw_single(uword objattr, ubyte x, ubyte y) {
+        ; TODO
+;        cave.set_tile(x, y, obj, attr)
+;        if obj==objects.inboxclosed or obj==objects.rockfordbirth {
+;            cave.player_x = x
+;            cave.player_y = y
+;        }
+    }
+
+    sub draw_rectangle(uword objattr, ubyte x1, ubyte y1, ubyte x2, ubyte y2, uword fillobjattr) {
+        ; TODO
+;        draw_line(obj, attr, x1, y1, width, 2)
+;        draw_line(obj, attr, x1, y1 + height - 1, width, 2)
+;        draw_line(obj, attr, x1, y1 + 1, height - 2, 4)
+;        draw_line(obj, attr, x1 + width - 1, y1 + 1, height - 2, 4)
+;        if fillobj!=255 {
+;            ubyte y
+;            for y in y1 + 1 to y1 + height - 2
+;                draw_line(fillobj, fillattr, x1 + 1, y, width - 2, 2)
+;        }
+    }
+
+    sub draw_line(uword objattr, ubyte x1, ubyte y1, ubyte x2, ubyte y2) {
+        ; TODO
+    }
+
+    sub translate_object(ubyte char) -> ubyte {
+        when char {
+            '.' -> return objects.dirt
+            ' ' -> return objects.space
+            'w' -> return objects.wall
+            'M' -> return objects.magicwallinactive
+            'x' -> return objects.horizexpander
+            'v' -> return objects.vertexpander
+            'V' -> return objects.wall      ; TODO h+v expander !!
+            'H' -> return objects.outboxhidden
+            'X' -> return objects.outboxclosed
+            'W' -> return objects.steel
+            'Q' -> return objects.firefly
+            'q' -> return objects.firefly
+            'O' -> return objects.firefly
+            'o' -> return objects.firefly
+            'c' -> return objects.butterfly
+            'C' -> return objects.butterfly
+            'b' -> return objects.butterfly
+            'B' -> return objects.butterfly
+            'r' -> return objects.boulder
+            'd' -> return objects.diamond
+            'D' -> return objects.diamond2
+            'P' -> return objects.inboxclosed
+            'a' -> return objects.amoeba
+            'F' -> return objects.voodoo
+            's' -> return objects.slime
+            '%' -> return objects.megaboulder
+            ; note: there is no 1 character code for boulder+falling and diamond+faling.
+            else -> return objects.space
+        }
+    }
+
+    sub translate_attr(ubyte char) -> ubyte {
+        when char {
+            'Q' -> return cave.ATTR_MOVING_LEFT
+            'q' -> return cave.ATTR_MOVING_RIGHT
+            'O' -> return cave.ATTR_MOVING_UP
+            'o' -> return cave.ATTR_MOVING_DOWN
+            'c' -> return cave.ATTR_MOVING_DOWN
+            'C' -> return cave.ATTR_MOVING_LEFT
+            'b' -> return cave.ATTR_MOVING_UP
+            'B' -> return cave.ATTR_MOVING_RIGHT
+            else -> return 0
+        }
+    }
 }
 
 test_cave {
