@@ -445,29 +445,43 @@ bdcff {
     }
 
     sub draw_single(uword objattr, ubyte x, ubyte y) {
-        ; TODO
-;        cave.set_tile(x, y, obj, attr)
-;        if obj==objects.inboxclosed or obj==objects.rockfordbirth {
-;            cave.player_x = x
-;            cave.player_y = y
-;        }
+        cave.set_tile(x, y, lsb(objattr), msb(objattr))
+        if lsb(objattr)==objects.inboxclosed or lsb(objattr)==objects.rockfordbirth {
+            cave.player_x = x
+            cave.player_y = y
+        }
     }
 
     sub draw_rectangle(uword objattr, ubyte x1, ubyte y1, ubyte x2, ubyte y2, uword fillobjattr) {
-        ; TODO
-;        draw_line(obj, attr, x1, y1, width, 2)
-;        draw_line(obj, attr, x1, y1 + height - 1, width, 2)
-;        draw_line(obj, attr, x1, y1 + 1, height - 2, 4)
-;        draw_line(obj, attr, x1 + width - 1, y1 + 1, height - 2, 4)
-;        if fillobj!=255 {
-;            ubyte y
-;            for y in y1 + 1 to y1 + height - 2
-;                draw_line(fillobj, fillattr, x1 + 1, y, width - 2, 2)
-;        }
+        draw_line(objattr, x1, y1, x2, y1)
+        draw_line(objattr, x1, y2, x2, y2)
+        draw_line(objattr, x1, y1, x1, y2)
+        draw_line(objattr, x2, y1, x2, y2)
+        if lsb(fillobjattr)!=255 {
+            ubyte y
+            for y in y1 + 1 to y2-1
+                draw_line(fillobjattr, x1+1, y, x2-1, y)
+        }
     }
 
     sub draw_line(uword objattr, ubyte x1, ubyte y1, ubyte x2, ubyte y2) {
-        ; TODO
+        ; line can be horizontal, vertical, or 45 degree diagonal.
+        ; other slopes are not supported!
+        byte dx = -1
+        byte dy = -1
+        if x2>x1
+            dx = 1
+        else if x2==x1
+            dx = 0
+        if y2>y1
+            dy = 1
+        else if y2==y1
+            dy = 0
+        while x1!=x2 and y1!=y2 {
+            draw_single(objattr, x1, y1)
+            x1 += dx as ubyte
+            y1 += dy as ubyte
+        }
     }
 
     sub translate_object(ubyte char) -> ubyte {
