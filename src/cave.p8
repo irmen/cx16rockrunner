@@ -212,6 +212,15 @@ cave {
             if magicwall_timer==0
                 disable_magicwall()
         }
+
+        if cbm.GETIN()==27 {
+            ; escape is pressed. Lose a life and restart the level
+            if intermission==false
+                num_lives--
+            player_died = true
+            player_died_timer = 4
+        }
+
         if player_died {
             player_died_timer--
             if player_died_timer==0 {
