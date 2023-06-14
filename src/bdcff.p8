@@ -372,7 +372,7 @@ bdcff {
                     objects.inboxclosed,
                     objects.horizexpander,
                     objects.vertexpander,
-                    objects.wall,           ; TODO h+v expander !!
+                    objects.bothexpander,
                     objects.butterfly,
                     objects.butterfly,
                     objects.butterfly,
@@ -478,7 +478,7 @@ bdcff {
             'M' -> return objects.magicwallinactive
             'x' -> return objects.horizexpander
             'v' -> return objects.vertexpander
-            'V' -> return objects.wall      ; TODO h+v expander !!
+            'V' -> return objects.bothexpander
             'H' -> return objects.outboxhidden
             'X' -> return objects.outboxclosed
             'W' -> return objects.steel
@@ -565,10 +565,10 @@ test_cave {
 .text "Wssss...sssssssssssssssssssssssssssssssW"
 .text "W          P                           W"
 .text "W                        rrr%%%ddDD    W"
-.text "W      .r.    .d.        ......d...    W"
-.text "W      ...    ...        MMMMMMMMMM    W"
-.text "W      . .   .. .x.                    W"
-.text "W      . .   v. .                      W"
+.text "W      .r.    .d...      ......d...    W"
+.text "W      ...    ...x...    MMMMMMMMMM    W"
+.text "W      . .   .. ...V.                  W"
+.text "W      . .   v. . ...                  W"
 .text "W      . .   .. .         W  aa  W     W"
 .text "W      . .    . .         WWWWWWWW     H"
 .text "W      .C.    .Q.                      X"

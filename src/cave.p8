@@ -321,12 +321,9 @@ cave {
                             if anim_ended(objects.amoebaexplosion)
                                 @(cell_ptr) = amoeba_explodes_to
                         }
-                        objects.horizexpander -> {
-                            handle_horiz_expander()
-                        }
-                        objects.vertexpander -> {
-                            handle_vert_expander()
-                        }
+                        objects.horizexpander -> handle_horiz_expander()
+                        objects.vertexpander -> handle_vert_expander()
+                        objects.bothexpander -> handle_both_expander()
                     }
                     if objects.attributes[obj] & objects.ATTRF_ROCKFORD {
                         if not exit_reached
@@ -733,27 +730,57 @@ cave {
         }
 
         sub handle_horiz_expander() {
+            bool playsound = false
             if @(cell_ptr-1)==objects.space {
                 @(cell_ptr-1) = objects.horizexpander
-                sounds.expanding_wall()
+                playsound = true
             }
             if @(cell_ptr+1)==objects.space {
                 @(cell_ptr+1) = objects.horizexpander
                 @(attr_ptr+1) |= ATTR_SCANNED_FLAG
-                sounds.expanding_wall()
+                playsound = true
             }
+            if playsound
+                sounds.expanding_wall()
         }
 
         sub handle_vert_expander() {
+            bool playsound = false
             if @(cell_ptr-MAX_CAVE_WIDTH)==objects.space {
                 @(cell_ptr-MAX_CAVE_WIDTH) = objects.vertexpander
-                sounds.expanding_wall()
+                playsound = true
             }
             if @(cell_ptr+MAX_CAVE_WIDTH)==objects.space {
                 @(cell_ptr+MAX_CAVE_WIDTH) = objects.vertexpander
                 @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
-                sounds.expanding_wall()
+                playsound = true
             }
+            if playsound
+                sounds.expanding_wall()
+        }
+
+        sub handle_both_expander() {
+            bool playsound = false
+            if @(cell_ptr-1)==objects.space {
+                @(cell_ptr-1) = objects.bothexpander
+                playsound = true
+            }
+            if @(cell_ptr+1)==objects.space {
+                @(cell_ptr+1) = objects.bothexpander
+                @(attr_ptr+1) |= ATTR_SCANNED_FLAG
+                playsound = true
+            }
+            if @(cell_ptr-MAX_CAVE_WIDTH)==objects.space {
+                @(cell_ptr-MAX_CAVE_WIDTH) = objects.bothexpander
+                playsound = true
+            }
+            if @(cell_ptr+MAX_CAVE_WIDTH)==objects.space {
+                @(cell_ptr+MAX_CAVE_WIDTH) = objects.bothexpander
+                @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                playsound = true
+            }
+            if playsound
+                sounds.expanding_wall()
         }
 
         sub fall_down_one_cell() {
