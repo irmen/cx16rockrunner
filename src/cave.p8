@@ -38,8 +38,8 @@ cave {
 
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
-    ubyte width = MAX_CAVE_WIDTH
-    ubyte height = MAX_CAVE_HEIGHT
+    ubyte width
+    ubyte height
     uword name_ptr
     uword description_ptr
     bool intermission

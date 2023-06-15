@@ -148,8 +148,8 @@ bdcff {
     sub parse_cave(ubyte levelindex) {
         cs_file_bank = cavespec_banks[levelindex]
         cs_file_ptr = cavespec_addresses[levelindex]
-        str cave_name = "?" * 40
-        str cave_description = "?" * 127
+        str cave_name = "?" * 40            ; TODO move the buffer into cave.p8 itself
+        str cave_description = "?" * 127    ; TODO move the buffer into cave.p8 itself
 
         const ubyte READ_SKIP = 0
         const ubyte READ_CAVE = 1
@@ -159,6 +159,10 @@ bdcff {
         uword lineptr
         uword argptr
 
+        cave.width = cave.MAX_CAVE_WIDTH as ubyte
+        cave.height = cave.MAX_CAVE_HEIGHT
+        ubyte map_row
+
         repeat {
             lineptr = next_file_line_petscii()
             uword isIndex
@@ -166,8 +170,10 @@ bdcff {
                 return
             when read_state {
                 READ_CAVE -> {
-                    if string.compare(lineptr, "[map]")==0
+                    if string.compare(lineptr, "[map]")==0 {
                         read_state = READ_MAP
+                        map_row = 0
+                    }
                     else if string.compare(lineptr, "[objects]")==0
                         read_state = READ_OBJECTS
                     else if lineptr[0]=='['
@@ -189,40 +195,108 @@ bdcff {
                             cave.description_ptr = cave_description
                         }
                         else if string.compare(lineptr, "Size")==0 {
+                            split_words()
                             ; TODO  width height [...ignore the rest...]
+                            ; default = 40x22  (cave.MAX_CAVE_WIDTH x cave.MAX_CAVE_HEIGHT)
+                            txt.print("size=")
+                            txt.print(words[0])
+                            txt.chrout('*')
+                            txt.print(words[1])
+                            txt.nl()
                         }
                         else if string.compare(lineptr, "DiamondValue")==0 {
+                            split_words()
                             ; TODO  value [optional extravalue]
+                            txt.print("diamondvalue=")
+                            txt.print(words[0])
+                            txt.print(" extra=")
+                            txt.print(words[1])
+                            txt.nl()
                         }
                         else if string.compare(lineptr, "DiamondsRequired")==0 {
+                            split_words()
                             ; TODO  number [ one for each level in num_levels ]
+                            txt.print("diamondsrequired=")
+                            for cx16.r2L in 0 to num_levels-1 {
+                                txt.print(words[cx16.r2L])
+                                txt.spc()
+                            }
+                            txt.nl()
                         }
                         else if string.compare(lineptr, "CaveTime")==0 {
+                            split_words()
                             ; TODO  number [ one for each level in num_levels ]
+                            txt.print("cavetime=")
+                            for cx16.r2L in 0 to num_levels-1 {
+                                txt.print(words[cx16.r2L])
+                                txt.spc()
+                            }
+                            txt.nl()
                         }
-                        else if string.compare(lineptr, "Colors")==0 {
-                            ; TODO c64-style palette colors are not yet supported
+                        else if string.compare(lineptr, "CaveDelay")==0 {
+                            split_words()
+                            ; TODO  number
+                            txt.print("cavedelay=")
+                            txt.print(words[0])
+                            txt.nl()
                         }
+;                        else if string.compare(lineptr, "Colors")==0 {
+;                            split_words()
+;                            ; TODO c64-style palette colors are not yet supported
+;                        }
                         else if string.compare(lineptr, "RandSeed")==0 {
+                            split_words()
                             ; TODO  number [ one for each level in num_levels ]
+                            txt.print("randseed=")
+                            for cx16.r2L in 0 to num_levels-1 {
+                                txt.print(words[cx16.r2L])
+                                txt.spc()
+                            }
+                            txt.nl()
                         }
                         else if string.compare(lineptr, "RandomFill")==0 {
+                            split_words()
                             ; TODO  objectname probability  [4 or less pairs of those]
+                            txt.print("randomfill=")
+                            txt.print(words[0])
+                            txt.spc()
+                            txt.print(words[1])
+                            txt.print(" possibly some more\n")
                         }
                         else if string.compare(lineptr, "InitialFill")==0 {
+                            split_words()
                             ; TODO  objectname
+                            txt.print("initialfill=")
+                            txt.print(words[0])
+                            txt.nl()
                         }
                         else if string.compare(lineptr, "Intermission")==0 {
+                            split_words()
                             ; TODO  "true"/"false"
+                            txt.print("intermission=")
+                            txt.print(words[0])
+                            txt.nl()
                         }
                         else if string.compare(lineptr, "MagicWallTime")==0 {
+                            split_words()
                             ; TODO  number
+                            txt.print("magicwall=")
+                            txt.print(words[0])
+                            txt.nl()
                         }
                         else if string.compare(lineptr, "AmoebaTime")==0 {
+                            split_words()
                             ; TODO  number
+                            txt.print("amoeba=")
+                            txt.print(words[0])
+                            txt.nl()
                         }
                         else if string.compare(lineptr, "SlimePermeability")==0 {
-                            ; TODO parse floating point number...
+                            split_words()
+                            ; TODO can be an integer byte or a floating point number from 0.000 to 1.000
+                            txt.print("slime=")
+                            txt.print(words[0])
+                            txt.nl()
                         }
                         ;; else if string.compare(lineptr, "AmoebaGrowthProb")==0 { ... }
                         ;; else if string.compare(lineptr, "AmoebaThreshold")==0 { ... }
@@ -258,16 +332,23 @@ bdcff {
                     if string.compare(lineptr, "[/map]")==0
                         read_state = READ_CAVE
                     else {
+
                         ; TODO read map line
-                        txt.print("map line: ")
-                        txt.print(lineptr)
+                        txt.print("map row ")
+                        txt.print_ub0(map_row)
+                        txt.chrout(':')
+                        for cx16.r2L in 0 to cave.width-1 {
+                            txt.chrout(lineptr[cx16.r2L])
+                        }
                         txt.nl()
+                        map_row++
                     }
                 }
             }
 
-            uword[6] words = 0
-            ubyte[6] arg_bytes = 0
+            const ubyte MAX_WORDS = 8
+            uword[MAX_WORDS] words = 0
+            ubyte[MAX_WORDS] arg_bytes = 0
 
             sub parse_point() {
                 ; X Y OBJECT
@@ -416,7 +497,7 @@ bdcff {
 
             sub split_words() {
                 ubyte word_idx
-                while @(argptr) {
+                while @(argptr) and word_idx<len(words) {
                     words[word_idx] = argptr
                     word_idx++
                     cx16.r0L = string.find(argptr, ' ')

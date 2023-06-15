@@ -19,7 +19,7 @@ main {
     sub start() {
         txt.lowercase()
 
-        if bdcff.load_caveset("caves/boulderdash01.bd") {
+        if bdcff.load_caveset("caves/arnodash11.bd") {
             if bdcff.parse_caveset() {
                 txt.print("\nCaveset Name: ")
                 txt.print(bdcff.caveset_name)
@@ -31,11 +31,18 @@ main {
                 txt.print_ub(bdcff.num_levels)
                 txt.print(" difficulty levels.\n\n")
 
-                bdcff.parse_cave(1 )
+                bdcff.parse_cave(0)
+
                 txt.print("cave name: ")
                 txt.print(cave.name_ptr)
                 txt.print("\ncave description: ")
                 txt.print(cave.description_ptr)
+                txt.print("\nsize: ")
+                txt.print_ub(cave.width)
+                txt.chrout('*')
+                txt.print_ub(cave.height)
+                txt.print("\nintermission: ")
+                txt.print_ub(cave.intermission)
                 txt.nl()
             }
         }
