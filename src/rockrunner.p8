@@ -596,8 +596,8 @@ _loop           lda  (attr_ptr),y
         const ubyte xpos = 3
         const ubyte ypos = 11
         screen.hud_text(xpos+4, ypos, $f0, "cave:")
-        screen.hud_text(xpos+10, ypos, $f0, cave.name_ptr)
-        screen.hud_wrap_text(xpos, ypos+3, $f0, cave.description_ptr)
+        screen.hud_text(xpos+10, ypos, $f0, cave.name)
+        screen.hud_wrap_text(xpos, ypos+3, $f0, cave.description)
     }
 
     bool white_flash

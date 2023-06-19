@@ -40,9 +40,9 @@ cave {
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
     ubyte width
     ubyte height
-    uword name_ptr
-    uword description_ptr
     bool intermission
+    str name = "?" * 40
+    str description = "?" * 127
 
     ubyte cave_number       ; 1+
     ubyte difficulty        ; 1-5
@@ -714,14 +714,12 @@ cave {
                     ROCKFORD_MOVING -> {
                         if rockford_face_direction == ROCKFORD_FACE_LEFT
                             return objects.rockfordleft
-                        else
-                            return objects.rockfordright
+                        return objects.rockfordright
                     }
                     ROCKFORD_PUSHING -> {
                         if rockford_face_direction == ROCKFORD_FACE_LEFT
                             return objects.rockfordpushleft
-                        else
-                            return objects.rockfordpushright
+                        return objects.rockfordpushright
                     }
                     ROCKFORD_BIRTH -> {
                         if anim_ended(objects.rockfordbirth) {

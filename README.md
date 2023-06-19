@@ -15,6 +15,7 @@ TODO
 - it was possible to eat diamonds that are not getting added to the score. Needs thorough playtesting.
 - add ability to load BDCFF caves from disk files.
 - get rid of the bd1caves.p8 altogether when we can load the boulderdash01.bd levels from disk
+- fix the C64 slime permeability calculation, it's not rnd() > permeability? it's some form of AND ? " every bit has an equal value, more bits set to 1 means more delay."
 - touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
 - easter egg (how to trigger?): replace butterfly with X16 logo

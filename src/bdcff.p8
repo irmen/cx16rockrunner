@@ -20,7 +20,20 @@ bdcff {
     uword gameparams_address
     ubyte[MAX_CAVES] cavespec_banks
     uword[MAX_CAVES] cavespec_addresses
+    ubyte[5] rand_seeds
+    ubyte[5] cave_times
+    ubyte[5] required_diamonds
+    ubyte randomfill_obj1
+    ubyte randomfill_obj2
+    ubyte randomfill_obj3
+    ubyte randomfill_obj4
+    ubyte randomfill_prob1
+    ubyte randomfill_prob2
+    ubyte randomfill_prob3
+    ubyte randomfill_prob4
+    ubyte initial_fill
 
+    ; TODO level file selector elsewhere that lets the player choose a .bd file to load here
     sub load_caveset(str filename) -> bool {
         txt.print("Loading caveset ")
         txt.print(filename)
@@ -145,11 +158,9 @@ bdcff {
         return false
     }
 
-    sub parse_cave(ubyte levelindex) {
+    sub parse_cave(ubyte levelindex) {                      ; TODO add difficulty selector
         cs_file_bank = cavespec_banks[levelindex]
         cs_file_ptr = cavespec_addresses[levelindex]
-        str cave_name = "?" * 40            ; TODO move the buffer into cave.p8 itself
-        str cave_description = "?" * 127    ; TODO move the buffer into cave.p8 itself
 
         const ubyte READ_SKIP = 0
         const ubyte READ_CAVE = 1
@@ -161,6 +172,28 @@ bdcff {
 
         cave.width = cave.MAX_CAVE_WIDTH as ubyte
         cave.height = cave.MAX_CAVE_HEIGHT
+        cave.name[0] = 0
+        cave.description[0] = 0
+        cave.intermission = 0
+        cave.cave_time_sec = 0
+        cave.initial_diamond_value = 0
+        cave.extra_diamond_value = 0
+        cave.diamonds_needed = 0
+        cave.magicwall_millingtime_sec = 0
+        cave.amoeba_slow_time_sec = 0
+        cave.slime_permeability = cave.DEFAULT_SLIME_PERMEABILITY
+        rand_seeds = [0,0,0,0,0]
+        cave_times = [0,0,0,0,0]
+        required_diamonds = [0,0,0,0,0]
+        randomfill_obj1 = 0
+        randomfill_obj2 = 0
+        randomfill_obj3 = 0
+        randomfill_obj4 = 0
+        randomfill_prob1 = 0
+        randomfill_prob2 = 0
+        randomfill_prob3 = 0
+        randomfill_prob4 = 0
+        initial_fill = 255       ; because 0 = space
         ubyte map_row
 
         repeat {
@@ -187,115 +220,111 @@ bdcff {
                         }
 
                         if string.compare(lineptr, "Name")==0 {
-                            void string.copy(argptr, cave_name)
-                            cave.name_ptr = cave_name
+                            void string.copy(argptr, cave.name)
                         }
                         else if string.compare(lineptr, "Description")==0 {
-                            void string.copy(argptr, cave_description)
-                            cave.description_ptr = cave_description
+                            void string.copy(argptr, cave.description)
                         }
                         else if string.compare(lineptr, "Size")==0 {
                             split_words()
-                            ; TODO  width height [...ignore the rest...]
-                            ; default = 40x22  (cave.MAX_CAVE_WIDTH x cave.MAX_CAVE_HEIGHT)
-                            txt.print("size=")
-                            txt.print(words[0])
-                            txt.chrout('*')
-                            txt.print(words[1])
-                            txt.nl()
+                            cave.width = conv.str2ubyte(words[0])
+                            cave.height = conv.str2ubyte(words[1])
                         }
                         else if string.compare(lineptr, "DiamondValue")==0 {
                             split_words()
-                            ; TODO  value [optional extravalue]
-                            txt.print("diamondvalue=")
-                            txt.print(words[0])
-                            txt.print(" extra=")
-                            txt.print(words[1])
-                            txt.nl()
+                            cave.initial_diamond_value = conv.str2ubyte(words[0])
+                            if words[1]
+                                cave.extra_diamond_value = conv.str2ubyte(words[1])
                         }
                         else if string.compare(lineptr, "DiamondsRequired")==0 {
                             split_words()
-                            ; TODO  number [ one for each level in num_levels ]
-                            txt.print("diamondsrequired=")
-                            for cx16.r2L in 0 to num_levels-1 {
-                                txt.print(words[cx16.r2L])
-                                txt.spc()
-                            }
-                            txt.nl()
+                            for cx16.r2L in 0 to num_levels-1
+                                required_diamonds[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
                         else if string.compare(lineptr, "CaveTime")==0 {
                             split_words()
-                            ; TODO  number [ one for each level in num_levels ]
-                            txt.print("cavetime=")
-                            for cx16.r2L in 0 to num_levels-1 {
-                                txt.print(words[cx16.r2L])
-                                txt.spc()
-                            }
-                            txt.nl()
+                            for cx16.r2L in 0 to num_levels-1
+                                cave_times[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
-                        else if string.compare(lineptr, "CaveDelay")==0 {
-                            split_words()
-                            ; TODO  number
-                            txt.print("cavedelay=")
-                            txt.print(words[0])
-                            txt.nl()
-                        }
+;                        else if string.compare(lineptr, "CaveDelay")==0 {
+;                            split_words()
+;                            ; TODO  number.  + what to do with this CaveDelay?
+;                        }
 ;                        else if string.compare(lineptr, "Colors")==0 {
 ;                            split_words()
 ;                            ; TODO c64-style palette colors are not yet supported
 ;                        }
                         else if string.compare(lineptr, "RandSeed")==0 {
                             split_words()
-                            ; TODO  number [ one for each level in num_levels ]
-                            txt.print("randseed=")
-                            for cx16.r2L in 0 to num_levels-1 {
-                                txt.print(words[cx16.r2L])
-                                txt.spc()
-                            }
-                            txt.nl()
+                            for cx16.r2L in 0 to num_levels-1
+                                rand_seeds[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
                         else if string.compare(lineptr, "RandomFill")==0 {
                             split_words()
-                            ; TODO  objectname probability  [4 or less pairs of those]
-                            txt.print("randomfill=")
-                            txt.print(words[0])
-                            txt.spc()
-                            txt.print(words[1])
-                            txt.print(" possibly some more\n")
+                            if words[0] {
+                                randomfill_obj1 = lsb(parse_object(words[0]))
+                                randomfill_prob1 = conv.str2ubyte(words[1])
+                            }
+                            if words[2] {
+                                randomfill_obj2 = lsb(parse_object(words[2]))
+                                randomfill_prob2 = conv.str2ubyte(words[3])
+                            }
+                            if words[4] {
+                                randomfill_obj3 = lsb(parse_object(words[4]))
+                                randomfill_prob3 = conv.str2ubyte(words[5])
+                            }
+                            if words[6] {
+                                randomfill_obj4 = lsb(parse_object(words[6]))
+                                randomfill_prob4 = conv.str2ubyte(words[7])
+                            }
                         }
                         else if string.compare(lineptr, "InitialFill")==0 {
                             split_words()
-                            ; TODO  objectname
-                            txt.print("initialfill=")
-                            txt.print(words[0])
-                            txt.nl()
+                            initial_fill = conv.str2ubyte(words[0])
                         }
                         else if string.compare(lineptr, "Intermission")==0 {
                             split_words()
-                            ; TODO  "true"/"false"
-                            txt.print("intermission=")
-                            txt.print(words[0])
-                            txt.nl()
+                            if @(words[0])=='t'
+                                cave.intermission=true
                         }
                         else if string.compare(lineptr, "MagicWallTime")==0 {
                             split_words()
-                            ; TODO  number
-                            txt.print("magicwall=")
-                            txt.print(words[0])
-                            txt.nl()
+                            cave.magicwall_millingtime_sec = conv.str2ubyte(words[0])
                         }
                         else if string.compare(lineptr, "AmoebaTime")==0 {
                             split_words()
-                            ; TODO  number
-                            txt.print("amoeba=")
-                            txt.print(words[0])
-                            txt.nl()
+                            cave.amoeba_slow_time_sec = conv.str2ubyte(words[0])
                         }
                         else if string.compare(lineptr, "SlimePermeability")==0 {
                             split_words()
-                            ; TODO can be an integer byte or a floating point number from 0.000 to 1.000
-                            txt.print("slime=")
-                            txt.print(words[0])
+                            uword numberStr = words[0]
+                            numberStr[5] = 0
+                            isIndex = string.find(numberStr, '.')
+                            if_cs {
+                                ; we assume the floating point value is always a multiple of 1/8ths so 0, 0.125, 0.250, etc etc up to 1.000
+                                ; conversion to slime permeability byte is to set the number of bits equal to this factor.
+                                if string.startswith(numberStr, "0.0")
+                                    cave.slime_permeability = 0
+                                else if string.startswith(numberStr, "0.125")
+                                    cave.slime_permeability = %00000001
+                                else if string.startswith(numberStr, "0.25")
+                                    cave.slime_permeability = %00000011
+                                else if string.startswith(numberStr, "0.375")
+                                    cave.slime_permeability = %00000111
+                                else if string.startswith(numberStr, "0.5")
+                                    cave.slime_permeability = %00001111
+                                else if string.startswith(numberStr, "0.625")
+                                    cave.slime_permeability = %00011111
+                                else if string.startswith(numberStr, "0.75")
+                                    cave.slime_permeability = %00111111
+                                else if string.startswith(numberStr, "0.875")
+                                    cave.slime_permeability = %01111111
+                                else if string.startswith(numberStr, "1.0")
+                                    cave.slime_permeability = %11111111
+                            } else {
+                                ; it's just an integer
+                                cave.slime_permeability = conv.str2ubyte(words[0])
+                            }
                             txt.nl()
                         }
                         ;; else if string.compare(lineptr, "AmoebaGrowthProb")==0 { ... }
@@ -347,8 +376,11 @@ bdcff {
             }
 
             const ubyte MAX_WORDS = 8
-            uword[MAX_WORDS] words = 0
-            ubyte[MAX_WORDS] arg_bytes = 0
+            uword[MAX_WORDS] words
+            ubyte[MAX_WORDS] arg_bytes
+
+            words = [0,0,0,0,0,0,0,0]
+            arg_bytes = [0,0,0,0,0,0,0,0]
 
             sub parse_point() {
                 ; X Y OBJECT
@@ -616,8 +648,8 @@ bdcff {
 test_cave {
 
     sub load_test_cave() {
-        cave.name_ptr = "test cave"
-        cave.description_ptr = "this is a built-in test cave|to easily test things with"
+        cave.name = "test cave"
+        cave.description = "this is a built-in test cave|to easily test things with"
         cave.intermission = false
         cave.width = 40
         cave.height = 22

@@ -7,8 +7,8 @@ bd1caves {
         cave.rockford_state = 0
         cave.player_x = 0
         cave.player_y = 0
-        cave.name_ptr = names[level]
-        cave.description_ptr = descriptions[level]
+        cave.name = names[level]
+        cave.description = descriptions[level]
         uword data_ptr = caves[level]
         cave.cave_number = data_ptr[$00]
         cave.difficulty = difficulty
