@@ -19,7 +19,7 @@ main {
     sub start() {
         txt.lowercase()
 
-        if bdcff.load_caveset("caves/boulderdash02.bd") {
+        if bdcff.load_caveset("caves/boulderdash01.bd") {
             if bdcff.parse_caveset() {
                 txt.print("\nCaveset Name: ")
                 txt.print(bdcff.caveset_name)
@@ -28,10 +28,10 @@ main {
                 txt.nl()
                 txt.print_ub(bdcff.num_caves)
                 txt.print(" caves.\n")
-                txt.print_ub(bdcff.num_levels)
+                txt.print_ub(bdcff.num_difficulty_levels)
                 txt.print(" difficulty levels.\n\n")
 
-                bdcff.parse_cave(5)
+                bdcff.parse_cave(0, 2)
 
                 txt.print("\n\nPARSED:\n")
                 txt.print("cave name: ")
@@ -45,10 +45,12 @@ main {
                 txt.print("\nintermission: ")
                 txt.print_ub(cave.intermission)
                 txt.print("\ncavetimes: ")
-                for cx16.r2L in 0 to bdcff.num_levels-1 {
+                for cx16.r2L in 0 to bdcff.num_difficulty_levels-1 {
                     txt.print_ub(bdcff.cave_times[cx16.r2L])
                     txt.spc()
                 }
+                txt.print("\nactive cavetime: ")
+                txt.print_ub(cave.cave_time_sec)
                 txt.print("\nmagicwall time: ")
                 txt.print_ub(cave.magicwall_millingtime_sec)
                 txt.print("\namoeba time: ")
@@ -60,43 +62,27 @@ main {
                 txt.spc()
                 txt.print_ub(cave.extra_diamond_value)
                 txt.print("\ndiamonds needed: ")
-                for cx16.r2L in 0 to bdcff.num_levels-1 {
-                    txt.print_ub(bdcff.required_diamonds[cx16.r2L])
+                for cx16.r2L in 0 to bdcff.num_difficulty_levels-1 {
+                    txt.print_ub(bdcff.diamonds_needed[cx16.r2L])
                     txt.spc()
                 }
+                txt.print("\nactive needed: ")
+                txt.print_ub(cave.diamonds_needed)
                 txt.print("\nrandseeds: ")
-                for cx16.r2L in 0 to bdcff.num_levels-1 {
+                for cx16.r2L in 0 to bdcff.num_difficulty_levels-1 {
                     txt.print_ub(bdcff.rand_seeds[cx16.r2L])
                     txt.spc()
                 }
-                txt.print("\nrandomfill: ")
-                if bdcff.randomfill_prob1 {
-                    txt.print_ub(bdcff.randomfill_obj1)
-                    txt.spc()
-                    txt.print_ub(bdcff.randomfill_prob1)
-                    txt.spc()
+                txt.print("\ncave map:\n")
+                ubyte cave_row
+                ubyte cave_col
+                for cave_row in 0 to cave.height-1 {
+                    for cave_col in 0 to cave.width-1 {
+                        ubyte obj = @(cave.cells + cave_col + cave_row*cave.MAX_CAVE_WIDTH)
+                        txt.chrout(32+obj)
+                    }
+                    txt.nl()
                 }
-                if bdcff.randomfill_prob2 {
-                    txt.print_ub(bdcff.randomfill_obj2)
-                    txt.spc()
-                    txt.print_ub(bdcff.randomfill_prob2)
-                    txt.spc()
-                }
-                if bdcff.randomfill_prob3 {
-                    txt.print_ub(bdcff.randomfill_obj3)
-                    txt.spc()
-                    txt.print_ub(bdcff.randomfill_prob3)
-                    txt.spc()
-                }
-                if bdcff.randomfill_prob4 {
-                    txt.print_ub(bdcff.randomfill_obj4)
-                    txt.spc()
-                    txt.print_ub(bdcff.randomfill_prob4)
-                    txt.spc()
-                }
-                txt.print("\ninitial fill: ")
-                txt.print_ub(bdcff.initial_fill)
-                txt.nl()
             }
         }
     }

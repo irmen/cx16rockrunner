@@ -11,7 +11,7 @@ bdcff {
 
     const ubyte MAX_CAVES = 20
     ubyte num_caves
-    ubyte num_levels
+    ubyte num_difficulty_levels
     str caveset_name = " " * 40
     str caveset_author = " " * 40
 
@@ -22,16 +22,7 @@ bdcff {
     uword[MAX_CAVES] cavespec_addresses
     ubyte[5] rand_seeds
     ubyte[5] cave_times
-    ubyte[5] required_diamonds
-    ubyte randomfill_obj1
-    ubyte randomfill_obj2
-    ubyte randomfill_obj3
-    ubyte randomfill_obj4
-    ubyte randomfill_prob1
-    ubyte randomfill_prob2
-    ubyte randomfill_prob3
-    ubyte randomfill_prob4
-    ubyte initial_fill
+    ubyte[5] diamonds_needed
 
     ; TODO level file selector elsewhere that lets the player choose a .bd file to load here
     sub load_caveset(str filename) -> bool {
@@ -99,7 +90,7 @@ bdcff {
             return false
 
         num_caves = 0
-        num_levels = 0
+        num_difficulty_levels = 0
         uword line
 
         repeat {
@@ -150,7 +141,7 @@ bdcff {
                 else if line=="Author"
                     void string.copy(argptr, caveset_author)
                 else if line=="Levels"
-                    num_levels = conv.str2ubyte(argptr)
+                    num_difficulty_levels = conv.str2ubyte(argptr)
             }
             return true
         }
@@ -158,9 +149,10 @@ bdcff {
         return false
     }
 
-    sub parse_cave(ubyte levelindex) {                      ; TODO add difficulty selector
+    sub parse_cave(ubyte levelindex, ubyte difficulty) {
         cs_file_bank = cavespec_banks[levelindex]
         cs_file_ptr = cavespec_addresses[levelindex]
+        difficulty = clamp(difficulty, 1, num_difficulty_levels)
 
         const ubyte READ_SKIP = 0
         const ubyte READ_CAVE = 1
@@ -174,7 +166,7 @@ bdcff {
         cave.height = cave.MAX_CAVE_HEIGHT
         cave.name[0] = 0
         cave.description[0] = 0
-        cave.intermission = 0
+        cave.intermission = false
         cave.cave_time_sec = 0
         cave.initial_diamond_value = 0
         cave.extra_diamond_value = 0
@@ -184,23 +176,19 @@ bdcff {
         cave.slime_permeability = cave.DEFAULT_SLIME_PERMEABILITY
         rand_seeds = [0,0,0,0,0]
         cave_times = [0,0,0,0,0]
-        required_diamonds = [0,0,0,0,0]
-        randomfill_obj1 = 0
-        randomfill_obj2 = 0
-        randomfill_obj3 = 0
-        randomfill_obj4 = 0
-        randomfill_prob1 = 0
-        randomfill_prob2 = 0
-        randomfill_prob3 = 0
-        randomfill_prob4 = 0
-        initial_fill = 255       ; because 0 = space
+        diamonds_needed = [0,0,0,0,0]
         ubyte map_row
+        bool size_specified = false
 
         repeat {
             lineptr = next_file_line_petscii()
             uword isIndex
-            if lineptr=="[/cave]"
+            if lineptr=="[/cave]" {
+                validate_size()
+                cave.diamonds_needed = diamonds_needed[difficulty-1]
+                cave.cave_time_sec = cave_times[difficulty-1]
                 return
+            }
             when read_state {
                 READ_CAVE -> {
                     if lineptr=="[map]" {
@@ -229,6 +217,7 @@ bdcff {
                             split_words()
                             cave.width = conv.str2ubyte(words[0])
                             cave.height = conv.str2ubyte(words[1])
+                            size_specified = true
                         }
                         else if lineptr=="DiamondValue" {
                             split_words()
@@ -238,12 +227,12 @@ bdcff {
                         }
                         else if lineptr=="DiamondsRequired" {
                             split_words()
-                            for cx16.r2L in 0 to num_levels-1
-                                required_diamonds[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
+                            for cx16.r2L in 0 to num_difficulty_levels-1
+                                diamonds_needed[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
                         else if lineptr=="CaveTime" {
                             split_words()
-                            for cx16.r2L in 0 to num_levels-1
+                            for cx16.r2L in 0 to num_difficulty_levels-1
                                 cave_times[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
 ;                        else if lineptr=="CaveDelay" {
@@ -252,14 +241,22 @@ bdcff {
 ;                        }
 ;                        else if lineptr=="Colors" {
 ;                            split_words()
-;                            ; TODO c64-style palette colors are not yet supported
+;                            ; TODO c64-style palette colors are not yet supported, would require a different tileset
 ;                        }
                         else if lineptr=="RandSeed" {
                             split_words()
-                            for cx16.r2L in 0 to num_levels-1
+                            for cx16.r2L in 0 to num_difficulty_levels-1       ; TODO is this correct? or is it always 5 regardless of number of 
                                 rand_seeds[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
                         else if lineptr=="RandomFill" {
+                            ubyte randomfill_obj1 = 0
+                            ubyte randomfill_obj2 = 0
+                            ubyte randomfill_obj3 = 0
+                            ubyte randomfill_obj4 = 0
+                            ubyte randomfill_prob1 = 0
+                            ubyte randomfill_prob2 = 0
+                            ubyte randomfill_prob3 = 0
+                            ubyte randomfill_prob4 = 0
                             split_words()
                             if words[0] {
                                 randomfill_obj1 = lsb(parse_object(words[0]))
@@ -277,10 +274,16 @@ bdcff {
                                 randomfill_obj4 = lsb(parse_object(words[6]))
                                 randomfill_prob4 = conv.str2ubyte(words[7])
                             }
+
+                            ubyte seed = rand_seeds[difficulty-1]
+                            ; TODO random fill instead of this flat fill
+                            draw_rectangle(objects.dirt, 1, 1, cave.width-2, cave.height-2, objects.dirt)
                         }
                         else if lineptr=="InitialFill" {
+                            validate_size()
                             split_words()
-                            initial_fill = conv.str2ubyte(words[0])
+                            cx16.r0 = parse_object(words[0])
+                            draw_rectangle(cx16.r0, 1, 1, cave.width-2, cave.height-2, cx16.r0)
                         }
                         else if lineptr=="Intermission" {
                             split_words()
@@ -332,8 +335,11 @@ bdcff {
                     }
                 }
                 READ_OBJECTS -> {
-                    if lineptr=="[/objects]"
+                    if lineptr=="[/objects]" {
+                        ; draw the initial border of steel tiles
+                        draw_rectangle(objects.steel, 0, 0, cave.width-1, cave.height-1, $00ff)
                         read_state = READ_CAVE
+                    }
                     else {
                         argptr = 0
                         isIndex = string.find(lineptr, '=')
@@ -352,25 +358,33 @@ bdcff {
                         else if lineptr=="Raster"
                             parse_raster()
                         else if lineptr=="Add"
-                            parse_add()
+                            parse_add(false)
+                        else if lineptr=="AddBackward"
+                            parse_add(true)
                         else
                             sys.reset_system()     ; should never occur
                     }
                 }
                 READ_MAP -> {
-                    if lineptr=="[/map]"
-                        read_state = READ_CAVE
-                    else {
+                    ubyte map_num_columns
 
-                        ; TODO read map line
-                        txt.print("map row ")
-                        txt.print_ub0(map_row)
-                        txt.chrout(':')
-                        for cx16.r2L in 0 to cave.width-1 {
-                            txt.chrout(lineptr[cx16.r2L])
+                    if lineptr=="[/map]" {
+                        read_state = READ_CAVE
+                        size_specified = true
+                    }
+                    else {
+                        ubyte map_column=0
+                        while @(lineptr) {
+                            cx16.r0L = @(lineptr)
+                            cx16.r1 = mkword(translate_attr(cx16.r0L), translate_object(cx16.r0L))
+                            draw_single(cx16.r1, map_column, map_row)
+                            map_column++
+                            lineptr++
                         }
-                        txt.nl()
                         map_row++
+                        ; adjust cave size from the map that is being read in
+                        cave.width = map_column
+                        cave.height = map_row
                     }
                 }
             }
@@ -381,6 +395,18 @@ bdcff {
 
             words = [0,0,0,0,0,0,0,0]
             arg_bytes = [0,0,0,0,0,0,0,0]
+
+            sub validate_size() {
+                if not size_specified {
+                    if cave.intermission {
+                        cave.width = 20
+                        cave.height = 12
+                    } else {
+                        cave.width = cave.MAX_CAVE_WIDTH as ubyte
+                        cave.height = cave.MAX_CAVE_HEIGHT
+                    }
+                }
+            }
 
             sub parse_point() {
                 ; X Y OBJECT
@@ -430,12 +456,15 @@ bdcff {
 
             sub parse_raster() {
                 ; TODO x y numberx numbery stepx stepy object
-                ; TODO figure out what this is
+                ; this draws an evenly spaced grid of the given object
             }
 
-            sub parse_add() {
+            sub parse_add(bool backwards) {
                 ; TODO incx incy searchobject addobject [replaceobject]
-                ; TODO figure out what this is, only used in Boulderdash02?
+                ; only used in Boulderdash02?
+                ; "find every object, and put fill_element next to it. relative coordinates dx,dy"
+                ; backwards = scan from bottom to top
+                ; replaceobject = unknown what this does :-|  replacing searchobject by something else ? doesn't seem very useful
             }
 
             sub parse_object(str name) -> uword {
@@ -590,11 +619,12 @@ bdcff {
             dy = 1
         else if y2==y1
             dy = 0
-        while x1!=x2 and y1!=y2 {
+        while x1!=x2 or y1!=y2 {
             draw_single(objattr, x1, y1)
             x1 += dx as ubyte
             y1 += dy as ubyte
         }
+        draw_single(objattr, x1, y1)
     }
 
     sub translate_object(ubyte char) -> ubyte {
