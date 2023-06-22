@@ -112,13 +112,13 @@ bdcff {
                     ; skip this line
                 }
                 '[' -> {
-                    if line[1]=='/' and string.compare(line, "[/game]")==0
+                    if line[1]=='/' and line=="[/game]"
                         break
-                    else if string.compare(line, "[game]")==0 {
+                    else if line=="[game]" {
                         gameparams_bank = cs_file_bank
                         gameparams_address = cs_file_ptr
                     }
-                    else if string.compare(line, "[cave]")==0 {
+                    else if line=="[cave]" {
                         cavespec_banks[num_caves] = cs_file_bank
                         cavespec_addresses[num_caves] = cs_file_ptr
                         num_caves++
@@ -145,11 +145,11 @@ bdcff {
                     argptr = line+isIndex+1
                     line[isIndex] = 0
                 }
-                if string.compare(line, "Name")==0
+                if line=="Name"
                     void string.copy(argptr, caveset_name)
-                else if string.compare(line, "Author")==0
+                else if line=="Author"
                     void string.copy(argptr, caveset_author)
-                else if string.compare(line, "Levels")==0
+                else if line=="Levels"
                     num_levels = conv.str2ubyte(argptr)
             }
             return true
@@ -199,15 +199,15 @@ bdcff {
         repeat {
             lineptr = next_file_line_petscii()
             uword isIndex
-            if string.compare(lineptr, "[/cave]")==0
+            if lineptr=="[/cave]"
                 return
             when read_state {
                 READ_CAVE -> {
-                    if string.compare(lineptr, "[map]")==0 {
+                    if lineptr=="[map]" {
                         read_state = READ_MAP
                         map_row = 0
                     }
-                    else if string.compare(lineptr, "[objects]")==0
+                    else if lineptr=="[objects]"
                         read_state = READ_OBJECTS
                     else if lineptr[0]=='['
                         read_state = READ_SKIP
@@ -219,47 +219,47 @@ bdcff {
                             lineptr[isIndex] = 0
                         }
 
-                        if string.compare(lineptr, "Name")==0 {
+                        if lineptr=="Name" {
                             void string.copy(argptr, cave.name)
                         }
-                        else if string.compare(lineptr, "Description")==0 {
+                        else if lineptr=="Description" {
                             void string.copy(argptr, cave.description)
                         }
-                        else if string.compare(lineptr, "Size")==0 {
+                        else if lineptr=="Size" {
                             split_words()
                             cave.width = conv.str2ubyte(words[0])
                             cave.height = conv.str2ubyte(words[1])
                         }
-                        else if string.compare(lineptr, "DiamondValue")==0 {
+                        else if lineptr=="DiamondValue" {
                             split_words()
                             cave.initial_diamond_value = conv.str2ubyte(words[0])
                             if words[1]
                                 cave.extra_diamond_value = conv.str2ubyte(words[1])
                         }
-                        else if string.compare(lineptr, "DiamondsRequired")==0 {
+                        else if lineptr=="DiamondsRequired" {
                             split_words()
                             for cx16.r2L in 0 to num_levels-1
                                 required_diamonds[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
-                        else if string.compare(lineptr, "CaveTime")==0 {
+                        else if lineptr=="CaveTime" {
                             split_words()
                             for cx16.r2L in 0 to num_levels-1
                                 cave_times[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
-;                        else if string.compare(lineptr, "CaveDelay")==0 {
+;                        else if lineptr=="CaveDelay" {
 ;                            split_words()
 ;                            ; TODO  number.  + what to do with this CaveDelay?
 ;                        }
-;                        else if string.compare(lineptr, "Colors")==0 {
+;                        else if lineptr=="Colors" {
 ;                            split_words()
 ;                            ; TODO c64-style palette colors are not yet supported
 ;                        }
-                        else if string.compare(lineptr, "RandSeed")==0 {
+                        else if lineptr=="RandSeed" {
                             split_words()
                             for cx16.r2L in 0 to num_levels-1
                                 rand_seeds[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
-                        else if string.compare(lineptr, "RandomFill")==0 {
+                        else if lineptr=="RandomFill" {
                             split_words()
                             if words[0] {
                                 randomfill_obj1 = lsb(parse_object(words[0]))
@@ -278,24 +278,24 @@ bdcff {
                                 randomfill_prob4 = conv.str2ubyte(words[7])
                             }
                         }
-                        else if string.compare(lineptr, "InitialFill")==0 {
+                        else if lineptr=="InitialFill" {
                             split_words()
                             initial_fill = conv.str2ubyte(words[0])
                         }
-                        else if string.compare(lineptr, "Intermission")==0 {
+                        else if lineptr=="Intermission" {
                             split_words()
                             if @(words[0])=='t'
                                 cave.intermission=true
                         }
-                        else if string.compare(lineptr, "MagicWallTime")==0 {
+                        else if lineptr=="MagicWallTime" {
                             split_words()
                             cave.magicwall_millingtime_sec = conv.str2ubyte(words[0])
                         }
-                        else if string.compare(lineptr, "AmoebaTime")==0 {
+                        else if lineptr=="AmoebaTime" {
                             split_words()
                             cave.amoeba_slow_time_sec = conv.str2ubyte(words[0])
                         }
-                        else if string.compare(lineptr, "SlimePermeability")==0 {
+                        else if lineptr=="SlimePermeability" {
                             split_words()
                             uword numberStr = words[0]
                             numberStr[5] = 0
@@ -327,12 +327,12 @@ bdcff {
                             }
                             txt.nl()
                         }
-                        ;; else if string.compare(lineptr, "AmoebaGrowthProb")==0 { ... }
-                        ;; else if string.compare(lineptr, "AmoebaThreshold")==0 { ... }
+                        ;; else if lineptr=="AmoebaGrowthProb" { ... }
+                        ;; else if lineptr=="AmoebaThreshold" { ... }
                     }
                 }
                 READ_OBJECTS -> {
-                    if string.compare(lineptr, "[/objects]")==0
+                    if lineptr=="[/objects]"
                         read_state = READ_CAVE
                     else {
                         argptr = 0
@@ -341,24 +341,24 @@ bdcff {
                             argptr = lineptr+isIndex+1
                             lineptr[isIndex] = 0
                         }
-                        if string.compare(lineptr, "Point")==0
+                        if lineptr=="Point"
                             parse_point()
-                        else if string.compare(lineptr, "FillRect")==0
+                        else if lineptr=="FillRect"
                             parse_fillrect()
-                        else if string.compare(lineptr, "Line")==0
+                        else if lineptr=="Line"
                             parse_line()
-                        else if string.compare(lineptr, "Rectangle")==0
+                        else if lineptr=="Rectangle"
                             parse_rectangle()
-                        else if string.compare(lineptr, "Raster")==0
+                        else if lineptr=="Raster"
                             parse_raster()
-                        else if string.compare(lineptr, "Add")==0
+                        else if lineptr=="Add"
                             parse_add()
                         else
                             sys.reset_system()     ; should never occur
                     }
                 }
                 READ_MAP -> {
-                    if string.compare(lineptr, "[/map]")==0
+                    if lineptr=="[/map]"
                         read_state = READ_CAVE
                     else {
 
@@ -625,7 +625,7 @@ bdcff {
             'F' -> return objects.voodoo
             's' -> return objects.slime
             '%' -> return objects.megaboulder
-            ; note: there is no 1 character code for boulder+falling and diamond+faling.
+            ; note: there is no 1 character code for boulder+falling and diamond+falling.
             else -> return objects.space
         }
     }
