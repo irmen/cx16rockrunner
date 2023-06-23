@@ -1,8 +1,9 @@
-; Boulderdash Common File Format
+; Boulderdash Common File Format loader and parsing
 
 %import conv
 %import cave
 %import objects
+%import bd1caves        ; TODO get rid of this once bd1 caveset loads 100% correcly from file
 
 bdcff {
     const ubyte FILE_BANK = 2
@@ -245,7 +246,7 @@ bdcff {
 ;                        }
                         else if lineptr=="RandSeed" {
                             split_words()
-                            for cx16.r2L in 0 to num_difficulty_levels-1       ; TODO is this correct? or is it always 5 regardless of number of 
+                            for cx16.r2L in 0 to num_difficulty_levels-1
                                 rand_seeds[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
                         else if lineptr=="RandomFill" {
@@ -275,9 +276,32 @@ bdcff {
                                 randomfill_prob4 = conv.str2ubyte(words[7])
                             }
 
-                            ubyte seed = rand_seeds[difficulty-1]
-                            ; TODO random fill instead of this flat fill
-                            draw_rectangle(objects.dirt, 1, 1, cave.width-2, cave.height-2, objects.dirt)
+                            bd1caves.seed1 = 0
+                            bd1caves.seed2 = rand_seeds[difficulty-1]
+                            txt.print("active seed2 = ")
+                            txt.print_ub(bd1caves.seed2)
+                            txt.nl()
+                            ubyte x
+                            ubyte y
+                            for y in 1 to cave.height-2 {
+                                for x in 0 to cave.width-1 {
+                                    cx16.r0 = objects.dirt
+                                    ubyte rnd = bd1caves.bdrandom()
+                                    if rnd < randomfill_prob1 {
+                                        cx16.r0 = randomfill_obj1
+                                    }
+                                    if rnd < randomfill_prob2 {
+                                        cx16.r0 = randomfill_obj2
+                                    }
+                                    if rnd < randomfill_prob3 {
+                                        cx16.r0 = randomfill_obj3
+                                    }
+                                    if rnd < randomfill_prob4 {
+                                        cx16.r0 = randomfill_obj4
+                                    }
+                                    draw_single(cx16.r0, x, y)
+                                }
+                            }
                         }
                         else if lineptr=="InitialFill" {
                             validate_size()
@@ -456,6 +480,7 @@ bdcff {
 
             sub parse_raster() {
                 ; TODO x y numberx numbery stepx stepy object
+                ; only used in Boulderdash02?
                 ; this draws an evenly spaced grid of the given object
             }
 

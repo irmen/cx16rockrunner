@@ -51,20 +51,20 @@ bd1caves {
         for y in 1 to cave.height-2 {
             for x in 0 to cave.width-1 {
                 cx16.r0L = objects.dirt
-                bdrandom()
-                if seed1 < rnd_probability0 {
+                ubyte rnd = bdrandom()
+                if rnd < rnd_probability0 {
                     cx16.r0L = rnd_object0
                     cx16.r1L = rnd_attr0
                 }
-                if seed1 < rnd_probability1 {
+                if rnd < rnd_probability1 {
                     cx16.r0L = rnd_object1
                     cx16.r1L = rnd_attr1
                 }
-                if seed1 < rnd_probability2 {
+                if rnd < rnd_probability2 {
                     cx16.r0L = rnd_object2
                     cx16.r1L = rnd_attr2
                 }
-                if seed1 < rnd_probability3 {
+                if rnd < rnd_probability3 {
                     cx16.r0L = rnd_object3
                     cx16.r1L = rnd_attr3
                 }
@@ -103,7 +103,7 @@ bd1caves {
 
     ubyte @shared seed1
     ubyte @shared seed2
-    sub bdrandom() {
+    sub bdrandom() -> ubyte {
         ; the pseudo random generator that Boulderdash C64 used
         ; see https://www.elmerproductions.com/sp/peterb/insideBoulderdash.html#Random%20numbers
         ubyte @shared temp1
@@ -130,6 +130,7 @@ bd1caves {
             adc  temp1
             adc  temp2
             sta  seed1
+            rts
         }}
     }
 

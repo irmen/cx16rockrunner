@@ -31,7 +31,7 @@ main {
                 txt.print_ub(bdcff.num_difficulty_levels)
                 txt.print(" difficulty levels.\n\n")
 
-                bdcff.parse_cave(0, 2)
+                bdcff.parse_cave(0, 1)
 
                 txt.print("\n\nPARSED:\n")
                 txt.print("cave name: ")
@@ -93,11 +93,6 @@ screen {
     bool white_flash
     sub flash_white(bool white) {
         white_flash = white
-    }
-}
-
-bd1demo {
-    sub get_movement() {
     }
 }
 
