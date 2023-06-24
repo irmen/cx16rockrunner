@@ -555,22 +555,47 @@ _loop           lda  (attr_ptr),y
         }
     }
 
-    sub hud_wrap_text(ubyte col, ubyte row, ubyte color, uword text_ptr) {
+    sub hud_wrap_text(ubyte col, ubyte row, ubyte maxwidth, ubyte color, uword text_ptr) {
+        ubyte line_width
+        row--
+        new_line()
         repeat {
-            uword offset = (row as uword) * 128 + col*2
-            cx16.vaddr(1, $c000 + offset, 0, 1)
-            repeat {
-                cx16.r0L = @(text_ptr)
-                if_z
-                    return
-                if cx16.r0L=='|'
-                    break
-                cx16.VERA_DATA0 = cx16.r0L
+            ubyte word_length = next_word_length(text_ptr)
+            if_z
+                return
+            repeat word_length {
+                cx16.VERA_DATA0 = @(text_ptr)
                 cx16.VERA_DATA0 = color
                 text_ptr++
+                line_width++
             }
+            cx16.VERA_DATA0 = ' '
+            cx16.VERA_DATA0 = color
+            line_width++
+
+            if @(text_ptr)==0
+                return
             text_ptr++
+
+            if line_width>maxwidth
+                new_line()
+        }
+
+        sub new_line() {
             row++
+            uword offset = (row as uword) * 128 + col*2
+            cx16.vaddr(1, $c000 + offset, 0, 1)
+            line_width = 0
+        }
+
+        sub next_word_length(uword txt) -> ubyte {
+            ubyte length=0
+            repeat {
+                if @(txt)==0 or @(txt)==' '
+                    return length
+                length++
+                txt++
+            }
         }
     }
 
@@ -597,7 +622,7 @@ _loop           lda  (attr_ptr),y
         const ubyte ypos = 11
         screen.hud_text(xpos+4, ypos, $f0, "cave:")
         screen.hud_text(xpos+10, ypos, $f0, cave.name)
-        screen.hud_wrap_text(xpos, ypos+3, $f0, cave.description)
+        screen.hud_wrap_text(xpos, ypos+3, 25, $f0, cave.description)
     }
 
     bool white_flash
