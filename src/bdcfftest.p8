@@ -5,6 +5,8 @@
 %import bd1demo
 %zeropage basicsafe
 
+; TODO remove this once bdcff loading fully works in rockrunner
+
 main {
     ubyte game_state
     ubyte joystick

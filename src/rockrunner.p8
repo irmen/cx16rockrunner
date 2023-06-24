@@ -44,7 +44,7 @@ main {
         sys.set_irq(&interrupts.handler, true)
         music.playback_enabled = true
 
-        if not bdcff.load_caveset("boulderdash01.bd") or not bdcff.parse_caveset() {
+        if not bdcff.load_caveset("0-test.bd") or not bdcff.parse_caveset() {
             ; caveset load error
             error_abort($80)
         }
@@ -256,19 +256,12 @@ main {
             return
         }
         else if letter==134 {
-            ; F3 - play debug cave
-            test_cave.load_test_cave()
-            start_new_game()
-            start_loaded_level()
-            return
-        }
-        else if letter==138 {
-            ; F4 - hall of fame
+            ; F3 - hall of fame
             show_hiscore()
             return
         }
-        else if letter==135 {
-            ; F5 - instructions
+        else if letter==138 {
+            ; F4 - instructions
             show_instructions()
             return
         }
@@ -282,13 +275,12 @@ main {
         screen.hud_text(6, 8, bdcff.caveset_author)
 
         ; menu
-        screen.hud_text(7,18,cave_letter_str)
-        screen.hud_text(7,19,cave_difficulty_str)
-        screen.hud_text(8,20,"F1: load different caveset")
-        screen.hud_text(8,21,"F2: play demo (BD1 cave A)")
-        screen.hud_text(8,22,"F3: play test cave")
-        screen.hud_text(8,23,"F4: show hall of fame")
-        screen.hud_text(8,24,"F5: instructions")
+        screen.hud_text(7,19,cave_letter_str)
+        screen.hud_text(7,20,cave_difficulty_str)
+        screen.hud_text(8,21,"F1: load different caveset")
+        screen.hud_text(8,22,"F2: play demo (BD1 cave A)")
+        screen.hud_text(8,23,"F3: show hall of fame")
+        screen.hud_text(8,24,"F4: instructions")
         screen.hud_text(7,26,"Any joystick START button")
         screen.hud_text(10,27,"to start the game!")
 

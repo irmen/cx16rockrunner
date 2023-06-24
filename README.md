@@ -22,7 +22,6 @@ TODO
 ----
 - it is still possible to eat diamonds that are not getting added to the score. Cave 4 (butterflies). Not fixed now that the cx16 registers are properly saved in the IRQ handler :(
 - add the menu to load a different caveset
-- remove built-in test cave, move it into a .bd file
 - finish BDCFF parsing
 - mashing te keyboard at the menu screen can make the game reset the system with error code $83 in $0400. Most likely because something is messing with the ram bank while the decoding is still running, or the IRQ routine destroying one of the Cx16 virtual registers. MIGHT BE FIXED NOW
 - sometimes the next level doesn't completely scroll into the center (for example cave B after finishing A)
