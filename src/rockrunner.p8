@@ -780,6 +780,7 @@ interrupts {
         if cx16.VERA_ISR & %00000001 {
             ram_bank_backup = cx16.getrambank()
             cx16.rambank(ram_bank)       ; make sure we see the correct ram bank
+            cx16.save_virtual_registers()
             vsync_semaphore=0
             vsync_counter++
             cx16.save_vera_context()
@@ -789,6 +790,7 @@ interrupts {
             cx16.restore_vera_context()
             psg.envelopes_irq()          ; note: does its own vera save/restore context
             cx16.rambank(ram_bank_backup)
+            cx16.restore_virtual_registers()
         }
     }
 
