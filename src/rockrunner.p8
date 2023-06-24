@@ -16,6 +16,7 @@ main {
     ubyte game_state
     bool demo_requested
 
+    str BD1_CAVESET_FILE = "boulderdash01.bd"
     const ubyte STATE_CAVETITLE = 1
     const ubyte STATE_CHOOSE_LEVEL = 2
     const ubyte STATE_UNCOVERING = 3
@@ -24,6 +25,7 @@ main {
     const ubyte STATE_DEMO = 6
     const ubyte STATE_SHOWING_HISCORE = 7
     const ubyte STATE_ENTER_NAME = 8
+    const ubyte STATE_SELECT_CAVESET = 9
     const uword HISCORE_WAIT_TIME = 60 * 12
     const uword HISCORE_DISPLAY_TIME = 60 * 6
     const uword INSTRUCTIONS_DISPLAY_TIME = 60 * 10
@@ -73,7 +75,8 @@ main {
                     start_demo_timer--
                     if start_demo_timer==0 {
                         start_demo_timer = DEMO_WAIT_TIME
-                        play_demo()
+                        if bdcff.caveset_filename == BD1_CAVESET_FILE
+                            play_demo()
                     }
                     start_hiscore_timer--
                     if start_hiscore_timer==0 {
@@ -158,6 +161,9 @@ main {
                         show_hiscore()
                     } else
                         screen.hud_text(24,14,highscore.name_input)
+                }
+                STATE_SELECT_CAVESET -> {
+                    select_caveset()
                 }
             }
         }
@@ -247,7 +253,7 @@ main {
         }
         else if letter==133 {
             ; F1 - load different caveset
-            ; TODO menu to select and load caveset file
+            activate_select_caveset('*')
             return
         }
         else if letter==137 {
@@ -307,9 +313,9 @@ main {
     }
 
     sub play_demo() {
-        if bdcff.caveset_filename != "boulderdash01.bd" {
+        if bdcff.caveset_filename != BD1_CAVESET_FILE {
             ; demo only works on boulderdash 1 cave 1
-            if not bdcff.load_caveset("boulderdash01.bd") or not bdcff.parse_caveset() {
+            if not bdcff.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
                 ; caveset load error
                 error_abort($81)
             }
@@ -339,6 +345,92 @@ main {
         screen.hud_text(4,20,"something without moving there!")
         screen.hud_text(4,23,"Press ESC when you're stuck.")
 
+    }
+
+    str caveset_prefix = "**"
+    ubyte caveset_selected_index
+    const ubyte CAVESET_DISPLAYLIST_MAXLENGTH = 20
+    uword caveset_filenames_buffer = memory("caveset_filenames", 500, 0)  ; TODO use large buffer in banked ram instead
+    ubyte caveset_filenames_amount
+
+    sub activate_select_caveset(ubyte prefixletter) {
+        ; $81 = down, $82 = left, $83 = up, $84 = right arrows.
+        game_state = STATE_SELECT_CAVESET
+        screen.hud_clear()
+        screen.hud_text(3,2,"Select a caveset from the list")
+        screen.hud_text(3,3,"(scanned from the 'caves' subdir)")
+        screen.hud_text(3,4,"Press letter or digit or '*' to use")
+        screen.hud_text(3,5,"that as a name prefix filter.")
+        diskio.chdir("caves")
+        caveset_prefix[0] = prefixletter
+        caveset_filenames_amount = diskio.list_filenames(caveset_prefix, caveset_filenames_buffer, 500)
+        diskio.chdir("..")
+        ubyte row = 0
+        uword name_ptr = caveset_filenames_buffer
+        screen.hud_text(5, 8, "\x83")
+        screen.hud_text(5, 27, "\x81")
+        while row < CAVESET_DISPLAYLIST_MAXLENGTH and row < caveset_filenames_amount {
+            screen.hud_text(12, row+8, name_ptr)
+            row++
+            while @(name_ptr)
+                name_ptr++
+            name_ptr++
+        }
+        caveset_selected_index = 0
+        screen.hud_text(9, 8, "\x84")       ; right arrow on the first entry
+    }
+
+    sub select_caveset() {
+        cx16.r0L = cbm.GETIN()
+        cx16.r1L = string.lowerchar(cx16.r0L)
+        if cx16.r1L>32 and cx16.r1L<='z' {
+            activate_select_caveset(cx16.r0L)
+            while cbm.GETIN() {
+                ; clear buffer
+            }
+        } else {
+            when cx16.r0L {
+                27 -> activate_choose_level()
+                13 -> {
+                    if caveset_selected_index < caveset_filenames_amount {
+                        uword name_ptr = caveset_filenames_buffer
+                        ubyte row=0
+                        repeat {
+                            if row==caveset_selected_index {
+                                if not bdcff.load_caveset(name_ptr) or not bdcff.parse_caveset() {
+                                    ; caveset load error
+                                    error_abort($84)
+                                }
+                                sys.wait(20)
+                                activate_choose_level()
+                                return
+                            }
+                            row++
+                            while @(name_ptr)
+                                name_ptr++
+                            name_ptr++
+                        }
+                    }
+                }
+                145 -> {
+                    if caveset_selected_index>0 {
+                        ; up
+                        screen.hud_text(9, caveset_selected_index+8, " ")
+                        caveset_selected_index--
+                        screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
+                    }
+                }
+                17 -> {
+                    if caveset_selected_index<CAVESET_DISPLAYLIST_MAXLENGTH-1 {
+                        ; down
+                        screen.hud_text(9, caveset_selected_index+8, " ")
+                        caveset_selected_index++
+                        screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
+                    }
+                }
+            }
+            ; TODO also allow to use joypad for file selection
+        }
     }
 
     sub show_hiscore() {

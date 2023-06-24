@@ -25,7 +25,6 @@ bdcff {
     ubyte[5] cave_times
     ubyte[5] diamonds_needed
 
-    ; TODO level file selector elsewhere that lets the player choose a .bd file to load here
     sub load_caveset(str filename) -> bool {
         caveset_filename = filename
         cs_file_bank = 0
