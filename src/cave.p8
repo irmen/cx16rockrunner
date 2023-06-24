@@ -41,6 +41,7 @@ cave {
     ubyte width
     ubyte height
     bool intermission
+    bool scroll_enabled
     str name = "?" * 40
     str description = "?" * 127
 
@@ -128,6 +129,7 @@ cave {
         else
             cave_speed = CAVE_SPEED_NORMAL - difficulty/2
         screen.white_flash = false
+        scroll_enabled = true
         ; find the initial player position
         ubyte x
         ubyte y

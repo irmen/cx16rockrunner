@@ -15,7 +15,7 @@ Levels=5
 
 [cave]
 Name=Cave A. Intro
-Description=Pick up jewels and exit before time is up
+Description=Pick up jewels and exit before time is up.
 DiamondValue=10 15
 DiamondsRequired=12 12 12 12 12
 CaveTime=150 110 70 40 30
@@ -38,7 +38,7 @@ Point=38 16 OUTBOX
 
 [cave]
 Name=Cave B. Rooms
-Description=Pick up jewels, but you must move boulders to get all jewels
+Description=Pick up jewels, but you must move boulders to get all jewels.
 DiamondValue=20 50
 DiamondsRequired=10 12 9 13 10
 CaveTime=150 110 70 70 70
@@ -65,7 +65,7 @@ Point=18 20 OUTBOX
 
 [cave]
 Name=Cave C. Maze
-Description=Pick up jewels. You must get every jewel to exit
+Description=Pick up jewels. You must get every jewel to exit.
 DiamondValue=15
 DiamondsRequired=24 23 24 23 21
 CaveTime=150 100 90 80 70
@@ -82,7 +82,7 @@ Point=39 18 OUTBOX
 
 [cave]
 Name=Cave D. Butterflies
-Description=Drop boulders on butterflies to create jewels
+Description=Drop boulders on butterflies to create jewels.
 DiamondValue=5 20
 DiamondsRequired=36 36 36 36 36
 CaveTime=120 100 80 60 50
@@ -126,7 +126,7 @@ Point=18 10 OUTBOX
 
 [cave]
 Name=Cave E. Guards
-Description=The jewels are there for grapping, but they are guarded by the deadly fireflies
+Description=The jewels are there for grabbing, but they are guarded by the deadly fireflies!
 DiamondValue=50 90
 DiamondsRequired=4 5 6 7 8
 CaveTime=150 120 90 60 30
@@ -165,7 +165,7 @@ Point=34 14 FIREFLYl
 
 [cave]
 Name=Cave F. Firefly dens
-Description=Each firefly is guarding a jewel
+Description=Each firefly is guarding a jewel.
 DiamondValue=40 60
 DiamondsRequired=4 6 7 8 8
 CaveTime=150 120 100 90 80
@@ -208,7 +208,7 @@ Point=38 18 OUTBOX
 
 [cave]
 Name=Cave G. Amoeba
-Description=Surround the amoeba with boulders, so it can't grow anymore. Pick up jewels that are created when it suffocates
+Description=Surround the amoeba with boulders, so it can't grow anymore. Pick up jewels that are created when it suffocates!
 DiamondValue=10 20
 DiamondsRequired=15 20 25 25 25
 CaveTime=120 120 120 120 120
@@ -235,7 +235,7 @@ Point=39 5 OUTBOX
 
 [cave]
 Name=Cave H. Enchanted wall
-Description=Activate the enchanted wall and create as many jewels as you can
+Description=Activate the enchanted wall and create as many jewels as you can.
 DiamondValue=10 20
 DiamondsRequired=10 15 20 20 20
 CaveTime=120 110 100 90 80
@@ -287,7 +287,7 @@ Point=18 2 OUTBOX
 
 [cave]
 Name=Cave I. Greed
-Description=You have to get a lot of jewels here, lucky there are so many
+Description=You have to get a lot of jewels here, lucky there are so many!
 DiamondValue=5 10
 DiamondsRequired=75 75 80 85 90
 CaveTime=150 150 130 130 120
@@ -310,7 +310,7 @@ Point=8 10 OUTBOX
 
 [cave]
 Name=Cave J. Tracks
-Description=Get the jewels, avoid the fireflies
+Description=Get the jewels, avoid the fireflies.
 DiamondValue=25 60
 DiamondsRequired=12 12 12 12 12
 CaveTime=150 130 120 110 100
@@ -339,7 +339,7 @@ Line=4 14 4 17 DIAMOND
 
 [cave]
 Name=Cave K. Crowd
-Description=You must move a lot of boulders around in some tight spaces
+Description=You must move a lot of boulders around in some tight spaces.
 DiamondValue=50
 DiamondsRequired=6 6 6 6 6
 CaveTime=120 120 150 150 240
@@ -371,7 +371,7 @@ Point=38 15 OUTBOX
 
 [cave]
 Name=Cave L. Walls
-Description=You must blast hrough walls to get at some of the jewels. Drop a boulder on a firefly at the right time and place to do this
+Description=You must blast through walls to get at some of the jewels. Drop a boulder on a firefly at the right time and place.
 DiamondValue=20
 DiamondsRequired=19 19 14 16 21
 CaveTime=180 170 160 160 160
@@ -421,7 +421,7 @@ Point=18 5 OUTBOX
 
 [cave]
 Name=Cave M. Apocalypse
-Description=Bring the butterflies and amoeba together and watch the jewels fly
+Description=Bring the butterflies and amoeba together and watch the jewels fly!
 DiamondValue=5 8
 DiamondsRequired=50 55 60 70 80
 CaveTime=160 155 150 145 140
@@ -444,7 +444,7 @@ Rectangle=5 19 34 20 DIRT
 
 [cave]
 Name=Cave N. Zigzag
-Description=Magically transform the butterflies into jewels, but don't waste any boulders and watch out the fireflies
+Description=Magically transform the butterflies into jewels, but don't waste any boulders and watch out for the fireflies.
 DiamondValue=10 20
 DiamondsRequired=30 35 40 42 45
 CaveTime=150 145 140 135 130
@@ -469,7 +469,7 @@ Point=39 18 OUTBOX
 
 [cave]
 Name=Cave O. Funnel
-Description=There is an enchanted wall at the bottom of the rock tunnel
+Description=There is an enchanted wall at the bottom of the rock tunnel.
 DiamondValue=10 20
 DiamondsRequired=15 20 20 25 30
 CaveTime=120 120 120 120 140
@@ -491,7 +491,7 @@ Point=20 1 INBOX
 
 [cave]
 Name=Cave P. Enchanted boxes
-Description=The top of each square room is an enchanted wall, but you'll have to blast your way inside
+Description=The top of each square room is an enchanted wall, but you'll have to blast your way inside!
 DiamondValue=10 20
 DiamondsRequired=12 15 15 15 12
 CaveTime=150 150 150 150 150

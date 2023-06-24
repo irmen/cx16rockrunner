@@ -4,7 +4,7 @@
 %import palette
 %import objects
 %import cave
-%import bd1caves
+%import bd1demo
 %import bdcff
 %import sounds
 %import highscore
@@ -26,6 +26,7 @@ main {
     const ubyte STATE_ENTER_NAME = 8
     const uword HISCORE_WAIT_TIME = 60 * 12
     const uword HISCORE_DISPLAY_TIME = 60 * 6
+    const uword INSTRUCTIONS_DISPLAY_TIME = 60 * 10
     const uword DEMO_WAIT_TIME = 60 * 21 - HISCORE_DISPLAY_TIME
 
     sub start() {
@@ -42,7 +43,13 @@ main {
         screen.titlescreen()
         sys.set_irq(&interrupts.handler, true)
         music.playback_enabled = true
-        sys.wait(240)
+
+        if not bdcff.load_caveset("boulderdash01.bd") or not bdcff.parse_caveset() {
+            ; caveset load error
+            error_abort($80)
+        }
+
+        sys.wait(200)
         cave.init()
         highscore.init()
         screen.set_tiles_screenmode()
@@ -82,15 +89,15 @@ main {
                         screen.set_scroll_pos(cx16.r0, cx16.r1)
                         screen.hud_clear()
                         if demo_requested {
-                            screen.hud_text(9,10,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")
-                            screen.hud_text(9,11,$f0,"\x8e                    \x8d")
-                            screen.hud_text(9,12,$f0,"\x8d    Rock  Runner    \x8e")
-                            screen.hud_text(9,13,$f0,"\x8e                    \x8d")
-                            screen.hud_text(9,14,$f0,"\x8d       Demo !       \x8e")
-                            screen.hud_text(9,15,$f0,"\x8e                    \x8d")
-                            screen.hud_text(9,16,$f0,"\x8d press ESC to abort \x8e")
-                            screen.hud_text(9,17,$f0,"\x8e                    \x8d")
-                            screen.hud_text(9,18,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")
+                            screen.hud_text(9,10,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")
+                            screen.hud_text(9,11,"\x8e                    \x8d")
+                            screen.hud_text(9,12,"\x8d    Rock  Runner    \x8e")
+                            screen.hud_text(9,13,"\x8e                    \x8d")
+                            screen.hud_text(9,14,"\x8d       Demo !       \x8e")
+                            screen.hud_text(9,15,"\x8e                    \x8d")
+                            screen.hud_text(9,16,"\x8d press ESC to abort \x8e")
+                            screen.hud_text(9,17,"\x8e                    \x8d")
+                            screen.hud_text(9,18,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")
                         }
                         music.playback_enabled = false
                         game_state = STATE_UNCOVERING
@@ -99,6 +106,7 @@ main {
                 STATE_UNCOVERING -> {
                     cave.uncover_more()
                     if not cave.covered {
+                        cave.scroll_enabled = cave.width>cave.VISIBLE_CELLS_H or cave.height>cave.VISIBLE_CELLS_V
                         if demo_requested
                             game_state = STATE_DEMO
                         else
@@ -116,7 +124,7 @@ main {
                                 ; intermissions are bonus levels and you have only one try at them
                                 next_level()
                             } else {
-                                bd1caves.decode(chosen_level, chosen_difficulty)
+                                bdcff.parse_cave(chosen_level, chosen_difficulty)
                                 cave.cover_all()
                                 cave.restart_level()
                                 game_state = STATE_UNCOVERING
@@ -149,19 +157,28 @@ main {
                         highscore.record_score(cave.score, highscore.name_input)
                         show_hiscore()
                     } else
-                        screen.hud_text(24,14,$f0,highscore.name_input)
+                        screen.hud_text(24,14,highscore.name_input)
                 }
             }
         }
     }
 
+    sub error_abort(ubyte errorcode) {
+        ; stores the error code at $0400 so you can tell what it was after the reset.
+        @($0400) = errorcode
+        %asm {{
+            brk
+        }}
+        sys.reset_system()
+    }
+
     sub next_level() {
         chosen_level++
-        if chosen_level > bd1caves.NUM_CAVES {
+        if chosen_level > bdcff.num_caves {
             chosen_level = 1
             chosen_difficulty = min(5, chosen_difficulty+1)
         }
-        bd1caves.decode(chosen_level, chosen_difficulty)
+        bdcff.parse_cave(chosen_level, chosen_difficulty)
         start_loaded_level()
     }
 
@@ -206,7 +223,7 @@ main {
         }
         if letter==13 or joy_start {
             ; start the game!
-            bd1caves.decode(chosen_level, chosen_difficulty)
+            bdcff.parse_cave(chosen_level, chosen_difficulty)
             start_new_game()
             start_loaded_level()
             return
@@ -215,10 +232,13 @@ main {
             ; letter - select start cave
             chosen_level = letter - 'a' + 1
             update_hud_choices_text()
-            bd1caves.decode(chosen_level, chosen_difficulty)
+            bdcff.parse_cave(chosen_level, chosen_difficulty)
             cave.cover_all()
             screen.hud_clear()
-            screen.show_cave_title()
+            screen.show_cave_title(false)
+            while cbm.GETIN() {
+                ; clear any remaining keypresses
+            }
         }
         else if letter>='1' and letter <= '5' {
             ; digit - select difficulty
@@ -226,31 +246,51 @@ main {
             update_hud_choices_text()
         }
         else if letter==133 {
-            ; F1 - play demo
-            play_demo()
+            ; F1 - load different caveset
+            ; TODO menu to select and load caveset file
             return
         }
         else if letter==137 {
-            ; F2 - play debug cave
+            ; F2 - play demo
+            play_demo()
+            return
+        }
+        else if letter==134 {
+            ; F3 - play debug cave
             test_cave.load_test_cave()
             start_new_game()
             start_loaded_level()
             return
         }
-        else if letter==134 {
-            ; F3 - hall of fame
+        else if letter==138 {
+            ; F4 - hall of fame
             show_hiscore()
             return
         }
-        screen.hud_text(3,2,$f0,"\x8e\x8e\x8e Rock Runner BETA VERSION \x8e\x8e\x8e")
-        screen.hud_text(4,4,$f0,"by DesertFish. Written in Prog8")
-        screen.hud_text(7,20,$f0,cave_letter_str)
-        screen.hud_text(7,21,$f0,cave_difficulty_str)
-        screen.hud_text(8,22,$f0,"F1: play demo")
-        screen.hud_text(8,23,$f0,"F2: play debug cave")
-        screen.hud_text(8,24,$f0,"F3: show hall of fame")
-        screen.hud_text(7,26,$f0,"Any joystick START button")
-        screen.hud_text(10,27,$f0,"to start the game!")
+        else if letter==135 {
+            ; F5 - instructions
+            show_instructions()
+            return
+        }
+        screen.hud_text(4,2,"\x8e\x8e\x8e Rock Runner BETA VERSION \x8e\x8e\x8e")
+        screen.hud_text(4,4,"by DesertFish. Written in Prog8")
+
+        ; what caveset is loaded
+        screen.hud_text(4,6,"Caveset: ")
+        screen.hud_text(13, 6, bdcff.caveset_filename)
+        screen.hud_text(6, 7, bdcff.caveset_name)
+        screen.hud_text(6, 8, bdcff.caveset_author)
+
+        ; menu
+        screen.hud_text(7,18,cave_letter_str)
+        screen.hud_text(7,19,cave_difficulty_str)
+        screen.hud_text(8,20,"F1: load different caveset")
+        screen.hud_text(8,21,"F2: play demo (BD1 cave A)")
+        screen.hud_text(8,22,"F3: play test cave")
+        screen.hud_text(8,23,"F4: show hall of fame")
+        screen.hud_text(8,24,"F5: instructions")
+        screen.hud_text(7,26,"Any joystick START button")
+        screen.hud_text(10,27,"to start the game!")
 
         sub update_hud_choices_text() {
             cave_letter_str[len(cave_letter_str)-2] = chosen_level+'A'-1
@@ -271,38 +311,67 @@ main {
         main.start.title_timer = 250
         game_state = STATE_CAVETITLE
         screen.hud_clear()
-        screen.show_cave_title()
+        screen.show_cave_title(true)
     }
 
     sub play_demo() {
+        if bdcff.caveset_filename != "boulderdash01.bd" {
+            ; demo only works on boulderdash 1 cave 1
+            if not bdcff.load_caveset("boulderdash01.bd") or not bdcff.parse_caveset() {
+                ; caveset load error
+                error_abort($81)
+            }
+        }
         chosen_level = 1
-        bd1caves.decode(chosen_level, chosen_difficulty)
+        bdcff.parse_cave(1, chosen_difficulty)
         bd1demo.init()
         start_loaded_level()
         demo_requested = true
         main.start.title_timer = 1
     }
 
+    sub show_instructions() {
+        game_state = STATE_SHOWING_HISCORE
+        main.start.display_hiscore_timer = INSTRUCTIONS_DISPLAY_TIME
+        screen.hud_clear()
+        screen.hud_text(7,3,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        screen.hud_text(7,5,"Rock Runner  Instructions")
+        screen.hud_text(7,7,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        screen.hud_text(4,11,"Pick up enough diamonds in the")
+        screen.hud_text(4,12,"cave to unlock the exit, and")
+        screen.hud_text(4,13,"reach it before the time runs out.")
+        screen.hud_text(4,14,"Avoid enemies and getting crushed.")
+        screen.hud_text(4,17,"Control the game using any joypad")
+        screen.hud_text(4,18,"(start button activates).")
+        screen.hud_text(4,19,"Fire+direction lets you grab")
+        screen.hud_text(4,20,"something without moving there!")
+        screen.hud_text(4,23,"Press ESC when you're stuck.")
+
+    }
+
     sub show_hiscore() {
         game_state = STATE_SHOWING_HISCORE
         main.start.display_hiscore_timer = HISCORE_DISPLAY_TIME
         screen.hud_clear()
-        screen.hud_text(7,3,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
-        screen.hud_text(7,5,$f0,"Rock Runner  Hall Of Fame")
-        screen.hud_text(7,7,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        screen.hud_text(7,3,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        screen.hud_text(7,5,"Rock Runner  Hall Of Fame")
+        screen.hud_text(7,6,"Caveset: ")
+        screen.hud_text(16, 6, bdcff.caveset_filename)
+        screen.hud_text(10, 7, bdcff.caveset_name)
+        screen.hud_text(7,9,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
         ubyte position
         str position_str = "?."
         for position in 0 to 7 {
             position_str[0] = '1'+position
-            screen.hud_text(10, 10+position*2, $f0, position_str)
-            screen.hud_text(14, 10+position*2, $f0, highscore.get_name(position))
+            screen.hud_text(10, 11+position*2, position_str)
+            screen.hud_text(14, 11+position*2, highscore.get_name(position))
             conv.str_uw0(highscore.get_score(position))
             for cx16.r0L in 0 to 7 {
                 if conv.string_out[cx16.r0L] != '0'
                     break
                 conv.string_out[cx16.r0L] = ' '
             }
-            screen.hud_text(24, 10+position*2, $f0, conv.string_out)
+            screen.hud_text(24, 11+position*2, conv.string_out)
         }
     }
 
@@ -311,10 +380,10 @@ main {
         music.init()
         music.playback_enabled = true
         screen.hud_clear()
-        screen.hud_text(7,10,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
-        screen.hud_text(7,12,$f0,"You got a new High Score!")
-        screen.hud_text(7,14,$f0,"Enter your name:")
-        screen.hud_text(7,16,$f0,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        screen.hud_text(7,10,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+        screen.hud_text(7,12,"You got a new High Score!")
+        screen.hud_text(7,14,"Enter your name:")
+        screen.hud_text(7,16,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
         highscore.start_enter_name()
         ; name entry is handled in a separate subroutine!
     }
@@ -378,7 +447,8 @@ _loop           lda  (attr_ptr),y
         }
         ; cx16.vpoke(1,$fa00,$00)
         screen.update_animations()
-        screen.update_scrollpos()
+        if cave.scroll_enabled
+            screen.update_scrollpos()
     }
 
     sub update_scrollpos() {
@@ -542,7 +612,7 @@ _loop           lda  (attr_ptr),y
         }
     }
 
-    sub hud_text(ubyte col, ubyte row, ubyte color, uword text_ptr) {
+    sub hud_text(ubyte col, ubyte row, uword text_ptr) {
         uword offset = (row as uword) * 128 + col*2
         cx16.vaddr(1, $c000 + offset, 0, 1)
         repeat {
@@ -550,12 +620,12 @@ _loop           lda  (attr_ptr),y
             if_z
                 return
             cx16.VERA_DATA0 = cx16.r0L
-            cx16.VERA_DATA0 = color
+            cx16.VERA_DATA0 = $f0  ; 'color'
             text_ptr++
         }
     }
 
-    sub hud_wrap_text(ubyte col, ubyte row, ubyte maxwidth, ubyte color, uword text_ptr) {
+    sub hud_wrap_text(ubyte col, ubyte row, ubyte maxwidth, uword text_ptr) {
         ubyte line_width
         row--
         new_line()
@@ -565,12 +635,12 @@ _loop           lda  (attr_ptr),y
                 return
             repeat word_length {
                 cx16.VERA_DATA0 = @(text_ptr)
-                cx16.VERA_DATA0 = color
+                cx16.VERA_DATA0 = $f0 ; 'color'
                 text_ptr++
                 line_width++
             }
             cx16.VERA_DATA0 = ' '
-            cx16.VERA_DATA0 = color
+            cx16.VERA_DATA0 = $f0 ; 'color'
             line_width++
 
             if @(text_ptr)==0
@@ -601,28 +671,29 @@ _loop           lda  (attr_ptr),y
 
     sub hud_update() {
         const ubyte xpos = 8
-        screen.hud_text(xpos+1, 1, $f0, "\x8e")     ; diamond symbol
+        screen.hud_text(xpos+1, 1, "\x8e")     ; diamond symbol
         conv.str_ub0(cave.num_diamonds)
-        screen.hud_text(xpos+3, 1, $f0, conv.string_out)
-        screen.hud_text(xpos+6, 1, $f0, "/")
+        screen.hud_text(xpos+3, 1, conv.string_out)
+        screen.hud_text(xpos+6, 1, "/")
         conv.str_ub0(cave.diamonds_needed)
-        screen.hud_text(xpos+7, 1, $f0, conv.string_out)
-        screen.hud_text(xpos+12, 1, $f0, "\x88")       ; rockford symbol
+        screen.hud_text(xpos+7, 1, conv.string_out)
+        screen.hud_text(xpos+12, 1, "\x88")       ; rockford symbol
         conv.str_ub0(cave.num_lives)
-        screen.hud_text(xpos+14, 1, $f0, conv.string_out)
-        screen.hud_text(xpos+19, 1, $f0, "\x8f")     ; clock symbol
+        screen.hud_text(xpos+14, 1, conv.string_out)
+        screen.hud_text(xpos+19, 1, "\x8f")     ; clock symbol
         conv.str_ub0(cave.time_left_secs)
-        screen.hud_text(xpos+21, 1, $f0, conv.string_out)
+        screen.hud_text(xpos+21, 1, conv.string_out)
         conv.str_uw0(cave.score)
-        screen.hud_text(xpos+26, 1, $f0, conv.string_out)
+        screen.hud_text(xpos+26, 1, conv.string_out)
     }
 
-    sub show_cave_title() {
+    sub show_cave_title(bool with_description) {
         const ubyte xpos = 3
         const ubyte ypos = 11
-        screen.hud_text(xpos+4, ypos, $f0, "cave:")
-        screen.hud_text(xpos+10, ypos, $f0, cave.name)
-        screen.hud_wrap_text(xpos, ypos+3, 25, $f0, cave.description)
+        screen.hud_text(xpos+4, ypos, "cave:")
+        screen.hud_text(xpos+10, ypos, cave.name)
+        if with_description
+            screen.hud_wrap_text(xpos, ypos+3, 25, cave.description)
     }
 
     bool white_flash

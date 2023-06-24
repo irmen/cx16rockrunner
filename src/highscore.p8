@@ -84,17 +84,23 @@ highscore {
     }
 
     sub save() {
+        diskio.chdir("hiscores")
         void diskio.save_raw(SAVEFILE, table, 80)
+        diskio.chdir("..")
     }
 
 
     uword table = memory("highscores", 80, 0)
-    str SAVEFILE = "@:rr-highscores.dat"
+    str SAVEFILE = "@:rr-highscores.dat"       ; TODO per-caveset filename
 
     sub init() {
-        if diskio.load_raw(SAVEFILE, table)!=0 and cbm.READST()&63==0      ; the READST is to work around an emulator bug on hostfs
+        diskio.chdir("hiscores")
+        if diskio.load_raw(SAVEFILE, table)!=0 and cbm.READST()&63==0  {     ; the READST is to work around an emulator bug on hostfs
+            diskio.chdir("..")
             return
+        }
 
+        diskio.chdir("..")
         cx16.r9 = table
         repeat 8 {
             void string.copy("DesertF", cx16.r9)

@@ -4,6 +4,7 @@ all: ROCKRUNNER.PRG
 
 clean:
 	rm -f *.prg *.PRG *.asm *.vice-* *.BIN *.PAL *.ADPCM *.zip *.7z converted.png src/objects.p8
+	rm -f HISCORES/*.DAT
 
 emu: ROCKRUNNER.PRG
 	# PULSE_LATENCY_MSEC=20 box16 -scale 2 -run -prg $<
@@ -18,7 +19,7 @@ ROCKRUNNER.PRG: src/*.p8 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITL
 
 zip: all
 	rm -f rockrunner.zip
-	7z a rockrunner.zip ROCKRUNNER.PRG TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL CAVES manifest.json
+	7z a rockrunner.zip ROCKRUNNER.PRG TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL CAVES HISCORES manifest.json
 
 bdcffreadertest: BDCFFTEST.PRG
 	PULSE_LATENCY_MSEC=20 x16emu -scale 2 -run -prg $<

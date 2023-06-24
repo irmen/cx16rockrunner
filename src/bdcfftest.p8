@@ -2,6 +2,7 @@
 %import textio
 %import bdcff
 %import string
+%import bd1demo
 %zeropage basicsafe
 
 main {
@@ -19,7 +20,7 @@ main {
     sub start() {
         txt.lowercase()
 
-        if bdcff.load_caveset("caves/boulderdash01.bd") {
+        if bdcff.load_caveset("boulderdash01.bd") {
             if bdcff.parse_caveset() {
                 txt.print("\nCaveset Name: ")
                 txt.print(bdcff.caveset_name)
@@ -31,7 +32,7 @@ main {
                 txt.print_ub(bdcff.num_difficulty_levels)
                 txt.print(" difficulty levels.\n\n")
 
-                bdcff.parse_cave(0, 1)
+                bdcff.parse_cave(1, 1)
 
                 txt.print("\n\nPARSED:\n")
                 txt.print("cave name: ")

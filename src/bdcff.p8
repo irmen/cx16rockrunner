@@ -3,7 +3,6 @@
 %import conv
 %import cave
 %import objects
-%import bd1caves        ; TODO get rid of this once bd1 caveset loads 100% correcly from file
 
 bdcff {
     const ubyte FILE_BANK = 2
@@ -15,6 +14,7 @@ bdcff {
     ubyte num_difficulty_levels
     str caveset_name = " " * 40
     str caveset_author = " " * 40
+    str caveset_filename = " " * 32
 
     ; pointers into the BDCFF caveset file:
     ubyte gameparams_bank
@@ -27,15 +27,15 @@ bdcff {
 
     ; TODO level file selector elsewhere that lets the player choose a .bd file to load here
     sub load_caveset(str filename) -> bool {
-        txt.print("Loading caveset ")
-        txt.print(filename)
-        txt.nl()
+        caveset_filename = filename
         cs_file_bank = 0
         cs_file_ptr = 0
         cx16.rambank(FILE_BANK)
-        cx16.r0 = diskio.load_raw(filename, $a000)
-        if cx16.r0!=0 {
-            @(cx16.r0) = 0
+        diskio.chdir("caves")
+        cx16.r8 = diskio.load_raw(filename, $a000)
+        diskio.chdir("..")
+        if cx16.r8!=0 {
+            @(cx16.r8) = 0
             cs_file_bank = FILE_BANK
             cs_file_ptr = $a000
             cx16.rambank(FILE_BANK)
@@ -150,9 +150,9 @@ bdcff {
         return false
     }
 
-    sub parse_cave(ubyte levelindex, ubyte difficulty) {
-        cs_file_bank = cavespec_banks[levelindex]
-        cs_file_ptr = cavespec_addresses[levelindex]
+    sub parse_cave(ubyte level, ubyte difficulty) {
+        cs_file_bank = cavespec_banks[level-1]
+        cs_file_ptr = cavespec_addresses[level-1]
         difficulty = clamp(difficulty, 1, num_difficulty_levels)
 
         const ubyte READ_SKIP = 0
@@ -180,6 +180,8 @@ bdcff {
         diamonds_needed = [0,0,0,0,0]
         ubyte map_row
         bool size_specified = false
+
+        draw_rectangle(objects.dirt, 0, 0, cave.MAX_CAVE_WIDTH-1, cave.MAX_CAVE_HEIGHT-1, objects.dirt)
 
         repeat {
             lineptr = next_file_line_petscii()
@@ -250,56 +252,49 @@ bdcff {
                                 rand_seeds[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
                         else if lineptr=="RandomFill" {
-                            ubyte randomfill_obj1 = 0
-                            ubyte randomfill_obj2 = 0
-                            ubyte randomfill_obj3 = 0
-                            ubyte randomfill_obj4 = 0
+                            uword randomfill_objattr1 = 0
+                            uword randomfill_objattr2 = 0
+                            uword randomfill_objattr3 = 0
+                            uword randomfill_objattr4 = 0
                             ubyte randomfill_prob1 = 0
                             ubyte randomfill_prob2 = 0
                             ubyte randomfill_prob3 = 0
                             ubyte randomfill_prob4 = 0
                             split_words()
                             if words[0] {
-                                randomfill_obj1 = lsb(parse_object(words[0]))
+                                randomfill_objattr1 = parse_object(words[0])
                                 randomfill_prob1 = conv.str2ubyte(words[1])
                             }
                             if words[2] {
-                                randomfill_obj2 = lsb(parse_object(words[2]))
+                                randomfill_objattr2 = parse_object(words[2])
                                 randomfill_prob2 = conv.str2ubyte(words[3])
                             }
                             if words[4] {
-                                randomfill_obj3 = lsb(parse_object(words[4]))
+                                randomfill_objattr3 = parse_object(words[4])
                                 randomfill_prob3 = conv.str2ubyte(words[5])
                             }
                             if words[6] {
-                                randomfill_obj4 = lsb(parse_object(words[6]))
+                                randomfill_objattr4 = parse_object(words[6])
                                 randomfill_prob4 = conv.str2ubyte(words[7])
                             }
 
-                            bd1caves.seed1 = 0
-                            bd1caves.seed2 = rand_seeds[difficulty-1]
-                            txt.print("active seed2 = ")
-                            txt.print_ub(bd1caves.seed2)
-                            txt.nl()
+                            bdrandom_seed1 = 0
+                            bdrandom_seed2 = rand_seeds[difficulty-1]
                             ubyte x
                             ubyte y
                             for y in 1 to cave.height-2 {
                                 for x in 0 to cave.width-1 {
-                                    cx16.r0 = objects.dirt
-                                    ubyte rnd = bd1caves.bdrandom()
-                                    if rnd < randomfill_prob1 {
-                                        cx16.r0 = randomfill_obj1
-                                    }
-                                    if rnd < randomfill_prob2 {
-                                        cx16.r0 = randomfill_obj2
-                                    }
-                                    if rnd < randomfill_prob3 {
-                                        cx16.r0 = randomfill_obj3
-                                    }
-                                    if rnd < randomfill_prob4 {
-                                        cx16.r0 = randomfill_obj4
-                                    }
-                                    draw_single(cx16.r0, x, y)
+                                    cx16.r5 = objects.dirt
+                                    ubyte rnd = bdrandom()
+                                    if rnd < randomfill_prob1
+                                        cx16.r5 = randomfill_objattr1
+                                    if rnd < randomfill_prob2
+                                        cx16.r5 = randomfill_objattr2
+                                    if rnd < randomfill_prob3
+                                        cx16.r5 = randomfill_objattr3
+                                    if rnd < randomfill_prob4
+                                        cx16.r5 = randomfill_objattr4
+                                    draw_single(cx16.r5, x, y)
                                 }
                             }
                         }
@@ -352,7 +347,6 @@ bdcff {
                                 ; it's just an integer
                                 cave.slime_permeability = conv.str2ubyte(words[0])
                             }
-                            txt.nl()
                         }
                         ;; else if lineptr=="AmoebaGrowthProb" { ... }
                         ;; else if lineptr=="AmoebaThreshold" { ... }
@@ -386,7 +380,7 @@ bdcff {
                         else if lineptr=="AddBackward"
                             parse_add(true)
                         else
-                            sys.reset_system()     ; should never occur
+                            main.error_abort($82)  ; should never occur!
                     }
                 }
                 READ_MAP -> {
@@ -430,6 +424,12 @@ bdcff {
                         cave.height = cave.MAX_CAVE_HEIGHT
                     }
                 }
+
+                ubyte i
+                for i in cave.width to cave.MAX_CAVE_WIDTH-1
+                    draw_line(objects.steel, i, 0, i, cave.MAX_CAVE_WIDTH-1)
+                for i in cave.height to cave.MAX_CAVE_HEIGHT-1
+                    draw_line(objects.steel, 0, i, cave.MAX_CAVE_HEIGHT-1, i)
             }
 
             sub parse_point() {
@@ -471,11 +471,11 @@ bdcff {
                 arg_bytes[1] = conv.str2ubyte(words[1])
                 arg_bytes[2] = conv.str2ubyte(words[2])
                 arg_bytes[3] = conv.str2ubyte(words[3])
-                cx16.r0 = parse_object(words[4])
-                cx16.r1 = $00ff
+                uword filler = parse_object(words[4])
+                uword border = filler
                 if words[5]
-                    cx16.r1 = parse_object(words[5])
-                draw_rectangle(cx16.r0, arg_bytes[0], arg_bytes[1], arg_bytes[2], arg_bytes[3], cx16.r1)
+                    filler = parse_object(words[5])
+                draw_rectangle(border, arg_bytes[0], arg_bytes[1], arg_bytes[2], arg_bytes[3], filler)
             }
 
             sub parse_raster() {
@@ -578,7 +578,9 @@ bdcff {
                     if string.compare(name, names[cx16.r2L])==0
                         return mkword(attrs[cx16.r2L], object[cx16.r2L])
                 }
-                sys.reset_system()     ; should never happen, all object names should be recognised
+
+                ; should never happen, all object names should be recognised
+                main.error_abort($83)  ; should never occur!
             }
 
             sub split_words() {
@@ -698,13 +700,47 @@ bdcff {
             else -> return 0
         }
     }
+
+    ubyte @shared bdrandom_seed1
+    ubyte @shared bdrandom_seed2
+    sub bdrandom() -> ubyte {
+        ; the pseudo random generator that Boulderdash C64 used
+        ; see https://www.elmerproductions.com/sp/peterb/insideBoulderdash.html#Random%20numbers
+        ubyte @shared temp1
+        ubyte @shared temp2
+        %asm {{
+            lda  bdrandom_seed1
+            ror  a
+            ror  a
+            and  #$80
+            sta  temp1
+            lda  bdrandom_seed2
+            ror  a
+            and  #$7f
+            sta  temp2
+            lda  bdrandom_seed2
+            ror  a
+            ror  a
+            and  #$80
+            clc
+            adc  bdrandom_seed2
+            adc  #$13
+            sta  bdrandom_seed2
+            lda  bdrandom_seed1
+            adc  temp1
+            adc  temp2
+            sta  bdrandom_seed1
+            rts
+        }}
+    }
+
 }
 
 test_cave {
 
     sub load_test_cave() {
         cave.name = "test cave"
-        cave.description = "this is a built-in test cave|to easily test things with"
+        cave.description = "this is a built-in test cave to easily test things with"
         cave.intermission = false
         cave.width = 40
         cave.height = 22
