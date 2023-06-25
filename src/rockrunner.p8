@@ -351,7 +351,6 @@ main {
     str caveset_prefix = "**"
     ubyte caveset_selected_index
     const ubyte CAVESET_DISPLAYLIST_MAXLENGTH = 20
-    uword caveset_filenames_buffer = memory("caveset_filenames", 500, 0)  ; TODO use large buffer in banked ram instead
     ubyte caveset_filenames_amount
 
     sub activate_select_caveset(ubyte prefixletter) {
@@ -364,10 +363,12 @@ main {
         screen.hud_text(3,5,"that as a name prefix filter.")
         diskio.chdir("caves")
         caveset_prefix[0] = prefixletter
-        caveset_filenames_amount = diskio.list_filenames(caveset_prefix, caveset_filenames_buffer, 500)
+        cx16.rambank(bdcff.FILENAMES_BANK)
+        caveset_filenames_amount = diskio.list_filenames(caveset_prefix, $a000, $2000)
         diskio.chdir("..")
         ubyte row = 0
-        uword name_ptr = caveset_filenames_buffer
+        uword name_ptr = $a000
+        cx16.rambank(bdcff.FILENAMES_BANK)
         screen.hud_text(5, 8, "\x83")
         screen.hud_text(5, 27, "\x81")
         while row < CAVESET_DISPLAYLIST_MAXLENGTH and row < caveset_filenames_amount {
@@ -394,7 +395,8 @@ main {
                 27 -> activate_choose_level()
                 13 -> {
                     if caveset_selected_index < caveset_filenames_amount {
-                        uword name_ptr = caveset_filenames_buffer
+                        uword name_ptr = $a000
+                        cx16.rambank(bdcff.FILENAMES_BANK)
                         ubyte row=0
                         repeat {
                             if row==caveset_selected_index {
@@ -431,7 +433,8 @@ main {
                     }
                 }
             }
-            ; TODO also allow to use joypad for file selection
+            ; TODO scroll the filename list if there are more names than that can fit on the screen
+            ; TODO also allow joypad for file selection
         }
     }
 

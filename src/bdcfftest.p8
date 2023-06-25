@@ -90,6 +90,14 @@ main {
         }
     }
 
+    sub error_abort(ubyte errorcode) {
+        ; stores the error code at $0400 so you can tell what it was after the reset.
+        @($0400) = errorcode
+        %asm {{
+            brk
+        }}
+        sys.reset_system()
+    }
 }
 
 screen {

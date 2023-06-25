@@ -5,7 +5,8 @@
 %import objects
 
 bdcff {
-    const ubyte FILE_BANK = 2
+    const ubyte FILENAMES_BANK = 2
+    const ubyte FILEDATA_BANK = 3
     ubyte cs_file_bank
     uword @zp cs_file_ptr
 
@@ -26,18 +27,17 @@ bdcff {
     ubyte[5] diamonds_needed
 
     sub load_caveset(str filename) -> bool {
-        caveset_filename = filename
+        caveset_filename = filename     ; make a copy, because we switch ram banks
         cs_file_bank = 0
         cs_file_ptr = 0
-        cx16.rambank(FILE_BANK)
+        cx16.rambank(FILEDATA_BANK)
         diskio.chdir("caves")
-        cx16.r8 = diskio.load_raw(filename, $a000)
+        cx16.r8 = diskio.load_raw(caveset_filename, $a000)
         diskio.chdir("..")
         if cx16.r8!=0 {
             @(cx16.r8) = 0
-            cs_file_bank = FILE_BANK
+            cs_file_bank = FILEDATA_BANK
             cs_file_ptr = $a000
-            cx16.rambank(FILE_BANK)
             return true
         }
         return false

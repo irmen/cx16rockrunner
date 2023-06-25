@@ -32,6 +32,7 @@ TODO
 - better sound effects for the random sounds (Use random tones from a scale rather than totally random frequencies?)
 - tweak the controls to also register button presses outside of cavescan - does this make it more responsive?
 - fix the remaining TODOs in the code.
+- firefox19 cave A isn't working correctly?
 
 
 Development Resources
