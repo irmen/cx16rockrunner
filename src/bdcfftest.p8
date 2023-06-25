@@ -5,7 +5,7 @@
 %import bd1demo
 %zeropage basicsafe
 
-; TODO remove this once bdcff loading fully works in rockrunner
+; An easy tester for loading BDCFF files without having to run the full game.
 
 main {
     ubyte game_state
@@ -22,7 +22,7 @@ main {
     sub start() {
         txt.lowercase()
 
-        if bdcff.load_caveset("boulderdash01.bd") {
+        if bdcff.load_caveset("boulderdash02.bd") {
             if bdcff.parse_caveset() {
                 txt.print("\nCaveset Name: ")
                 txt.print(bdcff.caveset_name)
@@ -34,7 +34,7 @@ main {
                 txt.print_ub(bdcff.num_difficulty_levels)
                 txt.print(" difficulty levels.\n\n")
 
-                bdcff.parse_cave(1, 1)
+                bdcff.parse_cave(13, 1)
 
                 txt.print("\n\nPARSED:\n")
                 txt.print("cave name: ")

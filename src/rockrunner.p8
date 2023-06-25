@@ -405,7 +405,7 @@ main {
                                     error_abort($84)
                                 }
                                 highscore.load(bdcff.caveset_filename)
-                                sys.wait(20)
+                                sys.wait(10)
                                 activate_choose_level()
                                 return
                             }

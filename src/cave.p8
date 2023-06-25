@@ -114,7 +114,6 @@ cave {
         magicwall_expired = false
         amoeba_count = 0
         num_diamonds = 0
-        slime_permeability = DEFAULT_SLIME_PERMEABILITY     ; TODO variable for certain levels
         amoeba_enclosed = false
         amoeba_growth_rate = AMOEBA_SLOW_GROWTH
         amoeba_slow_timer = (amoeba_slow_time_sec as uword) * 60
@@ -124,10 +123,6 @@ cave {
         scan_frame = 0
         current_diamond_value = initial_diamond_value
         time_left_secs = 0
-        if intermission
-            cave_speed = CAVE_SPEED_INTERMISSION - difficulty/2
-        else
-            cave_speed = CAVE_SPEED_NORMAL - difficulty/2
         screen.white_flash = false
         scroll_enabled = true
         ; find the initial player position

@@ -174,12 +174,15 @@ bdcff {
         cave.magicwall_millingtime_sec = 0
         cave.amoeba_slow_time_sec = 0
         cave.slime_permeability = cave.DEFAULT_SLIME_PERMEABILITY
+
         rand_seeds = [0,0,0,0,0]
         cave_times = [0,0,0,0,0]
         diamonds_needed = [0,0,0,0,0]
         ubyte map_row
         bool size_specified = false
+        ubyte cave_speed_from_cavedata = 0
 
+        ; fill cave with dirt
         draw_rectangle(objects.dirt, 0, 0, cave.MAX_CAVE_WIDTH-1, cave.MAX_CAVE_HEIGHT-1, objects.dirt)
 
         repeat {
@@ -189,6 +192,12 @@ bdcff {
                 validate_size()
                 cave.diamonds_needed = diamonds_needed[difficulty-1]
                 cave.cave_time_sec = cave_times[difficulty-1]
+                if cave_speed_from_cavedata
+                    cave.cave_speed = cave_speed_from_cavedata
+                else if cave.intermission
+                    cave.cave_speed = cave.CAVE_SPEED_INTERMISSION - difficulty/2
+                else
+                    cave.cave_speed = cave.CAVE_SPEED_NORMAL - difficulty/2
                 return
             }
             when read_state {
@@ -237,10 +246,10 @@ bdcff {
                             for cx16.r2L in 0 to num_difficulty_levels-1
                                 cave_times[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
-;                        else if lineptr=="CaveDelay" {
-;                            split_words()
-;                            ; TODO  number.  + what to do with this CaveDelay?
-;                        }
+                        else if lineptr=="CaveDelay" {
+                            split_words()
+                            cave_speed_from_cavedata = conv.str2ubyte(words[0])
+                        }
 ;                        else if lineptr=="Colors" {
 ;                            split_words()
 ;                            ; TODO c64-style palette colors are not yet supported, would require a different tileset
@@ -347,8 +356,8 @@ bdcff {
                                 cave.slime_permeability = conv.str2ubyte(words[0])
                             }
                         }
-                        ;; else if lineptr=="AmoebaGrowthProb" { ... }
-                        ;; else if lineptr=="AmoebaThreshold" { ... }
+                        ;; else if lineptr=="AmoebaGrowthProb" { ...TODO... }
+                        ;; else if lineptr=="AmoebaThreshold" { ...TODO... }
                     }
                 }
                 READ_OBJECTS -> {
@@ -478,17 +487,56 @@ bdcff {
             }
 
             sub parse_raster() {
-                ; TODO x y numberx numbery stepx stepy object
-                ; only used in Boulderdash02?
                 ; this draws an evenly spaced grid of the given object
+                ; only used in Boulderdash02?
+                ; x y numberx numbery stepx stepy object
+                split_words()
+                ubyte startx = conv.str2ubyte(words[0])
+                ubyte starty = conv.str2ubyte(words[1])
+                ubyte nx = conv.str2ubyte(words[2])
+                ubyte ny = conv.str2ubyte(words[3])
+                ubyte stepx = conv.str2ubyte(words[4])
+                ubyte stepy = conv.str2ubyte(words[5])
+                uword object = parse_object(words[6])
+
+                cx16.r0L = startx
+                cx16.r1L = starty
+                repeat ny {
+                    repeat nx {
+                        draw_single(object, cx16.r0L, cx16.r1L)
+                        cx16.r0L += stepx
+                    }
+                    cx16.r0L = startx
+                    cx16.r1L += stepy
+                }
             }
 
             sub parse_add(bool backwards) {
-                ; TODO incx incy searchobject addobject [replaceobject]
-                ; only used in Boulderdash02?
                 ; "find every object, and put fill_element next to it. relative coordinates dx,dy"
                 ; backwards = scan from bottom to top
-                ; replaceobject = unknown what this does :-|  replacing searchobject by something else ? doesn't seem very useful
+                ; only used in Boulderdash02?
+                ; incx incy searchobject addobject [replaceobject]
+                ; TODO replaceobject = unknown what this does :-|  replacing searchobject by something else ? doesn't seem very useful
+                split_words()
+                byte incx = conv.str2byte(words[0])
+                byte incy = conv.str2byte(words[1])
+                uword search = parse_object(words[2])
+                uword replace = parse_object(words[3])
+                if backwards {
+                    for cx16.r1L in 0 to cave.height-1 {
+                        for cx16.r0L in 0 to cave.width-1 {
+                            if @(cave.cells + cx16.r1L*cave.MAX_CAVE_WIDTH + cx16.r0L) == lsb(search)
+                                draw_single(replace, cx16.r0L+incx as ubyte, cx16.r1L+incy as ubyte)
+                        }
+                    }
+                } else {
+                    for cx16.r1L in cave.height-1 downto 0 {
+                        for cx16.r0L in cave.width-1 downto 0 {
+                            if @(cave.cells + cx16.r1L*cave.MAX_CAVE_WIDTH + cx16.r0L) == lsb(search)
+                                draw_single(replace, cx16.r0L+incx as ubyte, cx16.r1L+incy as ubyte)
+                        }
+                    }
+                }
             }
 
             sub parse_object(str name) -> uword {
