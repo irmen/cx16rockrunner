@@ -23,7 +23,7 @@ highscore {
         return 0
     }
 
-    sub record_score(uword score, str name) {
+    sub record_score(str caveset_name, uword score, str name) {
         ubyte pos = highscore_pos(score)
         if pos {
             pos--
@@ -37,7 +37,7 @@ highscore {
             }
             pokew(cx16.r11+2, score)
             void string.copy(name, cx16.r10+8)
-            save()
+            save(caveset_name)
         }
     }
 
@@ -83,19 +83,18 @@ highscore {
         return false
     }
 
-    sub save() {
+    sub save(str caveset_name) {
         diskio.chdir("hiscores")
-        void diskio.save_raw(SAVEFILE, table, 80)
+        void diskio.save_raw(caveset_name, table, 80)
         diskio.chdir("..")
     }
 
 
     uword table = memory("highscores", 80, 0)
-    str SAVEFILE = "@:rr-highscores.dat"       ; TODO per-caveset filename
 
-    sub init() {
+    sub load(str caveset_name) {
         diskio.chdir("hiscores")
-        if diskio.load_raw(SAVEFILE, table)!=0 and cbm.READST()&63==0  {     ; the READST is to work around an emulator bug on hostfs
+        if diskio.load_raw(caveset_name, table)!=0 and cbm.READST()&63==0  {     ; the READST is to work around an emulator bug on hostfs
             diskio.chdir("..")
             return
         }
@@ -113,6 +112,6 @@ highscore {
             cx16.r9 += 2
         }
 
-        save()
+        save(caveset_name)
     }
 }

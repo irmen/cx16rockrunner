@@ -25,7 +25,6 @@ TODO
 - mashing te keyboard at the menu screen can make the game reset the system with error code $83 in $0400. Most likely because something is messing with the ram bank while the decoding is still running, or the IRQ routine destroying one of the Cx16 virtual registers. MIGHT BE FIXED NOW
 - sometimes the next level doesn't completely scroll into the center (for example cave B after finishing A)
 - fix the C64 slime permeability calculation, it's not rnd() > permeability? it's some form of AND ? " every bit has an equal value, more bits set to 1 means more delay."
-- change the highscore tracking: 1 table per caveset, save it (in another dir?) a score file per caveset file.
 - touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
 - easter egg (how to trigger?): replace butterfly with X16 logo

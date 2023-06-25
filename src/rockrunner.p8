@@ -53,7 +53,7 @@ main {
 
         sys.wait(200)
         cave.init()
-        highscore.init()
+        highscore.load(bdcff.caveset_filename)
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
@@ -157,7 +157,7 @@ main {
                 }
                 STATE_ENTER_NAME -> {
                     if highscore.enter_name() {
-                        highscore.record_score(cave.score, highscore.name_input)
+                        highscore.record_score(bdcff.caveset_filename, cave.score, highscore.name_input)
                         show_hiscore()
                     } else
                         screen.hud_text(24,14,highscore.name_input)
@@ -319,6 +319,7 @@ main {
                 ; caveset load error
                 error_abort($81)
             }
+            highscore.load(BD1_CAVESET_FILE)
         }
         chosen_level = 1
         bdcff.parse_cave(1, chosen_difficulty)
@@ -401,6 +402,7 @@ main {
                                     ; caveset load error
                                     error_abort($84)
                                 }
+                                highscore.load(bdcff.caveset_filename)
                                 sys.wait(20)
                                 activate_choose_level()
                                 return
