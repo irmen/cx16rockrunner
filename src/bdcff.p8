@@ -143,7 +143,7 @@ bdcff {
                 else if line=="Levels"
                     num_difficulty_levels = conv.str2ubyte(argptr)
             }
-            return true
+            ; return true
         }
 
         return false
@@ -392,8 +392,6 @@ bdcff {
                     }
                 }
                 READ_MAP -> {
-                    ubyte map_num_columns
-
                     if lineptr=="[/map]" {
                         read_state = READ_CAVE
                         size_specified = true

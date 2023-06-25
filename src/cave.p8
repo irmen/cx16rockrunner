@@ -274,6 +274,14 @@ cave {
                         objects.butterfly, objects.altfirefly, objects.stonefly -> {
                             handle_butterfly()
                         }
+                        objects.boulder, objects.megaboulder, objects.diamond, objects.diamond2 -> {
+                            if @(cell_ptr + MAX_CAVE_WIDTH) == objects.slime {
+                                sink_through_slime()
+                                ; make sure this object is not scanned again below when dealing with falling objects
+                                @(attr_ptr) |= ATTR_SCANNED_FLAG
+                                attr = @(attr_ptr)
+                            }
+                        }
                         objects.amoeba -> {
                             handle_amoeba()
                         }
@@ -335,17 +343,19 @@ cave {
                             handle_rockford()
                     }
                     if objects.attributes[obj] & objects.ATTRF_FALLABLE {
-                        if attr==ATTR_FALLING {
-                            handle_falling_object()
-                        } else {
-                            if @(cell_ptr + MAX_CAVE_WIDTH) == objects.space {
-                                ; immediately start falling 1 cell down
-                                fall_down_one_cell()
-                                play_fall_sound(obj)
-                            }
-                            else if objects.attributes[@(cell_ptr + MAX_CAVE_WIDTH)] & objects.ATTRF_ROUNDED {
-                                ; stationary boulders and diamonds can roll off something as well, as long as that is stationary
-                                roll_off()
+                        if attr & ATTR_SCANNED_FLAG == 0 {
+                            if attr==ATTR_FALLING {
+                                handle_falling_object()
+                            } else {
+                                if @(cell_ptr + MAX_CAVE_WIDTH) == objects.space {
+                                    ; immediately start falling 1 cell down
+                                    fall_down_one_cell()
+                                    play_fall_sound(obj)
+                                }
+                                else if objects.attributes[@(cell_ptr + MAX_CAVE_WIDTH)] & objects.ATTRF_ROUNDED {
+                                    ; stationary boulders and diamonds can roll off something as well, as long as that is stationary
+                                    roll_off()
+                                }
                             }
                         }
                     }
@@ -386,42 +396,43 @@ cave {
                 @(attr_ptr) = 0
                 play_fall_sound(@(cell_ptr))
             }
+        }
 
-            sub sink_through_magicwall() {
-                ; this only happens when an objects is FALLING on the magic wall,
-                ; if it is already resting on it, it stays in place and this routine isn't called. (unlike slime)
-                play_fall_magicwall_sound(@(cell_ptr))
-                if magicwall_expired {
-                    @(cell_ptr) = objects.space
-                } else {
-                    if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
-                        ; fall through the magic wall
-                        ubyte new_object
-                        when @(cell_ptr) {
-                            objects.diamond -> new_object = objects.boulder
-                            objects.diamond2 -> new_object = objects.megaboulder
-                            objects.boulder -> new_object = objects.diamond
-                            objects.megaboulder -> new_object = objects.diamond2
-                            else -> return
-                        }
-                        @(cell_ptr) = objects.space
-                        @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = new_object
-                        @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
-                    } else {
-                        ; cannot fall through the wall, so stop falling
-                        @(attr_ptr) = ATTR_SCANNED_FLAG
+        sub sink_through_magicwall() {
+            ; this only happens when an objects is FALLING on the magic wall,
+            ; if it is already resting on it, it stays in place and this routine isn't called. (unlike slime)
+            play_fall_magicwall_sound(@(cell_ptr))
+            if magicwall_expired {
+                ; simply remove the object, nothing comes out
+                @(cell_ptr) = objects.space
+            } else {
+                if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
+                    ; fall through the magic wall
+                    ubyte new_object
+                    when @(cell_ptr) {
+                        objects.diamond -> new_object = objects.boulder
+                        objects.diamond2 -> new_object = objects.megaboulder
+                        objects.boulder -> new_object = objects.diamond
+                        objects.megaboulder -> new_object = objects.diamond2
+                        else -> return
                     }
+                    @(cell_ptr) = objects.space
+                    @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = new_object
+                    @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                } else {
+                    ; cannot fall through the wall (obstructed), remove object
+                    @(cell_ptr) = objects.space
                 }
             }
+        }
 
-            sub sink_through_slime() {
-                ; both falling and stationary boulders and diamonds can sink through slime.
-                if (bdcff.bdrandom() & slime_permeability) == 0 {
-                    if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
-                        @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = @(cell_ptr)
-                        @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
-                        @(cell_ptr) = objects.space
-                    }
+        sub sink_through_slime() {
+            ; both falling and stationary boulders and diamonds can sink through slime.
+            if (bdcff.bdrandom() & slime_permeability) == 0 {
+                if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
+                    @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = @(cell_ptr)
+                    @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                    @(cell_ptr) = objects.space
                 }
             }
         }
