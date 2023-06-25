@@ -173,7 +173,7 @@ bdcff {
         cave.diamonds_needed = 0
         cave.magicwall_millingtime_sec = 0
         cave.amoeba_slow_time_sec = 0
-        cave.slime_permeability = cave.DEFAULT_SLIME_PERMEABILITY
+        cave.slime_permeability = 0
 
         rand_seeds = [0,0,0,0,0]
         cave_times = [0,0,0,0,0]
@@ -334,23 +334,23 @@ bdcff {
                                 ; we assume the floating point value is always a multiple of 1/8ths so 0, 0.125, 0.250, etc etc up to 1.000
                                 ; conversion to slime permeability byte is to set the number of bits equal to this factor.
                                 if string.startswith(numberStr, "0.0")
-                                    cave.slime_permeability = 0
-                                else if string.startswith(numberStr, "0.125")
-                                    cave.slime_permeability = %00000001
-                                else if string.startswith(numberStr, "0.25")
-                                    cave.slime_permeability = %00000011
-                                else if string.startswith(numberStr, "0.375")
-                                    cave.slime_permeability = %00000111
-                                else if string.startswith(numberStr, "0.5")
-                                    cave.slime_permeability = %00001111
-                                else if string.startswith(numberStr, "0.625")
-                                    cave.slime_permeability = %00011111
-                                else if string.startswith(numberStr, "0.75")
-                                    cave.slime_permeability = %00111111
-                                else if string.startswith(numberStr, "0.875")
-                                    cave.slime_permeability = %01111111
-                                else if string.startswith(numberStr, "1.0")
                                     cave.slime_permeability = %11111111
+                                else if string.startswith(numberStr, "0.125")
+                                    cave.slime_permeability = %11111110
+                                else if string.startswith(numberStr, "0.25")
+                                    cave.slime_permeability = %11111100
+                                else if string.startswith(numberStr, "0.375")
+                                    cave.slime_permeability = %11111000
+                                else if string.startswith(numberStr, "0.5")
+                                    cave.slime_permeability = %11110000
+                                else if string.startswith(numberStr, "0.625")
+                                    cave.slime_permeability = %11100000
+                                else if string.startswith(numberStr, "0.75")
+                                    cave.slime_permeability = %11000000
+                                else if string.startswith(numberStr, "0.875")
+                                    cave.slime_permeability = %10000000
+                                else if string.startswith(numberStr, "1.0")
+                                    cave.slime_permeability = %00000000
                             } else {
                                 ; it's just an integer
                                 cave.slime_permeability = conv.str2ubyte(words[0])

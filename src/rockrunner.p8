@@ -51,7 +51,7 @@ main {
             error_abort($80)
         }
 
-        sys.wait(200)
+        ;; sys.wait(200)
         cave.init()
         highscore.load(bdcff.caveset_filename)
         screen.set_tiles_screenmode()
@@ -87,9 +87,7 @@ main {
                 STATE_CAVETITLE -> {
                     title_timer--
                     if_z {
-                        cx16.r0 = (math.rnd() % (cave.MAX_CAVE_WIDTH-cave.VISIBLE_CELLS_H)) * $0010
-                        cx16.r1 = (math.rnd() % (cave.MAX_CAVE_HEIGHT-cave.VISIBLE_CELLS_V)) * $0010
-                        screen.set_scroll_pos(cx16.r0, cx16.r1)
+                        screen.set_scroll_pos(0, 0)     ; not random?
                         screen.hud_clear()
                         if demo_requested {
                             screen.hud_text(9,10,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")

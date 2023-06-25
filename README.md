@@ -20,7 +20,7 @@ Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the 
 
 TODO
 ----
-- fix the C64 cavescan slime permeability calculation, it's not rnd() > permeability? it's some form of AND ? " every bit has an equal value, more bits set to 1 means more delay."
+- fix sink through slime when resting on it instead of falling
 - firefox19 cave A isn't working correctly? Maybe fixed once c64 slime permeability is fixed?
 - mashing te keyboard at the menu screen can make the game reset the system with error code $83 in $0400. Most likely because something is messing with the ram bank while the decoding is still running, or the IRQ routine destroying one of the Cx16 virtual registers. MIGHT BE FIXED NOW
 - sometimes the next level doesn't completely scroll into the center (for example cave B after finishing A)

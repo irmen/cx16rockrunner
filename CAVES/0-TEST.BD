@@ -18,6 +18,7 @@ DiamondsRequired=5
 DiamondValue=1 3
 MagicWallTime=20
 AmoebaTime=60
+SlimePermeability=0.750
 Colors=Black Black Orange Brown Cyan
 
 [map]
@@ -31,7 +32,7 @@ W      d    d                          W
 W     r     r         Q  Q  Q  Q       W
 W......................................W
 W          C  C  C  C                  W
-W                                      W
+W            rd                        W
 Wssss...sssssssssssssssssssssssssssssssW
 W          P                           W
 W                        rrr%%%ddDD    W

@@ -34,7 +34,6 @@ cave {
 
     const ubyte CAVE_SPEED_NORMAL = 8           ; should be 7 officially, but that is too fast on 60hz refresh
     const ubyte CAVE_SPEED_INTERMISSION = 6     ; intermissions play at a higher movement speed
-    const ubyte DEFAULT_SLIME_PERMEABILITY = 32
 
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
@@ -350,6 +349,8 @@ cave {
                             }
                         }
                     }
+
+                    @(attr_ptr) |= ATTR_SCANNED_FLAG
                 }
                 cell_ptr++
                 attr_ptr++
@@ -388,7 +389,7 @@ cave {
 
             sub sink_through_magicwall() {
                 ; this only happens when an objects is FALLING on the magic wall,
-                ; if it is already resting on it, it stays in place and this routine isn't called
+                ; if it is already resting on it, it stays in place and this routine isn't called. (unlike slime)
                 play_fall_magicwall_sound(@(cell_ptr))
                 if magicwall_expired {
                     @(cell_ptr) = objects.space
@@ -414,12 +415,13 @@ cave {
             }
 
             sub sink_through_slime() {
-                if math.rnd() > slime_permeability
-                    return
-                if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
-                    @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = @(cell_ptr)
-                    @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
-                    @(cell_ptr) = objects.space
+                ; both falling and stationary boulders and diamonds can sink through slime.
+                if (bdcff.bdrandom() & slime_permeability) == 0 {
+                    if @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH)==objects.space {
+                        @(cell_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) = @(cell_ptr)
+                        @(attr_ptr + MAX_CAVE_WIDTH + MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
+                        @(cell_ptr) = objects.space
+                    }
                 }
             }
         }
@@ -430,8 +432,8 @@ cave {
             ubyte obj_left = @(cell_ptr-1)
             ubyte obj_right = @(cell_ptr+1)
             ubyte obj_down = @(cell_ptr+MAX_CAVE_WIDTH)
-            ubyte direction = math.rnd() & 3
-            bool grow = math.rnd() < cave.amoeba_growth_rate
+            ubyte direction = bdcff.bdrandom() & 3
+            bool grow = bdcff.bdrandom() < cave.amoeba_growth_rate
             if obj_up == objects.space or obj_up == objects.dirt or obj_up == objects.dirt {
                 amoeba_enclosed = false
                 if grow and direction==0 {
@@ -588,7 +590,7 @@ cave {
                         afterboulder = @(cell_ptr-2)
                         if afterboulder==objects.space {
                             ; 1/8 chance to push boulder left
-                            if math.rnd() < 32 {
+                            if bdcff.bdrandom() < 32 {
                                 sounds.boulder()
                                 @(cell_ptr-2) = targetcell
                                 @(cell_ptr-1) = objects.space
@@ -625,7 +627,7 @@ cave {
                         afterboulder = @(cell_ptr+2)
                         if afterboulder==objects.space {
                             ; 1/8 chance to push boulder right
-                            if math.rnd() < 32 {
+                            if bdcff.bdrandom() < 32 {
                                 sounds.boulder()
                                 @(cell_ptr+2) = targetcell
                                 @(attr_ptr+2) |= ATTR_SCANNED_FLAG
@@ -971,7 +973,7 @@ cave {
         }
 
         sub choose_new_anim() {
-            ubyte random = math.rnd()
+            ubyte random = bdcff.bdrandom()
             bool set_blinking = false
             bool set_tapping = rockford_state==ROCKFORD_TAPBLINK or rockford_state==ROCKFORD_TAPPING
             if random < 64 {
@@ -1025,8 +1027,8 @@ cave {
             return
         attr_ptr2 = cell_attributes
         repeat cave.MAX_CAVE_HEIGHT {
-            if math.rnd() & 1 {
-                ubyte x = math.rnd() % (cave.MAX_CAVE_WIDTH-1)
+            if bdcff.bdrandom() & 1 {
+                ubyte x = bdcff.bdrandom() % (cave.MAX_CAVE_WIDTH-1)
                 @(attr_ptr2 + x) &= ~ATTR_COVERED_FLAG
             }
             attr_ptr2 += MAX_CAVE_WIDTH
