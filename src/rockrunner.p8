@@ -46,12 +46,12 @@ main {
         sys.set_irq(&interrupts.handler, true)
         music.playback_enabled = true
 
-        if not bdcff.load_caveset("0-test.bd") or not bdcff.parse_caveset() {
+        if not bdcff.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
             ; caveset load error
             error_abort($80)
         }
 
-        ;; sys.wait(200)
+        sys.wait(200)
         cave.init()
         highscore.load(bdcff.caveset_filename)
         screen.set_tiles_screenmode()
@@ -404,13 +404,15 @@ main {
                         ubyte row=0
                         repeat {
                             if row==caveset_selected_index {
-                                if not bdcff.load_caveset(name_ptr) or not bdcff.parse_caveset() {
-                                    ; caveset load error
-                                    error_abort($84)
+                                if name_ptr != "readme.txt" {
+                                    if not bdcff.load_caveset(name_ptr) or not bdcff.parse_caveset() {
+                                        ; caveset load error
+                                        error_abort($84)
+                                    }
+                                    highscore.load(bdcff.caveset_filename)
+                                    sys.wait(10)
+                                    activate_choose_level()
                                 }
-                                highscore.load(bdcff.caveset_filename)
-                                sys.wait(10)
-                                activate_choose_level()
                                 return
                             }
                             row++
