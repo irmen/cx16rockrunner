@@ -109,27 +109,27 @@ bd1caves {
         ubyte @shared temp1
         ubyte @shared temp2
         %asm {{
-            lda  seed1
+            lda  p8_seed1
             ror  a
             ror  a
             and  #$80
-            sta  temp1
-            lda  seed2
+            sta  p8_temp1
+            lda  p8_seed2
             ror  a
             and  #$7f
-            sta  temp2
-            lda  seed2
+            sta  p8_temp2
+            lda  p8_seed2
             ror  a
             ror  a
             and  #$80
             clc
-            adc  seed2
+            adc  p8_seed2
             adc  #$13
-            sta  seed2
-            lda  seed1
-            adc  temp1
-            adc  temp2
-            sta  seed1
+            sta  p8_seed2
+            lda  p8_seed1
+            adc  p8_temp1
+            adc  p8_temp2
+            sta  p8_seed1
             rts
         }}
     }

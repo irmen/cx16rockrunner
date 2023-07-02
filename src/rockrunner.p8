@@ -234,20 +234,26 @@ main {
         }
         else if letter>='a' and letter <= 't' {
             ; letter - select start cave
-            chosen_level = letter - 'a' + 1
-            update_hud_choices_text()
-            bdcff.parse_cave(chosen_level, chosen_difficulty)
-            cave.cover_all()
-            screen.hud_clear()
-            screen.show_cave_title(false)
+            cx16.r0L = letter - 'a' + 1
+            if cx16.r0L <= bdcff.num_caves {
+                chosen_level = cx16.r0L
+                update_hud_choices_text()
+                bdcff.parse_cave(chosen_level, chosen_difficulty)
+                cave.cover_all()
+                screen.hud_clear()
+                screen.show_cave_title(false)
+            }
             while cbm.GETIN() {
                 ; clear any remaining keypresses
             }
         }
         else if letter>='1' and letter <= '5' {
             ; digit - select difficulty
-            chosen_difficulty = letter-'0'
-            update_hud_choices_text()
+            cx16.r0L = letter-'0'
+            if cx16.r0L <= bdcff.num_difficulty_levels {
+                chosen_difficulty = cx16.r0L
+                update_hud_choices_text()
+            }
         }
         else if letter==133 {
             ; F1 - load different caveset
@@ -512,22 +518,22 @@ screen {
             %asm {{
                 phx
                 ldy  #0
-_loop           lda  (attr_ptr),y
-                and  #cave.ATTR_COVERED_FLAG
+_loop           lda  (p8_attr_ptr),y
+                and  #p8_cave.p8_ATTR_COVERED_FLAG
                 beq  +
-                ldx  #objects.covered
+                ldx  #p8_objects.p8_covered
                 bra  ++
-+               lda  (cell_ptr),y
++               lda  (p8_cell_ptr),y
                 tax
-+               lda  objects.tile_lo,x
++               lda  p8_objects.p8_tile_lo,x
                 clc
-                adc  objects.anim_frame,x
+                adc  p8_objects.p8_anim_frame,x
                 sta  cx16.VERA_DATA0
-                lda  objects.tile_hi,x
-                adc  objects.palette_offsets_preshifted,x
+                lda  p8_objects.p8_tile_hi,x
+                adc  p8_objects.p8_palette_offsets_preshifted,x
                 sta  cx16.VERA_DATA0
                 iny
-                cpy  #cave.VISIBLE_CELLS_H+1
+                cpy  #p8_cave.p8_VISIBLE_CELLS_H+1
                 bne  _loop
                 plx
             }}
@@ -838,9 +844,9 @@ interrupts {
         ; an improved waitvsync() routine over the one in the sys lib
         %asm {{
 -           wai
-            lda  vsync_semaphore
+            lda  p8_vsync_semaphore
             bne  -
-            inc  vsync_semaphore
+            inc  p8_vsync_semaphore
             rts
         }}
     }
