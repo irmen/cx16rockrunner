@@ -109,8 +109,8 @@ cave {
     sub restart_level() {
         cover_all()
         disable_bonusbg()
-        disable_magicwall()
-        magicwall_expired = false
+        disable_magicwall(true)
+        magicwall_expired = false    ; first time is not expired
         amoeba_count = 0
         num_diamonds = 0
         amoeba_enclosed = false
@@ -206,7 +206,7 @@ cave {
         if magicwall_enabled {
             magicwall_timer--
             if magicwall_timer==0
-                disable_magicwall()
+                disable_magicwall(false)
         }
 
         if cbm.GETIN()==27 {
@@ -1113,12 +1113,12 @@ cave {
         replace_object(objects.magicwallinactive, objects.magicwall)
     }
 
-    sub disable_magicwall() {
-        if not magicwall_enabled
-            return
-        magicwall_enabled = false
-        magicwall_expired = true
-        replace_object(objects.magicwall, objects.magicwallinactive)
+    sub disable_magicwall(bool force) {
+        if force or magicwall_enabled {
+            magicwall_enabled = false
+            magicwall_expired = true
+            replace_object(objects.magicwall, objects.magicwallinactive)
+        }
     }
 
     sub replace_object(ubyte original, ubyte new) {

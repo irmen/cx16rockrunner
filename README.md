@@ -1,7 +1,7 @@
 Rock Runner
 ===========
 
-A Boulder Dash® clone for the Commander X16, written in [Prog8](https://prog8.readthedocs.io) (requires version 9 or later).
+A Boulder Dash® clone for the Commander X16, written in [Prog8](https://prog8.readthedocs.io) (requires version 9.1 or later).
 
 Original Boulder Dash® in 1984 by First Star Software, created by Peter Liepa and Chris Gray.
 Copyright by BBG Entertainment GmbH.
@@ -15,16 +15,14 @@ Custom Level files ('cavesets')
 The "CAVES" subdirectory contains a bunch of fan-made cavesets,
 but also the original Boulderdash 1 and Boulderdash 2 caves.
 The game starts up with the Boulderdash 1 caves, but you can load a different cave set from the menu if you want.
-You can also add more cavesets in this subdirectory by simply copying the files in there. Make sure the files are in the ASCII 'BDCFF' format.
-Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the 'BDCFF' section.
+You can also add more cavesets in this subdirectory by simply copying the files in there. Make sure the files are in the BDCFF text format.
+Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the BDCFF section.
 
 TODO
 ----
-- bug: boulderdash02 cave A: 'FSS' should not be activated magic wall at the start
-- bug: it is still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Not fixed now that the cx16 registers are properly saved in the IRQ handler :(
-- cosmetic: sometimes the next level doesn't completely scroll into the center (for example cave B after finishing A)
-- cosmetic: tweak the controls to also register button presses outside of cavescan - does this make it more responsive?
-- cosmetic: allow joypad to select caveset as well
+- *bug:* it is still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Some obscure timing/cavescan order issue?
+- cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive?
+- cosmetic: allow joypad to select caveset too, not only via keyboard
 - feature: scroll long filename list in the load caveset screen
 - feature: touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - feature: selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
