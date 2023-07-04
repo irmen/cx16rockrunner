@@ -21,6 +21,7 @@ Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the 
 TODO
 ----
 - *bug:* it is still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Some obscure timing/cavescan order issue?
+- possible bug: check behavior of Cave speed/Cave delay (see handler() routine comment)
 - cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive?
 - cosmetic: allow joypad to select caveset too, not only via keyboard
 - feature: scroll long filename list in the load caveset screen
