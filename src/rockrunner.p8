@@ -213,6 +213,7 @@ main {
                 break
             }
         }
+
         str cave_letter_str     = "A-T: select start cave [A]"
         str cave_difficulty_str = "1-5: select difficulty [1]"
         letter = cbm.GETIN()
@@ -382,17 +383,23 @@ main {
     }
 
     sub select_caveset() {
-        cx16.r0L = cbm.GETIN()
-        cx16.r1L = string.lowerchar(cx16.r0L)
+        ubyte keypress = cbm.GETIN()
+        while cbm.GETIN() {
+            ; clear buffer
+        }
+        cx16.r1L = string.lowerchar(keypress)
         if cx16.r1L>32 and cx16.r1L<='z' {
             activate_select_caveset(cx16.r0L)
-            while cbm.GETIN() {
-                ; clear buffer
-            }
         } else {
-            when cx16.r0L {
-                27 -> activate_choose_level()
-                13 -> {
+            if keypress == 27 {
+                activate_choose_level()
+                return
+            }
+            if keypress==0 and interrupts.vsync_counter & 3
+                return
+            for joystick.active_joystick in 1 to 4 {        ; skip 0 as it interferes with the normal keys
+                joystick.scan()
+                if keypress==13 or joystick.start or joystick.fire {
                     if caveset_selected_index < caveset_filenames_amount {
                         uword name_ptr = $a000
                         cx16.rambank(bdcff.FILENAMES_BANK)
@@ -416,26 +423,28 @@ main {
                             name_ptr++
                         }
                     }
+                    return
                 }
-                145 -> {
+                if keypress==145 or joystick.up {
                     if caveset_selected_index>0 {
                         ; up
                         screen.hud_text(9, caveset_selected_index+8, " ")
                         caveset_selected_index--
                         screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
                     }
+                    return
                 }
-                17 -> {
+                if keypress==17 or joystick.down {
                     if caveset_selected_index<CAVESET_DISPLAYLIST_MAXLENGTH-1 {
                         ; down
                         screen.hud_text(9, caveset_selected_index+8, " ")
                         caveset_selected_index++
                         screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
                     }
+                    return
                 }
+                ; TODO scroll the filename list if there are more names than that can fit on the screen
             }
-            ; TODO scroll the filename list if there are more names than that can fit on the screen
-            ; TODO also allow joypad for file selection
         }
     }
 
