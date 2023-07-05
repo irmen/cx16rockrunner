@@ -7,8 +7,10 @@ clean:
 	rm -f HISCORES/*.DAT
 
 emu: ROCKRUNNER.PRG
-	# PULSE_LATENCY_MSEC=20 box16 -scale 2 -run -prg $<
 	PULSE_LATENCY_MSEC=20 x16emu -scale 2 -quality best -run -prg $<
+
+emu2: ROCKRUNNER.PRG
+	PULSE_LATENCY_MSEC=20 box16 -scale 2 -run -prg $<
 
 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL: src/convert_images.py images/catalog.ini
 	@python src/convert_images.py

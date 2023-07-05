@@ -21,7 +21,7 @@ Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the 
 TODO
 ----
 - *bug:* it is still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Some obscure timing/cavescan order issue?
-- cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive?
+- cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive? or just laggy?
 - cosmetic: allow joypad to select caveset too, not only via keyboard
 - feature: scroll long filename list in the load caveset screen
 - feature: touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest

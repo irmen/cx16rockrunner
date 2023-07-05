@@ -10,7 +10,6 @@
 %import highscore
 
 main {
-    ubyte joystick = 0
     ubyte chosen_level
     ubyte chosen_difficulty
     ubyte game_state
@@ -40,6 +39,7 @@ main {
 ;            }
 ;        }
 
+        joystick.active_joystick = 0
         interrupts.ram_bank = cx16.getrambank()
         music.init()
         screen.titlescreen()
@@ -206,10 +206,9 @@ main {
     sub choose_level() {
         ubyte letter
         bool joy_start = false
-        for letter in 0 to 4 {
-            ; any joystick START button will select that joystick and start the game
-            if cx16.joystick_get2(letter) & %0000000000010000 == 0 {
-                main.joystick = letter
+        for joystick.active_joystick in 0 to 4 {
+            joystick.scan()
+            if joystick.start {
                 joy_start = true
                 break
             }
@@ -220,10 +219,6 @@ main {
         if letter!=0 {
             main.start.start_demo_timer = DEMO_WAIT_TIME
             main.start.start_hiscore_timer = HISCORE_WAIT_TIME
-        }
-        if cx16.joystick_get2(4) & %0000000000010000 == 0 {
-            main.joystick = 4
-            joy_start = true
         }
         if letter==13 or joy_start {
             ; start the game!

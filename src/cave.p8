@@ -85,11 +85,6 @@ cave {
     ubyte time_left_secs
     ubyte current_diamond_value
     bool exit_reached
-    bool joy_fire
-    bool joy_up
-    bool joy_down
-    bool joy_left
-    bool joy_right
 
     ; The attribute of a cell.
     ; Can only have one of these active attributes at a time, except the FLAG ones.
@@ -560,18 +555,13 @@ cave {
                 bd1demo.get_movement()
             }
             else {
-                uword joy = cx16.joystick_get2(main.joystick)
-                joy_left = lsb(joy) & %0010==0
-                joy_right = lsb(joy) & %0001==0
-                joy_up = lsb(joy) & %1000==0
-                joy_down = lsb(joy) & %0100==0
-                joy_fire = joy & %1100000011000000 != %1100000011000000
+                joystick.scan()
             }
 
-            if joy_left left()
-            else if joy_right right()
-            else if joy_up up()
-            else if joy_down down()
+            if joystick.left left()
+            else if joystick.right right()
+            else if joystick.up up()
+            else if joystick.down down()
             else if rockford_state==ROCKFORD_MOVING or rockford_state==ROCKFORD_PUSHING
                 rockford_state=ROCKFORD_IDLE
 
@@ -605,14 +595,14 @@ cave {
                                 sounds.boulder()
                                 @(cell_ptr-2) = targetcell
                                 @(cell_ptr-1) = objects.space
-                                if not joy_fire {
+                                if not joystick.fire {
                                     player_x--
                                     moved = true
                                 }
                             }
                         }
                     }
-                } else if joy_fire {
+                } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         if targetcell==objects.diamond or targetcell==objects.diamond2
@@ -646,14 +636,14 @@ cave {
                                     @(attr_ptr+2) |= ATTR_FALLING   ; to avoid being able to roll something over a hole
                                 @(cell_ptr+1) = objects.space
                                 @(attr_ptr+1) |= ATTR_SCANNED_FLAG
-                                if not joy_fire {
+                                if not joystick.fire {
                                     player_x++
                                     moved = true
                                 }
                             }
                         }
                     }
-                } else if joy_fire {
+                } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         if targetcell==objects.diamond or targetcell==objects.diamond2
@@ -676,7 +666,7 @@ cave {
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     ; cannot push or snip boulder up so do nothing.
                     rockford_state = ROCKFORD_MOVING
-                } else if joy_fire {
+                } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         if targetcell==objects.diamond or targetcell==objects.diamond2
@@ -698,7 +688,7 @@ cave {
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     ; cannot push or snip boulder down so do nothing.
                     rockford_state = ROCKFORD_MOVING
-                } else if joy_fire {
+                } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         if targetcell==objects.diamond or targetcell==objects.diamond2
@@ -1132,5 +1122,34 @@ cave {
             cell_ptr2++
             attr_ptr2++
         }
+    }
+}
+
+joystick {
+    ubyte active_joystick   ; 0-4 where 0 = the 'keyboard' joystick
+    bool up
+    bool down
+    bool left
+    bool right
+    bool start
+    bool fire
+
+    sub scan() {
+        cx16.r1 = cx16.joystick_get2(active_joystick)
+        left = lsb(cx16.r1) & %0010==0
+        right = lsb(cx16.r1) & %0001==0
+        up = lsb(cx16.r1) & %1000==0
+        down = lsb(cx16.r1) & %0100==0
+        fire = cx16.r1 & %1100000011000000 != %1100000011000000
+        start = cx16.r1 & %0000000000010000 == 0
+    }
+
+    sub clear() {
+        fire = false
+        start = false
+        left = false
+        right = false
+        up = false
+        down = false
     }
 }

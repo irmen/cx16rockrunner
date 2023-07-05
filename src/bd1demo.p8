@@ -24,16 +24,12 @@ bd1demo {
     }
 
     sub set_joy_direction(ubyte d) {
-        cave.joy_fire = false
-        cave.joy_left = false
-        cave.joy_right = false
-        cave.joy_up = false
-        cave.joy_down = false
+        joystick.clear()
         when d {
-            $7 -> cave.joy_right=true
-            $b -> cave.joy_left=true
-            $d -> cave.joy_down=true
-            $e -> cave.joy_up=true
+            $7 -> joystick.right=true
+            $b -> joystick.left=true
+            $d -> joystick.down=true
+            $e -> joystick.up=true
         }
     }
 
