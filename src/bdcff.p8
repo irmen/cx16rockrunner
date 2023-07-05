@@ -180,7 +180,6 @@ bdcff {
         diamonds_needed = [0,0,0,0,0]
         ubyte map_row
         bool size_specified = false
-        ubyte cave_speed_from_cavedata = 0
 
         ; fill cave with dirt
         draw_rectangle(objects.dirt, 0, 0, cave.MAX_CAVE_WIDTH-1, cave.MAX_CAVE_HEIGHT-1, objects.dirt)
@@ -192,9 +191,7 @@ bdcff {
                 validate_size()
                 cave.diamonds_needed = diamonds_needed[difficulty-1]
                 cave.cave_time_sec = cave_times[difficulty-1]
-                if cave_speed_from_cavedata
-                    cave.cave_speed = cave_speed_from_cavedata
-                else if cave.intermission
+                if cave.intermission
                     cave.cave_speed = cave.CAVE_SPEED_INTERMISSION - difficulty/2
                 else
                     cave.cave_speed = cave.CAVE_SPEED_NORMAL - difficulty/2
@@ -246,10 +243,28 @@ bdcff {
                             for cx16.r2L in 0 to num_difficulty_levels-1
                                 cave_times[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
                         }
-                        else if lineptr=="CaveDelay" {
-                            split_words()
-                            cave_speed_from_cavedata = conv.str2ubyte(words[0])
-                        }
+
+        ; Quoted from the documentation about CaveDelay:
+        ; " The speed of play is implemented with a delay loop. Each frame, if the CaveDelay is greater than zero,
+        ; BoulderDash enters a time-delay loop for 90 cycles per unit of CaveDelay (remembering that the C64 runs at 1 MHz).
+        ; The actual number of frames per second will vary depending on the objects in the cave;
+        ; a cave full of boulders takes longer to process than a cave full of dirt.
+        ;        Difficulty 1: CaveDelay = 12 (1080 cycles)
+        ;        Difficulty 2: CaveDelay = 6 (540 cycles)
+        ;        Difficulty 3: CaveDelay = 3 (270 cycles)
+        ;        Difficulty 4: CaveDelay = 1 (90 cycles)
+        ;        Difficulty 5: CaveDelay = 0 (no delay)  "
+        ; Now, this is al very difficult to translate to the X16:
+        ;  - it runs at 8 mhz not 1 mhz
+        ;  - the time to process a cave is wildly different from the original game because it's totally different code
+        ;  - it has 60hz refresh mode rather than 50hz (PAL c64)
+        ; So what I've chosen to do is not to implement this "Cave Delay" and rather make cave_speed
+        ; (the number of frames between cave scans) lower for higher difficulty levels.
+;                        else if lineptr=="CaveDelay" {
+;                            split_words()
+;                            cave_speed_from_cavedata = conv.str2ubyte(words[0])
+;                        }
+
 ;                        else if lineptr=="Colors" {
 ;                            split_words()
 ;                            ; TODO c64-style palette colors are not yet supported, would require a different tileset

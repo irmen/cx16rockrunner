@@ -854,24 +854,6 @@ interrupts {
     }
 
     sub handler() {
-
-        ; Quoted from the documentation:
-        ; " The speed of play is implemented with a delay loop. Each frame, if the CaveDelay is greater than zero,
-        ; BoulderDash enters a time-delay loop for 90 cycles per unit of CaveDelay (remembering that the C64 runs at 1 MHz).
-        ; The actual number of frames per second will vary depending on the objects in the cave;
-        ; a cave full of boulders takes longer to process than a cave full of dirt.
-        ;        Difficulty 1: CaveDelay = 12 (1080 cycles)
-        ;        Difficulty 2: CaveDelay = 6 (540 cycles)
-        ;        Difficulty 3: CaveDelay = 3 (270 cycles)
-        ;        Difficulty 4: CaveDelay = 1 (90 cycles)
-        ;        Difficulty 5: CaveDelay = 0 (no delay)  "
-        ; Now, this is al very difficult to translate to the X16:
-        ;  - it runs at 8 mhz not 1 mhz
-        ;  - the time to process a cave is wildly different from the original game because it's totally different code
-        ;  - it has 60hz refresh mode rather than 50hz (PAL c64)
-        ; So what I've chosen to do is not to implement this "Cave Delay" and rather make cave_speed
-        ; (the number of frames between cave scans) lower for higher difficulty levels.
-
         if cx16.VERA_ISR & %00000001 {
             ram_bank_backup = cx16.getrambank()
             cx16.rambank(ram_bank)       ; make sure we see the correct ram bank
