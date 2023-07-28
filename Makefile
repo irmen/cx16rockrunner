@@ -16,7 +16,7 @@ src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSP
 	@python src/convert_images.py
 
 ROCKRUNNER.PRG: src/*.p8 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL
-	@p8compile src/rockrunner.p8 -target cx16 -slowwarn
+	@p8compile src/rockrunner.p8 -target cx16 
 	@mv rockrunner.prg ROCKRUNNER.PRG
 
 zip: all

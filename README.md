@@ -20,6 +20,8 @@ Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the 
 
 TODO
 ----
+- *bug:* cave A when reaching exit: score doesn't increase when timer counts down
+- *bug?* arnodash4 cave E (first intermission) rockford spawns and immediately dies because of a firefly explosion. Timing issue?
 - *bug:* after game over, cave resets to A (when you chose a custom start cave. Maybe intentional?) and lives started at 0 or 255 !? 
 - *bug:* no sound fx played when snipping dirt (does play when snipping diamond)
 - *bug:* it is still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Some obscure timing/cavescan order issue?
