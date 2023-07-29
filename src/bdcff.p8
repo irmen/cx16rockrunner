@@ -162,6 +162,8 @@ bdcff {
         uword lineptr
         uword argptr
 
+        cave.cave_number = level
+        cave.difficulty = difficulty
         cave.width = cave.MAX_CAVE_WIDTH as ubyte
         cave.height = cave.MAX_CAVE_HEIGHT
         cave.name[0] = 0
