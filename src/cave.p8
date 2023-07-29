@@ -605,8 +605,10 @@ cave {
                 } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
-                        if targetcell==objects.diamond or targetcell==objects.diamond2
-                            pickup_diamond()
+                        when targetcell {
+                            objects.diamond, objects.diamond2 -> pickup_diamond()
+                            objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
+                        }
                         @(cell_ptr-1) = objects.space
                     }
                 } else {
@@ -646,8 +648,10 @@ cave {
                 } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
-                        if targetcell==objects.diamond or targetcell==objects.diamond2
-                            pickup_diamond()
+                        when targetcell {
+                            objects.diamond, objects.diamond2 -> pickup_diamond()
+                            objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
+                        }
                         @(cell_ptr+1) = objects.space
                         @(attr_ptr+1) |= ATTR_SCANNED_FLAG
                     }
@@ -669,8 +673,10 @@ cave {
                 } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
-                        if targetcell==objects.diamond or targetcell==objects.diamond2
-                            pickup_diamond()
+                        when targetcell {
+                            objects.diamond, objects.diamond2 -> pickup_diamond()
+                            objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
+                        }
                         @(cell_ptr-MAX_CAVE_WIDTH) = objects.space
                     }
                 } else {
@@ -691,8 +697,10 @@ cave {
                 } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
-                        if targetcell==objects.diamond or targetcell==objects.diamond2
-                            pickup_diamond()
+                        when targetcell {
+                            objects.diamond, objects.diamond2 -> pickup_diamond()
+                            objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
+                        }
                         @(cell_ptr+MAX_CAVE_WIDTH) = objects.space
                         @(attr_ptr+MAX_CAVE_WIDTH) |= ATTR_SCANNED_FLAG
                     }

@@ -20,16 +20,13 @@ Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the 
 
 TODO
 ----
-- *bug:* enter high score name doesn't work (when using keyboard as joystick?)
-- *bug?* arnodash4 cave E (first intermission) rockford spawns and immediately dies because of a firefly explosion. Timing issue?
-- *bug:* after game over, cave resets to A (when you chose a custom start cave. Maybe intentional?) and lives started at 0 or 255 !? 
-- *bug:* no sound fx played when snipping dirt (does play when snipping diamond)
 - *bug:* it is still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Some obscure timing/cavescan order issue?
+- bug/feature: arnodash4 cave E (first intermission) rockford spawns and immediately dies because of a firefly explosion. Caused by too low cave speed, due to "CaveDelay" not being properly parsed. See parse_cave().
 - cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive? or just laggy?
 - feature: scroll long filename list in the load caveset screen
 - feature: touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - feature: selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
-- feature: easter egg (how to trigger?): replace butterfly with X16 logo
+- feature: easter egg: replace butterfly with X16 logo (how to trigger?)
 - feature: better title tune (@Crisps?)
 - feature: better sound effects for the random sounds (Use random tones from a scale rather than totally random frequencies?)
 - fix the remaining TODOs in the code.

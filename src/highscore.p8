@@ -48,9 +48,7 @@ highscore {
         sys.memset(name_input, len(name_input), ' ')
         name_input[0] = $8a ; return key
         input_idx = 0
-        while cbm.GETIN() {
-            ; clear any remaining keypresses
-        }
+        while cbm.GETIN() { /* clear keyboard buffer */ }
     }
 
     sub enter_name() -> bool {

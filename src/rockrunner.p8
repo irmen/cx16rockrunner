@@ -107,6 +107,7 @@ main {
                 STATE_UNCOVERING -> {
                     cave.uncover_more()
                     if not cave.covered {
+                        while cbm.GETIN() { /* clear keyboard buffer */ }
                         cave.scroll_enabled = cave.width>cave.VISIBLE_CELLS_H or cave.height>cave.VISIBLE_CELLS_V
                         if demo_requested
                             game_state = STATE_DEMO
@@ -197,9 +198,7 @@ main {
             music.init()
             music.playback_enabled = true
         }
-        while cbm.GETIN() {
-            ; clear any remaining keypresses
-        }
+        while cbm.GETIN() { /* clear keyboard buffer */ }
         game_state = STATE_CHOOSE_LEVEL
     }
 
@@ -239,9 +238,7 @@ main {
                 screen.hud_clear()
                 screen.show_cave_title(false)
             }
-            while cbm.GETIN() {
-                ; clear any remaining keypresses
-            }
+            while cbm.GETIN() { /* clear keyboard buffer */ }
         }
         else if letter>='1' and letter <= '5' {
             ; digit - select difficulty
@@ -384,12 +381,10 @@ main {
 
     sub select_caveset() {
         ubyte keypress = cbm.GETIN()
-        while cbm.GETIN() {
-            ; clear buffer
-        }
+        while cbm.GETIN() { /* clear keyboard buffer */ }
         cx16.r1L = string.lowerchar(keypress)
         if cx16.r1L>32 and cx16.r1L<='z' {
-            activate_select_caveset(cx16.r0L)
+            activate_select_caveset(cx16.r1L)
         } else {
             if keypress == 27 {
                 activate_choose_level()
