@@ -18,6 +18,18 @@ The game starts up with the Boulderdash 1 caves, but you can load a different ca
 You can also add more cavesets in this subdirectory by simply copying the files in there. Make sure the files are in the BDCFF text format.
 Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the BDCFF section.
 
+
+Game crashes after loading a custom level. What do?
+---------------------------------------------------
+
+The engine doesn't support all features that were designed after the original game came out.
+When it detects something it cannot handle, it usually places a 1-byte error code in memory and aborts the game
+into the monitor.
+Inspect the memory at `$0400` to see what error byte is stored there.
+You can then search in the source code for calls to `error_abort` to check what the error code means. 
+For example, status code `$86` means that a cave in the caveset file is larger than the maximum allowed size (40 by 22).
+
+
 TODO
 ----
 - *bug:* it is still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Some obscure timing/cavescan order issue?

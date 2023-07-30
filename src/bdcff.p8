@@ -110,13 +110,11 @@ bdcff {
                         gameparams_address = cs_file_ptr
                     }
                     else if line=="[cave]" {
+                        if num_caves==MAX_CAVES
+                            main.error_abort($87)  ; too many caves in the caveset
                         cavespec_banks[num_caves] = cs_file_bank
                         cavespec_addresses[num_caves] = cs_file_ptr
                         num_caves++
-                        if num_caves>MAX_CAVES {
-                            num_caves--
-                            break
-                        }
                     }
                 }
             }
@@ -228,6 +226,8 @@ bdcff {
                             cave.width = conv.str2ubyte(words[0])
                             cave.height = conv.str2ubyte(words[1])
                             size_specified = true
+                            if cave.width<3 or cave.width>cave.MAX_CAVE_WIDTH or cave.height<3 or cave.height>cave.MAX_CAVE_HEIGHT
+                                main.error_abort($86)  ; too small or too large
                         }
                         else if lineptr=="DiamondValue" {
                             split_words()
@@ -236,6 +236,7 @@ bdcff {
                                 cave.extra_diamond_value = conv.str2ubyte(words[1])
                         }
                         else if lineptr=="DiamondsRequired" {
+                            ; TODO when this value is prefixed with '-', it means "number of diamonds in the cave minus this"
                             split_words()
                             for cx16.r2L in 0 to num_difficulty_levels-1
                                 diamonds_needed[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
@@ -244,6 +245,10 @@ bdcff {
                             split_words()
                             for cx16.r2L in 0 to num_difficulty_levels-1
                                 cave_times[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
+                        }
+                        else if lineptr=="CaveScheduling" {
+                            if argptr!="bd1"
+                                main.error_abort($85)  ; unsupported cave scheduling algorithm
                         }
 
         ; Quoted from the documentation about CaveDelay:
@@ -256,6 +261,7 @@ bdcff {
         ;        Difficulty 3: CaveDelay = 3 (270 cycles)
         ;        Difficulty 4: CaveDelay = 1 (90 cycles)
         ;        Difficulty 5: CaveDelay = 0 (no delay)  "
+        ;
         ; Now, this is al very difficult to translate to the X16:
         ;  - it runs at 8 mhz not 1 mhz
         ;  - the time to process a cave is wildly different from the original game because it's totally different code

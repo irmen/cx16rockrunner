@@ -20,6 +20,7 @@ main {
     const ubyte STATE_ENTER_NAME = 8
 
     sub start() {
+        clear_abort_error()
         txt.lowercase()
 
         if bdcff.load_caveset("boulderdash02.bd") {
@@ -90,9 +91,16 @@ main {
         }
     }
 
+    sub clear_abort_error() {
+        ; make sure no error value is stored initially
+        @($0400) = 0
+        @($0401) = 0
+    }
+
     sub error_abort(ubyte errorcode) {
-        ; stores the error code at $0400 so you can tell what it was after the reset.
+        ; stores the error code at $0400 and $0401 so you can tell what it was after the reset.
         @($0400) = errorcode
+        @($0401) = errorcode
         %asm {{
             brk
         }}
