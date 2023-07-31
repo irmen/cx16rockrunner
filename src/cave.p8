@@ -532,6 +532,7 @@ cave {
         sub handle_rockford() {
             ; note: rockford animation is done independently (each frame).
             ubyte targetcell
+            ubyte targetattr
             bool eatable
             ubyte afterboulder
             ubyte moved = false
@@ -584,7 +585,8 @@ cave {
             sub left() {
                 rockford_face_direction = ROCKFORD_FACE_LEFT
                 targetcell = @(cell_ptr-1)
-                eatable = rockford_can_eat(targetcell)
+                targetattr = @(attr_ptr-1)
+                eatable = rockford_can_eat(targetcell, targetattr)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     rockford_state = ROCKFORD_PUSHING
                     if targetcell!=objects.megaboulder and @(attr_ptr-1) != ATTR_FALLING {
@@ -623,7 +625,8 @@ cave {
             sub right() {
                 rockford_face_direction = ROCKFORD_FACE_RIGHT
                 targetcell = @(cell_ptr+1)
-                eatable = rockford_can_eat(targetcell)
+                targetattr = @(attr_ptr+1)
+                eatable = rockford_can_eat(targetcell, targetattr)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     rockford_state = ROCKFORD_PUSHING
                     if targetcell!=objects.megaboulder and @(attr_ptr+1) != ATTR_FALLING {
@@ -666,7 +669,8 @@ cave {
 
             sub up() {
                 targetcell = @(cell_ptr-MAX_CAVE_WIDTH)
-                eatable = rockford_can_eat(targetcell)
+                targetattr = @(attr_ptr-MAX_CAVE_WIDTH)
+                eatable = rockford_can_eat(targetcell, targetattr)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     ; cannot push or snip boulder up so do nothing.
                     rockford_state = ROCKFORD_MOVING
@@ -690,7 +694,8 @@ cave {
 
             sub down() {
                 targetcell = @(cell_ptr+MAX_CAVE_WIDTH)
-                eatable = rockford_can_eat(targetcell)
+                targetattr = @(attr_ptr+MAX_CAVE_WIDTH)
+                eatable = rockford_can_eat(targetcell, targetattr)
                 if targetcell==objects.boulder or targetcell==objects.megaboulder {
                     ; cannot push or snip boulder down so do nothing.
                     rockford_state = ROCKFORD_MOVING
@@ -713,8 +718,9 @@ cave {
                 }
             }
 
-            sub rockford_can_eat(ubyte object) -> bool {
-                return objects.attributes[object] & objects.ATTRF_EATABLE
+            sub rockford_can_eat(ubyte tobject, ubyte tattr) -> bool {
+                ; "You can't collect diamonds which are falling, but you can collect them when they momentarily bounce off of something or down the side of a pile."
+                return tattr&ATTR_FALLING==0 and objects.attributes[tobject]&objects.ATTRF_EATABLE
             }
 
             sub active_rockford_object() -> ubyte {

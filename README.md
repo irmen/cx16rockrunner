@@ -32,7 +32,6 @@ For example, status code `$86` means that a cave in the caveset file is larger t
 
 TODO
 ----
-- *bug:* make sure falling diamonds can't be collected (walked on/snipped) Gdash rule = "You can't collect diamonds which are falling, but you can collect them when they momentarily bounce off of something or down the side of a pile."
 - *bug:* it was still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Some obscure timing/cavescan order issue? Is it perhaps fixed by now also counting the pickups of diamondbirth objects? 
 - bug/feature: arnodash4 cave E (first intermission) rockford spawns and immediately dies because of a firefly explosion. Caused by too low cave speed, due to "CaveDelay" not being properly parsed. See parse_cave().
 - cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive? or just laggy?
