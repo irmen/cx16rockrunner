@@ -280,7 +280,7 @@ cave {
                         objects.amoeba -> {
                             handle_amoeba()
                         }
-                        ; NOTE: add other object scans here.
+                        ; NOTE: add other object scans in between here.
                         objects.outboxclosed -> {
                             if num_diamonds >= diamonds_needed {
                                 sounds.crack()
@@ -571,7 +571,7 @@ cave {
             if moved {
                 when @(cell_ptr2) {
                     objects.outboxhidden, objects.outboxblinking -> exit_reached = true
-                    objects.diamond, objects.diamond2 -> pickup_diamond()
+                    objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                     objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
                     objects.space -> sounds.rockfordmove_space()
                 }
@@ -606,7 +606,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         when targetcell {
-                            objects.diamond, objects.diamond2 -> pickup_diamond()
+                            objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                             objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
                         }
                         @(cell_ptr-1) = objects.space
@@ -649,7 +649,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         when targetcell {
-                            objects.diamond, objects.diamond2 -> pickup_diamond()
+                            objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                             objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
                         }
                         @(cell_ptr+1) = objects.space
@@ -674,7 +674,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         when targetcell {
-                            objects.diamond, objects.diamond2 -> pickup_diamond()
+                            objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                             objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
                         }
                         @(cell_ptr-MAX_CAVE_WIDTH) = objects.space
@@ -698,7 +698,7 @@ cave {
                     rockford_state = ROCKFORD_PUSHING
                     if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
                         when targetcell {
-                            objects.diamond, objects.diamond2 -> pickup_diamond()
+                            objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                             objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
                         }
                         @(cell_ptr+MAX_CAVE_WIDTH) = objects.space
