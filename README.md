@@ -8,13 +8,15 @@ Copyright by BBG Entertainment GmbH.
 
 The graphics tile set is from MIT-licensed GDash and is based on Boulder Rush by Michael Kowalski / Miksoft. See below for links.
 
+![Rock Runner screenshot](rrgame.png)
+
 
 Custom Level files ('cavesets')
 ===============================
 
 The "CAVES" subdirectory contains a bunch of fan-made cavesets,
 but also the original Boulderdash 1 and Boulderdash 2 caves.
-The game starts up with the Boulderdash 1 caves, but you can load a different cave set from the menu if you want.
+The game starts up with the Boulderdash 1 caves ("BOULDERDASH01.BD"), but you can load a different cave set from the menu if you want.
 You can also add more cavesets in this subdirectory by simply copying the files in there. Make sure the files are in the BDCFF text format.
 Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the BDCFF section.
 
@@ -32,10 +34,10 @@ For example, status code `$86` means that a cave in the caveset file is larger t
 
 TODO
 ----
-- *bug:* it was still possible to eat diamonds that are not getting added to the score. BD1 Cave 4 (butterflies). Some obscure timing/cavescan order issue? Is it perhaps fixed by now also counting the pickups of diamondbirth objects? 
-- bug/feature: arnodash4 cave E (first intermission) rockford spawns and immediately dies because of a firefly explosion. Caused by too low cave speed, due to "CaveDelay" not being properly parsed. See parse_cave().
+- *bug?:* it was still possible to eat diamonds, and not having the counter increase, thereby making the level incompletable. Was this hopefully fixed now by also counting the pickups of diamondbirth objects? Needs more testing 
 - cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive? or just laggy?
 - feature: scroll long filename list in the load caveset screen
+- feature: "CaveDelay" is currently not parsed. This causes the wrong cave speed for some levels, such as arnodash4 cave E (first intermission) where rockford spawns and immediately dies because of a firefly explosion. See parse_cave().
 - feature: touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - feature: selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
 - feature: easter egg: replace butterfly with X16 logo (how to trigger?)
