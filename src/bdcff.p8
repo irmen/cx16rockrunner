@@ -203,8 +203,11 @@ bdcff {
                         read_state = READ_MAP
                         map_row = 0
                     }
-                    else if lineptr=="[objects]"
+                    else if lineptr=="[objects]" {
                         read_state = READ_OBJECTS
+                        ; draw the initial border of steel tiles
+                        draw_rectangle(objects.steel, 0, 0, cave.width-1, cave.height-1, $00ff)
+                    }
                     else if lineptr[0]=='['
                         read_state = READ_SKIP
                     else {
@@ -385,11 +388,8 @@ bdcff {
                 }
                 READ_OBJECTS -> {
                     if lineptr=="[/objects]" {
-                        ; draw the initial border of steel tiles
-                        draw_rectangle(objects.steel, 0, 0, cave.width-1, cave.height-1, $00ff)
                         read_state = READ_CAVE
-                    }
-                    else {
+                    } else {
                         argptr = 0
                         isIndex = string.find(lineptr, '=')
                         if_cs {
