@@ -110,6 +110,7 @@ main {
                     if not cave.covered {
                         while cbm.GETIN() { /* clear keyboard buffer */ }
                         cave.scroll_enabled = cave.width>cave.VISIBLE_CELLS_H or cave.height>cave.VISIBLE_CELLS_V
+                        interrupts.cavescan_frame = 0
                         if demo_requested
                             game_state = STATE_DEMO
                         else
@@ -845,6 +846,7 @@ _loop           lda  (p8_attr_ptr),y
 
 interrupts {
     ubyte vsync_counter = 0
+    ubyte cavescan_frame = 0
     ubyte vsync_semaphore = 1
     ubyte ram_bank
     ubyte ram_bank_backup
@@ -867,6 +869,7 @@ interrupts {
             cx16.save_virtual_registers()
             vsync_semaphore=0
             vsync_counter++
+            cavescan_frame++
             cx16.save_vera_context()
             set_softscroll()             ; soft-scrolling is handled in this irq handler itself to avoid stutters and tearing
             music.update()

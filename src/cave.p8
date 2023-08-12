@@ -32,8 +32,8 @@ cave {
     const ubyte ACTION_NEXTLEVEL = 2
     const ubyte ACTION_GAMEOVER = 3
 
-    const ubyte CAVE_SPEED_NORMAL = 8           ; should be 7 officially, but that is too fast on 60hz refresh
-    const ubyte CAVE_SPEED_INTERMISSION = 6     ; intermissions play at a higher movement speed
+    const ubyte CAVE_SPEED_NORMAL = 9
+    const ubyte CAVE_SPEED_INTERMISSION = 7      ; intermissions play at a higher movement speed
 
     uword cells = memory("objects_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
     uword cell_attributes = memory("attributes_matrix", MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
@@ -58,7 +58,6 @@ cave {
     ubyte color_foreground
 
     bool covered
-    ubyte scan_frame
     ubyte player_x
     ubyte player_y
     byte rockford_birth_time        ; in frames, default = 120  (2 seconds)
@@ -114,7 +113,7 @@ cave {
         exit_reached = false
         rockford_state = 0
         player_died = false
-        scan_frame = 0
+        interrupts.cavescan_frame = 0
         current_diamond_value = initial_diamond_value
         time_left_secs = 0
         screen.white_flash = false
@@ -143,7 +142,7 @@ cave {
     uword @requirezp cell_ptr2      ; free to use
     uword @requirezp attr_ptr2      ; free to use
 
-    ubyte jiffy_counter
+    ubyte jiffy_counter             ; counts 0 - 59
 
     sub do_each_frame() {
         ; called by vsync irq handler to do timing critical stuff that should
@@ -204,7 +203,7 @@ cave {
                 disable_magicwall(false)
         }
 
-        if cbm.GETIN()==27 {
+        if cbm.GETIN()==27 and not player_died {
             ; escape is pressed. Lose a life and restart the level
             if intermission==false
                 num_lives--
@@ -226,9 +225,10 @@ cave {
         if amoeba_slow_timer==0
             amoeba_growth_rate = AMOEBA_FAST_GROWTH
 
-        scan_frame++
-        if scan_frame==cave_speed            ; cave scan is done once every X frames
-            scan_frame = 0
+        if interrupts.cavescan_frame>=cave_speed {
+            ; cave scan is done once every X frames
+            interrupts.cavescan_frame = 0
+        }
         else
             return ACTION_NOTHING
 

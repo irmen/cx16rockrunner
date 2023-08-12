@@ -34,7 +34,6 @@ For example, status code `$86` means that a cave in the caveset file is larger t
 
 TODO
 ----
-- *bug?:* if the cavescan takes more than 1 frame, the game starts to lag because the delay till the next cavescan doesn't take this into account?
 - *bug?:* it was still possible to eat diamonds, and not having the counter increase, thereby making the level incompletable. Was this hopefully fixed now by also counting the pickups of diamondbirth objects? Needs more testing 
 - cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive? or just laggy?
 - feature: scroll long filename list in the load caveset screen
