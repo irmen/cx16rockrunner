@@ -83,6 +83,7 @@ highscore {
 
     sub save(str caveset_name) {
         diskio.chdir("hiscores")
+        diskio.delete(caveset_name)
         void diskio.save_raw(caveset_name, table, 80)
         diskio.chdir("..")
     }

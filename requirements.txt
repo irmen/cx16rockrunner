@@ -1,0 +1,3 @@
+# this is the list of Python packages you'll need to be able to build Rockrunner.
+pillow
+

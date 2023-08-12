@@ -1,6 +1,5 @@
 import os
 import configparser
-import glob
 from dataclasses import dataclass
 from typing import Tuple
 from PIL import Image

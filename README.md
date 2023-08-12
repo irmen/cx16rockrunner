@@ -34,9 +34,11 @@ For example, status code `$86` means that a cave in the caveset file is larger t
 
 TODO
 ----
+- *bug?:* if the cavescan takes more than 1 frame, the game starts to lag because the delay till the next cavescan doesn't take this into account?
 - *bug?:* it was still possible to eat diamonds, and not having the counter increase, thereby making the level incompletable. Was this hopefully fixed now by also counting the pickups of diamondbirth objects? Needs more testing 
 - cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive? or just laggy?
 - feature: scroll long filename list in the load caveset screen
+- feature: describe the basic game mechanics somewhere for new players.
 - feature: "CaveDelay" is currently not parsed. This causes the wrong cave speed for some levels, such as arnodash4 cave E (first intermission) where rockford spawns and immediately dies because of a firefly explosion. See parse_cave().
 - feature: touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
 - feature: selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
