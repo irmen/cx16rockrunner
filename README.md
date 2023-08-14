@@ -34,17 +34,15 @@ For example, status code `$86` means that a cave in the caveset file is larger t
 
 TODO
 ----
-- *bug?:* it was still possible to eat diamonds, and not having the counter increase, thereby making the level incompletable. Was this hopefully fixed now by also counting the pickups of diamondbirth objects? Needs more testing 
-- cosmetic: test: tweak the controls to also register joystick buttons outside of cavescan - does this make it more responsive? or just laggy?
-- feature: scroll long filename list in the load caveset screen
-- feature: describe the basic game mechanics somewhere for new players.
+- feature: describe the basic game mechanics somewhere in the readme for new players.
+- feature: tweak the controls to also register joystick buttons a few frames before the actual cavescan - does this make it more responsive? or just more laggy? 
 - feature: "CaveDelay" is currently not parsed. This causes the wrong cave speed for some levels, such as arnodash4 cave E (first intermission) where rockford spawns and immediately dies because of a firefly explosion. See parse_cave().
+- feature: scroll overflowing filename list in the load caveset screen
 - feature: touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
-- feature: selectable tilesets?  also add the real c64 retro tileset with adjustable palette?
+- feature: selectable tilesets?  also add the real c64 retro tileset with the adjustable palette per cave?
 - feature: easter egg: replace butterfly with X16 logo (how to trigger?)
 - feature: better title tune (@Crisps?)
 - feature: better sound effects for the random sounds (Use random tones from a scale rather than totally random frequencies?)
-- fix the remaining TODOs in the code.
 
 
 Development Resources

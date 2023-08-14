@@ -182,7 +182,7 @@ cave {
                 enable_bonusbg()
                 intermission = false
             }
-            if time_left_secs and interrupts.vsync_counter % 3 == 0 {
+            if time_left_secs and interrupts.vsync_counter & 1 {
                 add_score(cave.difficulty)
                 sounds.bonus(time_left_secs)
                 time_left_secs--
@@ -285,8 +285,16 @@ cave {
                             if num_diamonds >= diamonds_needed {
                                 sounds.crack()
                                 screen.flash_white(true)
-                                @(cell_ptr) = objects.outboxblinking
                                 current_diamond_value = extra_diamond_value
+                                @(cell_ptr) = objects.outboxblinking
+                            }
+                        }
+                        objects.outboxhidden -> {
+                            if num_diamonds >= diamonds_needed {
+                                sounds.crack()
+                                screen.flash_white(true)
+                                current_diamond_value = extra_diamond_value
+                                @(cell_ptr) = objects.outboxhiddenopen      ; must stay hidden
                             }
                         }
                         objects.inboxclosed -> {
@@ -571,7 +579,7 @@ cave {
             attr_ptr2 = cell_attributes + offset
             if moved {
                 when @(cell_ptr2) {
-                    objects.outboxhidden, objects.outboxblinking -> exit_reached = true
+                    objects.outboxhiddenopen, objects.outboxblinking -> exit_reached = true
                     objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                     objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
                     objects.space -> sounds.rockfordmove_space()
@@ -606,7 +614,7 @@ cave {
                     }
                 } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
+                    if eatable and targetcell!=objects.outboxhiddenopen and targetcell!=objects.outboxblinking {
                         when targetcell {
                             objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                             objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
@@ -650,7 +658,7 @@ cave {
                     }
                 } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
+                    if eatable and targetcell!=objects.outboxhiddenopen and targetcell!=objects.outboxblinking {
                         when targetcell {
                             objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                             objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
@@ -676,7 +684,7 @@ cave {
                     rockford_state = ROCKFORD_MOVING
                 } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
+                    if eatable and targetcell!=objects.outboxhiddenopen and targetcell!=objects.outboxblinking {
                         when targetcell {
                             objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                             objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
@@ -701,7 +709,7 @@ cave {
                     rockford_state = ROCKFORD_MOVING
                 } else if joystick.fire {
                     rockford_state = ROCKFORD_PUSHING
-                    if eatable and targetcell!=objects.outboxhidden and targetcell!=objects.outboxblinking {
+                    if eatable and targetcell!=objects.outboxhiddenopen and targetcell!=objects.outboxblinking {
                         when targetcell {
                             objects.diamond, objects.diamond2, objects.diamondbirth -> pickup_diamond()
                             objects.dirt, objects.dirt2 -> sounds.rockfordmove_dirt()
