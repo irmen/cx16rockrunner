@@ -239,10 +239,13 @@ bdcff {
                                 cave.extra_diamond_value = conv.str2ubyte(words[1])
                         }
                         else if lineptr=="DiamondsRequired" {
-                            ; TODO when this value is prefixed with '-', it means "number of diamonds in the cave minus this"
                             split_words()
-                            for cx16.r2L in 0 to num_difficulty_levels-1
-                                diamonds_needed[cx16.r2L] = conv.str2ubyte(words[cx16.r2L])
+                            for cx16.r2L in 0 to num_difficulty_levels-1 {
+                                cx16.r3 = words[cx16.r2L]
+                                if @(cx16.r3)=='-'
+                                    main.error_abort($88)   ; no support for  "number of diamonds in the cave minus this"
+                                diamonds_needed[cx16.r2L] = conv.str2ubyte(cx16.r3)
+                            }
                         }
                         else if lineptr=="CaveTime" {
                             split_words()
@@ -411,7 +414,7 @@ bdcff {
                         else if lineptr=="AddBackward"
                             parse_add(true)
                         else
-                            main.error_abort($82)  ; should never occur!
+                            main.error_abort($82)  ; unrecognised objects command
                     }
                 }
                 READ_MAP -> {
@@ -648,7 +651,7 @@ bdcff {
                 }
 
                 ; should never happen, all object names should be recognised
-                main.error_abort($83)  ; should never occur!
+                main.error_abort($83)  ; unrecognised object name
             }
 
             sub split_words() {

@@ -27,9 +27,9 @@ Game crashes after loading a custom level. What do?
 The engine doesn't support all features that were designed after the original game came out.
 When it detects something it cannot handle, it usually places a 1-byte error code in memory and aborts the game
 into the monitor.
-Inspect the memory at `$0400` to see what error byte is stored there.
+Inspect the memory at `$0400` to see what error byte is stored there (the A register should also contain this error code).
 You can then search in the source code for calls to `error_abort` to check what the error code means. 
-For example, status code `$86` means that a cave in the caveset file is larger than the maximum allowed size (40 by 22).
+For example, error code `$86` means that a cave in the caveset file is larger than the maximum allowed size (40 by 22).
 
 
 TODO

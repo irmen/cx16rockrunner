@@ -283,16 +283,20 @@ cave {
                         ; NOTE: add other object scans in between here.
                         objects.outboxclosed -> {
                             if num_diamonds >= diamonds_needed {
-                                sounds.crack()
-                                screen.flash_white(true)
+                                if not screen.white_flash {
+                                    sounds.crack()
+                                    screen.flash_white(true)
+                                }
                                 current_diamond_value = extra_diamond_value
                                 @(cell_ptr) = objects.outboxblinking
                             }
                         }
                         objects.outboxhidden -> {
                             if num_diamonds >= diamonds_needed {
-                                sounds.crack()
-                                screen.flash_white(true)
+                                if not screen.white_flash {
+                                    sounds.crack()
+                                    screen.flash_white(true)
+                                }
                                 current_diamond_value = extra_diamond_value
                                 @(cell_ptr) = objects.outboxhiddenopen      ; must stay hidden
                             }
