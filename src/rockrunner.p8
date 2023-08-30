@@ -350,7 +350,8 @@ main {
         screen.hud_text(4,18,"(start button activates).")
         screen.hud_text(4,19,"Fire+direction lets you grab")
         screen.hud_text(4,20,"something without moving there!")
-        screen.hud_text(4,23,"Press ESC when you're stuck.")
+        screen.hud_text(4,23,"Press ESC when you're stuck: this")
+        screen.hud_text(4,24,"restarts the level (losing a life)")
 
     }
 

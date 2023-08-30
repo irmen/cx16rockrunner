@@ -1,7 +1,7 @@
 Rock Runner
 ===========
 
-A Boulder Dash® clone for the Commander X16, written in [Prog8](https://prog8.readthedocs.io) (requires version 9.1 or later).
+A Boulder Dash® clone for the Commander X16, written in [Prog8](https://prog8.readthedocs.io).
 
 Original Boulder Dash® in 1984 by First Star Software, created by Peter Liepa and Chris Gray.
 Copyright by BBG Entertainment GmbH.
@@ -12,13 +12,14 @@ The graphics tile set is from MIT-licensed GDash and is based on Boulder Rush by
 
 
 Custom Level files ('cavesets')
-===============================
+-------------------------------
 
 The "CAVES" subdirectory contains a bunch of fan-made cavesets,
 but also the original Boulderdash 1 and Boulderdash 2 caves.
 The game starts up with the Boulderdash 1 caves ("BOULDERDASH01.BD"), but you can load a different cave set from the menu if you want.
 You can also add more cavesets in this subdirectory by simply copying the files in there. Make sure the files are in the BDCFF text format.
 Hundreds of cavesets can be freely obtained from https://boulderdash.nl/ in the BDCFF section.
+Note: due to slight engine incompatibilities, not all fan made levels may be loadable or solvable.
 
 
 Game crashes after loading a custom level. What do?
@@ -27,9 +28,26 @@ Game crashes after loading a custom level. What do?
 The engine doesn't support all features that were designed after the original game came out.
 When it detects something it cannot handle, it usually places a 1-byte error code in memory and aborts the game
 into the monitor.
-Inspect the memory at `$0400` to see what error byte is stored there (the A register should also contain this error code).
+If this happens, inspect the memory at `$0400` to see what error byte is stored there (the A register should also contain this error code).
 You can then search in the source code for calls to `error_abort` to check what the error code means. 
 For example, error code `$86` means that a cave in the caveset file is larger than the maximum allowed size (40 by 22).
+
+How to play the game
+--------------------
+
+Pick up enough diamonds in the
+cave to unlock the exit, and
+reach it before the time runs out.
+Avoid enemies and getting crushed.
+Control the game using any joypad
+(start button activates).
+Fire+direction lets you grab
+something without moving there!
+Press ESC when you're stuck: this
+restarts the level (losing a life)
+
+For more details refer to the manual of the original Boulder Dash game: https://archive.org/details/Boulder_Dash_1984_First_Star_Software/
+It explains the game and the various inhabitants of the caves you encounter.
 
 
 TODO
