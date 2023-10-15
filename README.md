@@ -52,6 +52,7 @@ It explains the game and the various inhabitants of the caves you encounter.
 
 TODO
 ----
+- BUG: explodingdash.bd cave 1, the right side, the explosions seem to keep exploding themselves into a giant column of flame?
 - feature: describe the basic game mechanics somewhere in the readme for new players.
 - feature: tweak the controls to also register joystick buttons a few frames before the actual cavescan - does this make it more responsive? or just more laggy? 
 - feature: "CaveDelay" is currently not parsed. This causes the wrong cave speed for some levels, such as arnodash4 cave E (first intermission) where rockford spawns and immediately dies because of a firefly explosion. See parse_cave().

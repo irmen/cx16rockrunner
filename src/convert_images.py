@@ -6,12 +6,23 @@ from PIL import Image
 
 
 def reduce_colorspace(palette: list[int]) -> list[int]:
-    # convert to 4:4:4 RGB
+    # convert to 4:4:4 RGB, still 8 bits though
     result = []
     for c in palette:
         c &= 0xf0
         result.append(c | (c >> 4))
     return result
+
+
+def make_cx16_palette(palette: list[int]) -> bytes:
+    def to4bit(color: int) -> int:
+        return (color * 15 + 135) >> 8      # see https://threadlocalmutex.com/?p=48
+    cx16palette = bytearray()
+    for pi in range(0, len(palette), 3):
+        r, g, b = to4bit(palette[pi]), to4bit(palette[pi + 1]), to4bit(palette[pi + 2])
+        cx16palette.append(g << 4 | b)
+        cx16palette.append(r)
+    return cx16palette
 
 
 def cvt(filename: str) -> Image.Image:
@@ -91,15 +102,6 @@ def combine_parts() -> Tuple[Image.Image, int, list[TilesPart]]:
         join_part_into_full(part.image, index, x_offset, converted)
         x_offset += part.image.size[0]
     return converted, total_tiles, parts
-
-
-def make_cx16_palette(palette: list[int]) -> bytes:
-    cx16palette = bytearray()
-    for pi in range(0, len(palette), 3):
-        r, g, b = palette[pi] >> 4, palette[pi + 1] >> 4, palette[pi + 2] >> 4
-        cx16palette.append(g << 4 | b)
-        cx16palette.append(r)
-    return cx16palette
 
 
 def convert_tiles() -> list[TilesPart]:
