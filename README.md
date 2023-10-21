@@ -52,7 +52,15 @@ It explains the game and the various inhabitants of the caves you encounter.
 
 TODO
 ----
-- BUG: explodingdash.bd cave 1, the right side, the explosions seem to keep exploding themselves into a giant column of flame?
+
+- cleanup: Get rid of objects.anim_cycles, derive it from the animation frame and length of animation
+
+- BUG: explodingdash.bd cave 1 on the right side: the explosions keep restarting  into a giant column of flame
+  caused by the way animations are done: they're global for the tile *type* (explosion in this case)
+  and get restarted for all tiles that are still going in the animation.
+  Solution: rewrite the tile animation system to track animation frame per tile in the matrix, instead of per tile *type*
+  Can this be embedded into the attribute matrix or does it need a new matrix?
+
 - feature: describe the basic game mechanics somewhere in the readme for new players.
 - feature: tweak the controls to also register joystick buttons a few frames before the actual cavescan - does this make it more responsive? or just more laggy? 
 - feature: "CaveDelay" is currently not parsed. This causes the wrong cave speed for some levels, such as arnodash4 cave E (first intermission) where rockford spawns and immediately dies because of a firefly explosion. See parse_cave().
