@@ -277,7 +277,7 @@ main {
             show_instructions()
             return
         }
-        screen.hud_text(4,2,"\x8e\x8e\x8e\x8e   Rock  Runner   v1.0  \x8e\x8e\x8e\x8e")         ; VERSION NUMBER is here (1.0)
+        screen.hud_text(4,2,"\x8e\x8e\x8e\x8e   Rock  Runner   v1.1  \x8e\x8e\x8e\x8e")         ; VERSION NUMBER is here (1.1)
         screen.hud_text(4,4,"by DesertFish. Written in Prog8")
 
         ; what caveset is loaded
@@ -644,7 +644,6 @@ _loop           lda  (p8_attr_ptr),y
                             cx16.r1L = 0
                         else
                             cx16.r1L--
-                        objects.anim_cycles[idx]++
                     }
                     objects.anim_frame[idx] = cx16.r1L
                 }

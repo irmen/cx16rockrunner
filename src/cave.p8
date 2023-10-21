@@ -1031,13 +1031,12 @@ cave {
     }
 
     sub anim_ended(ubyte object) -> bool {
-        return objects.anim_cycles[object]>0
+        return objects.anim_frame[object] >= objects.anim_sizes[object]-1
     }
 
     sub restart_anim(ubyte object) {
         objects.anim_frame[object] = 0
         objects.anim_delay[object] = 0
-        objects.anim_cycles[object] = 0
     }
 
     sub clear_all_scanned() {

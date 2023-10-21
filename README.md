@@ -53,8 +53,6 @@ It explains the game and the various inhabitants of the caves you encounter.
 TODO
 ----
 
-- cleanup: Get rid of objects.anim_cycles, derive it from the animation frame and length of animation
-
 - BUG: explodingdash.bd cave 1 on the right side: the explosions keep restarting  into a giant column of flame
   caused by the way animations are done: they're global for the tile *type* (explosion in this case)
   and get restarted for all tiles that are still going in the animation.

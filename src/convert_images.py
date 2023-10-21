@@ -239,7 +239,6 @@ def make_catalog(parts: list[TilesPart]) -> None:
         # note: uninitialized arrays so they will be put into the BSS section.
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_frame\n")
         out.write(f"    ubyte[NUM_OBJECTS] @shared anim_delay\n")
-        out.write(f"    ubyte[NUM_OBJECTS] @shared anim_cycles\n")
         out.write("}\n")
 
 
