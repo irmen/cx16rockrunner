@@ -7,7 +7,7 @@ clean:
 	rm -f HISCORES/*.DAT
 
 emu: ROCKRUNNER.PRG
-	PULSE_LATENCY_MSEC=20 x16emu -scale 2 -quality best -run -prg $<
+	PULSE_LATENCY_MSEC=20 x16emu -abufs 16 -scale 2 -quality best -run -prg $<
 
 emu2: ROCKRUNNER.PRG
 	PULSE_LATENCY_MSEC=20 box16 -scale 2 -run -prg $<
@@ -24,7 +24,7 @@ zip: all
 	7z a rockrunner.zip ROCKRUNNER.PRG TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL CAVES HISCORES manifest.json
 
 bdcffreadertest: BDCFFTEST.PRG
-	PULSE_LATENCY_MSEC=20 x16emu -scale 2 -run -prg $<
+	PULSE_LATENCY_MSEC=20 x16emu -abufs 16 -scale 2 -run -prg $<
 
 BDCFFTEST.PRG: src/*.p8
 	@p8compile src/bdcfftest.p8 -target cx16

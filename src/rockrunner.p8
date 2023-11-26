@@ -44,7 +44,7 @@ main {
         interrupts.ram_bank = cx16.getrambank()
         music.init()
         screen.titlescreen()
-        sys.set_irq(&interrupts.handler, true)
+        sys.set_irq(&interrupts.handler)
         music.playback_enabled = true
 
         if not bdcff.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
@@ -861,7 +861,7 @@ interrupts {
         }}
     }
 
-    sub handler() {
+    sub handler() -> bool {
         if cx16.VERA_ISR & %00000001 {
             ram_bank_backup = cx16.getrambank()
             cx16.rambank(ram_bank)       ; make sure we see the correct ram bank
@@ -877,7 +877,9 @@ interrupts {
             psg.envelopes_irq()          ; note: does its own vera save/restore context
             cx16.rambank(ram_bank_backup)
             cx16.restore_virtual_registers()
+            return true
         }
+        return false
     }
 
     sub set_softscroll() {
