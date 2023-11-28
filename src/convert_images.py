@@ -5,18 +5,18 @@ from typing import Tuple
 from PIL import Image
 
 
+def to4bit(color: int) -> int:
+    return (color * 15 + 135) >> 8      # see https://threadlocalmutex.com/?p=48
+
 def reduce_colorspace(palette: list[int]) -> list[int]:
     # convert to 4:4:4 RGB, still 8 bits though
     result = []
     for c in palette:
-        c &= 0xf0
-        result.append(c | (c >> 4))
+        c = to4bit(c)
+        result.append(c<<4 | c)
     return result
 
-
 def make_cx16_palette(palette: list[int]) -> bytes:
-    def to4bit(color: int) -> int:
-        return (color * 15 + 135) >> 8      # see https://threadlocalmutex.com/?p=48
     cx16palette = bytearray()
     for pi in range(0, len(palette), 3):
         r, g, b = to4bit(palette[pi]), to4bit(palette[pi + 1]), to4bit(palette[pi + 2])

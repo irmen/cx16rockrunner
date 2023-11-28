@@ -53,9 +53,9 @@ cave {
     ubyte diamonds_needed
     ubyte cave_time_sec
     ubyte cave_speed
-    ubyte color_background1
-    ubyte color_background2
-    ubyte color_foreground
+    ubyte color_background1     ; not actually used yet
+    ubyte color_background2     ; not actually used yet
+    ubyte color_foreground      ; not actually used yet
 
     bool covered
     ubyte player_x
@@ -98,6 +98,7 @@ cave {
 
     sub init() {
         sys.memset(cells, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, objects.dirt)
+        sys.memset(cell_attributes, MAX_CAVE_WIDTH*MAX_CAVE_HEIGHT, 0)
     }
 
     sub restart_level() {
@@ -549,7 +550,7 @@ cave {
             ubyte afterboulder
             ubyte moved = false
 
-            if time_left_secs==0 and rockford_state {
+            if time_left_secs==0 and rockford_state!=0 {
                 ; explode (and lose a life in the process)
                 explode(player_x, player_y)
                 return
@@ -732,7 +733,7 @@ cave {
 
             sub rockford_can_eat(ubyte tobject, ubyte tattr) -> bool {
                 ; "You can't collect diamonds which are falling, but you can collect them when they momentarily bounce off of something or down the side of a pile."
-                return tattr&ATTR_FALLING==0 and objects.attributes[tobject]&objects.ATTRF_EATABLE
+                return tattr&ATTR_FALLING==0 and objects.attributes[tobject]&objects.ATTRF_EATABLE !=0
             }
 
             sub active_rockford_object() -> ubyte {
@@ -949,10 +950,10 @@ cave {
             ubyte obj_left = @(touch_ptr-1)
             ubyte obj_right = @(touch_ptr+1)
             ubyte obj_down = @(touch_ptr+MAX_CAVE_WIDTH)
-            return obj_up==objects.amoeba or objects.attributes[obj_up] & objects.ATTRF_ROCKFORD
-                or obj_down==objects.amoeba or objects.attributes[obj_down] & objects.ATTRF_ROCKFORD
-                or obj_left==objects.amoeba or objects.attributes[obj_left] & objects.ATTRF_ROCKFORD
-                or obj_right==objects.amoeba or objects.attributes[obj_right] & objects.ATTRF_ROCKFORD
+            return obj_up==objects.amoeba or objects.attributes[obj_up] & objects.ATTRF_ROCKFORD !=0
+                or obj_down==objects.amoeba or objects.attributes[obj_down] & objects.ATTRF_ROCKFORD !=0
+                or obj_left==objects.amoeba or objects.attributes[obj_left] & objects.ATTRF_ROCKFORD !=0
+                or obj_right==objects.amoeba or objects.attributes[obj_right] & objects.ATTRF_ROCKFORD !=0
         }
     }
 
@@ -988,7 +989,7 @@ cave {
     
     sub handle_rockford_animation() {
         ; per frame, not per cave scan
-        if not rockford_state
+        if rockford_state==0
             return
 
         rockford_animation_frame++

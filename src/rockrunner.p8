@@ -277,7 +277,7 @@ main {
             show_instructions()
             return
         }
-        screen.hud_text(4,2,"\x8e\x8e\x8e\x8e   Rock  Runner   v1.1  \x8e\x8e\x8e\x8e")         ; VERSION NUMBER is here (1.1)
+        screen.hud_text(4,2,"\x8e\x8e\x8e\x8e   Rock  Runner   v1.2  \x8e\x8e\x8e\x8e")         ; VERSION NUMBER is here (1.2)
         screen.hud_text(4,4,"by DesertFish. Written in Prog8")
 
         ; what caveset is loaded
@@ -400,7 +400,7 @@ main {
                 activate_choose_level()
                 return
             }
-            if keypress==0 and interrupts.vsync_counter & 3
+            if keypress==0 and interrupts.vsync_counter & 3 !=0
                 return
             for joystick.active_joystick in 1 to 4 {        ; skip 0 as it interferes with the normal keys
                 joystick.scan()
@@ -528,22 +528,22 @@ screen {
             %asm {{
                 phx
                 ldy  #0
-_loop           lda  (p8_attr_ptr),y
-                and  #p8_cave.p8_ATTR_COVERED_FLAG
+_loop           lda  (p8v_attr_ptr),y
+                and  #p8b_cave.p8c_ATTR_COVERED_FLAG
                 beq  +
-                ldx  #p8_objects.p8_covered
+                ldx  #p8b_objects.p8c_covered
                 bra  ++
-+               lda  (p8_cell_ptr),y
++               lda  (p8v_cell_ptr),y
                 tax
-+               lda  p8_objects.p8_tile_lo,x
++               lda  p8b_objects.p8v_tile_lo,x
                 clc
-                adc  p8_objects.p8_anim_frame,x
+                adc  p8b_objects.p8v_anim_frame,x
                 sta  cx16.VERA_DATA0
-                lda  p8_objects.p8_tile_hi,x
-                adc  p8_objects.p8_palette_offsets_preshifted,x
+                lda  p8b_objects.p8v_tile_hi,x
+                adc  p8b_objects.p8v_palette_offsets_preshifted,x
                 sta  cx16.VERA_DATA0
                 iny
-                cpy  #p8_cave.p8_VISIBLE_CELLS_H+1
+                cpy  #p8b_cave.p8c_VISIBLE_CELLS_H+1
                 bne  _loop
                 plx
             }}
@@ -854,9 +854,9 @@ interrupts {
         ; an improved waitvsync() routine over the one in the sys lib
         %asm {{
 -           wai
-            lda  p8_vsync_semaphore
+            lda  p8v_vsync_semaphore
             bne  -
-            inc  p8_vsync_semaphore
+            inc  p8v_vsync_semaphore
             rts
         }}
     }
@@ -874,7 +874,7 @@ interrupts {
             music.update()
             cave.do_each_frame()         ; for timing critical stuff
             cx16.restore_vera_context()
-            psg.envelopes_irq()          ; note: does its own vera save/restore context
+            void psg.envelopes_irq()          ; note: does its own vera save/restore context
             cx16.rambank(ram_bank_backup)
             cx16.restore_virtual_registers()
             return true

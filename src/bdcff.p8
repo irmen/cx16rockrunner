@@ -780,27 +780,27 @@ bdcff {
         ubyte @shared temp1
         ubyte @shared temp2
         %asm {{
-            lda  p8_bdrandom_seed1
+            lda  p8v_bdrandom_seed1
             ror  a
             ror  a
             and  #$80
-            sta  p8_temp1
-            lda  p8_bdrandom_seed2
+            sta  p8v_temp1
+            lda  p8v_bdrandom_seed2
             ror  a
             and  #$7f
-            sta  p8_temp2
-            lda  p8_bdrandom_seed2
+            sta  p8v_temp2
+            lda  p8v_bdrandom_seed2
             ror  a
             ror  a
             and  #$80
             clc
-            adc  p8_bdrandom_seed2
+            adc  p8v_bdrandom_seed2
             adc  #$13
-            sta  p8_bdrandom_seed2
-            lda  p8_bdrandom_seed1
-            adc  p8_temp1
-            adc  p8_temp2
-            sta  p8_bdrandom_seed1
+            sta  p8v_bdrandom_seed2
+            lda  p8v_bdrandom_seed1
+            adc  p8v_temp1
+            adc  p8v_temp2
+            sta  p8v_bdrandom_seed1
             rts
         }}
     }
