@@ -7,7 +7,7 @@ Author=Irmen de Jong
 Charset=Original
 Fontset=Original
 Levels=1
-Caves=2
+Caves=3
 
 [cave]
 Name=Test Cave 1
@@ -48,40 +48,70 @@ WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
 [/cave]
 
 [cave]
-Name=Test Cave 2
-Description=Which direction should you choose first?
+Name=Cannot pickup diamond bug
+Description=One of the diamonds cannot be picked up. BUG!
 CaveDelay=8
 CaveTime=200
 DiamondsRequired=5
 DiamondValue=1 3
-AmoebaTime=60
 MagicWallTime=20
-Colors=Black Black Gray1 Red Yellow
+AmoebaTime=60
+SlimePermeability=0.750
+Colors=Black Black Orange Brown Cyan
 
 [map]
- ssw..............................wss
- ssw.WWWWWWWWWWWWWWWWWWWWWWWWWWWW..wss
-ssw..W              W           W..wsss
-ssw..W WWWWWWWWWWWW W WWWWWWWWW W.wssss
-sssw.W W          W W W       W W..wssss
-ssw..W W WWWWWWWW W W W WWWWW W W..wssss
-ssw..W W       dW W W W    dW W W.wsssss
-sssw.W WWWWWWWWWW W W WWWWWWWQW W..wssss
-ssw..W            W W         W W..wssss
-ssw..WWWWWWWWWWWWWW WWWWWWWWWWW W..wssss
-sssw..W            P            W...wsss
-sssw..W WWWWWWWWWWW WWWWWWWWWWWWWWW.wsss
-sssw..W W         W Wc            W..wss
-ssssw.W W WWWWWWW W W WWWWWWWWWWW W.wsss
-sssw..W W W     W W W Wd        W W.wsss
-sssw..W W W WXW W W W WWWWWWWWW W W..wss
-ssssw.W W W  dW W W W           W W.wsss
-sssw..W W WWWWW W W WWWWWWWWWWWWW W.wsss
-sssw..W W       W W               W..wss
-ssssw.W WWWWWWWWW WWWWWWWWWWWWWWWWW.wsss
- ssw..W           W.................wss
- ssw..WWWWWWWWWWWWW...wwwwwwwwwwwwwwss
+WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+W    r      W
+W           W
+W           W
+W        P  W
+W           W
+W           W
+Wc          W
+W           W
+W           X
+W           W
+WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
 [/map]
 [/cave]
+
+[cave]
+Name=Pillar of fire bug
+Description=Fire explosion animation BUG!
+CaveDelay=8
+CaveTime=200
+DiamondsRequired=5
+DiamondValue=1 3
+MagicWallTime=20
+AmoebaTime=60
+SlimePermeability=0.750
+Colors=Black Black Orange Brown Cyan
+
+[map]
+WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+WrrrrrrrrrrrrWWWWWWWWrrrrrWWWWWWWrdrdrWW
+W............ W      .....      WcdcdcWW
+WW W W W WcWW W WWWWWWWcWWWWWWW WrwrwrWW
+WW W W W W WW W Wwwwwww wwwwwwW WrwrwrWW
+Ww w w wcw wW W Wwwwwww wwwwwwW WqrqrqWW
+Ww w w w w wW W Wwwwww w wwwwwW WrwrwrWW
+Ww w wcw w wW W WwwwwwcwcwwwwwW WrwrwrWW
+Ww w w w w wW W WwwwwwwwwwwwwwW WqrqrqWW
+Ww wcw w w wW W Wwwww w w wwwwW WrwrwrWW
+Ww w w w w wW W WwwwwcwcwcwwwwW WrwrwrWW
+Wwcw w w w wW W WwwwwwwwwwwwwwW WqrqrqWW
+Ww w w w w wW W Wwww w w w wwwW WrwrwrWW
+WwwcwcwcwcwwW W WwwwcwcwcwcwwwW WrwrwrWW
+Www w w w wwW W WwwwwwwwwwwwwwW WqrqrqWW
+WwwwwwwwwwwwW W Www w w w w wwW WrwrwrWW
+Wwww w w wwwW W WwwcwcwcwcwcwwW WrwrwrWW
+WwwwcwcwcwwwW W WwwwwwwwwwwwwwW WqrqrqWW
+WwwwwwwwwwwwW   Ww w w w w w wW WrwrwrWW
+WwwwwcwcwwwwWWWWWwcwcwcwcwcwcwW wrrrrrwW
+X...w w w........wwwwwwwwwwwww  P..... W
+WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+[/map]
+[/cave]
+
 [/game]
 [/BDCFF]
