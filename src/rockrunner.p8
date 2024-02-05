@@ -108,7 +108,7 @@ main {
                 STATE_UNCOVERING -> {
                     cave.uncover_more()
                     if not cave.covered {
-                        while cbm.GETIN() { /* clear keyboard buffer */ }
+                        while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
                         cave.scroll_enabled = cave.width>cave.VISIBLE_CELLS_H or cave.height>cave.VISIBLE_CELLS_V
                         interrupts.cavescan_frame = 0
                         if demo_requested
@@ -151,7 +151,7 @@ main {
                     }
                 }
                 STATE_GAMEOVER -> {
-                    if highscore.highscore_pos(cave.score)
+                    if highscore.highscore_pos(cave.score)!=0
                         activate_highscore_enter_name()
                     else
                         show_hiscore()
@@ -207,7 +207,7 @@ main {
             music.init()
             music.playback_enabled = true
         }
-        while cbm.GETIN() { /* clear keyboard buffer */ }
+        while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
         game_state = STATE_CHOOSE_LEVEL
     }
 
@@ -247,7 +247,7 @@ main {
                 screen.hud_clear()
                 screen.show_cave_title(false)
             }
-            while cbm.GETIN() { /* clear keyboard buffer */ }
+            while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
         }
         else if letter>='1' and letter <= '5' {
             ; digit - select difficulty
@@ -381,7 +381,7 @@ main {
         while row < CAVESET_DISPLAYLIST_MAXLENGTH and row < caveset_filenames_amount {
             screen.hud_text(12, row+8, name_ptr)
             row++
-            while @(name_ptr)
+            while @(name_ptr)!=0
                 name_ptr++
             name_ptr++
         }
@@ -391,7 +391,7 @@ main {
 
     sub select_caveset() {
         ubyte keypress = cbm.GETIN()
-        while cbm.GETIN() { /* clear keyboard buffer */ }
+        while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
         cx16.r1L = string.lowerchar(keypress)
         if cx16.r1L>32 and cx16.r1L<='z' {
             activate_select_caveset(cx16.r1L)
@@ -423,7 +423,7 @@ main {
                                 return
                             }
                             row++
-                            while @(name_ptr)
+                            while @(name_ptr)!=0
                                 name_ptr++
                             name_ptr++
                         }
@@ -632,7 +632,7 @@ _loop           lda  (p8v_attr_ptr),y
         ; cx16.vpoke(1,$fa00,$f0)
         ubyte idx
         for idx in 0 to objects.NUM_OBJECTS-1 {
-            if objects.anim_speeds[idx] {
+            if objects.anim_speeds[idx]!=0 {
                 cx16.r0L = objects.anim_delay[idx]
                 cx16.r0L++
                 if cx16.r0L == objects.anim_speeds[idx] {
@@ -640,7 +640,7 @@ _loop           lda  (p8v_attr_ptr),y
                     cx16.r1L = objects.anim_frame[idx]
                     cx16.r1L++
                     if cx16.r1L == objects.anim_sizes[idx] {
-                        if objects.attributes[idx] & objects.ATTRF_LOOPINGANIM
+                        if objects.attributes[idx] & objects.ATTRF_LOOPINGANIM !=0
                             cx16.r1L = 0
                         else
                             cx16.r1L--
@@ -674,7 +674,7 @@ _loop           lda  (p8v_attr_ptr),y
         hud_clear()
 
         ; background sprite layer: repeat a big sprite a couple of times across the background.
-        cx16.vaddr(1, $fc00, 0, true)
+        cx16.vaddr(1, $fc00, 0, 1)
         ubyte spr_ypos = 0
         repeat 4 {
             ubyte spr_xpos = 8
@@ -862,7 +862,7 @@ interrupts {
     }
 
     sub handler() -> bool {
-        if cx16.VERA_ISR & %00000001 {
+        if cx16.VERA_ISR & %00000001 !=0 {
             ram_bank_backup = cx16.getrambank()
             cx16.rambank(ram_bank)       ; make sure we see the correct ram bank
             cx16.save_virtual_registers()

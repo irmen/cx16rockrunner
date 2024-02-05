@@ -36,7 +36,7 @@ bd1demo {
     sub get_movement() {
         if repeats==255
             return
-        if repeats {
+        if repeats>0 {
             repeats--
             set_joy_direction(direction)
         } else {

@@ -120,7 +120,7 @@ bdcff {
             }
         }
 
-        if num_caves {
+        if num_caves>0 {
             ; parse the game parameters
             cs_file_bank = gameparams_bank
             cs_file_ptr = gameparams_address
@@ -235,7 +235,7 @@ bdcff {
                         else if lineptr=="DiamondValue" {
                             split_words()
                             cave.initial_diamond_value = conv.str2ubyte(words[0])
-                            if words[1]
+                            if words[1]!=0
                                 cave.extra_diamond_value = conv.str2ubyte(words[1])
                         }
                         else if lineptr=="DiamondsRequired" {
@@ -298,19 +298,19 @@ bdcff {
                             ubyte randomfill_prob3 = 0
                             ubyte randomfill_prob4 = 0
                             split_words()
-                            if words[0] {
+                            if words[0]!=0 {
                                 randomfill_objattr1 = parse_object(words[0])
                                 randomfill_prob1 = conv.str2ubyte(words[1])
                             }
-                            if words[2] {
+                            if words[2]!=0 {
                                 randomfill_objattr2 = parse_object(words[2])
                                 randomfill_prob2 = conv.str2ubyte(words[3])
                             }
-                            if words[4] {
+                            if words[4]!=0 {
                                 randomfill_objattr3 = parse_object(words[4])
                                 randomfill_prob3 = conv.str2ubyte(words[5])
                             }
-                            if words[6] {
+                            if words[6]!=0 {
                                 randomfill_objattr4 = parse_object(words[6])
                                 randomfill_prob4 = conv.str2ubyte(words[7])
                             }
@@ -424,7 +424,7 @@ bdcff {
                     }
                     else {
                         ubyte map_column=0
-                        while @(lineptr) {
+                        while @(lineptr)!=0 {
                             cx16.r0L = @(lineptr)
                             cx16.r1 = mkword(translate_attr(cx16.r0L), translate_object(cx16.r0L))
                             draw_single(cx16.r1, map_column, map_row)
@@ -505,7 +505,7 @@ bdcff {
                 arg_bytes[3] = conv.str2ubyte(words[3])
                 uword filler = parse_object(words[4])
                 uword border = filler
-                if words[5]
+                if words[5]!=0
                     filler = parse_object(words[5])
                 draw_rectangle(border, arg_bytes[0], arg_bytes[1], arg_bytes[2], arg_bytes[3], filler)
             }
@@ -656,7 +656,7 @@ bdcff {
 
             sub split_words() {
                 ubyte word_idx
-                while @(argptr) and word_idx<len(words) {
+                while @(argptr)!=0 and word_idx<len(words) {
                     words[word_idx] = argptr
                     word_idx++
                     cx16.r0L = string.find(argptr, ' ')

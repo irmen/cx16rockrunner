@@ -25,7 +25,7 @@ highscore {
 
     sub record_score(str caveset_name, uword score, str name) {
         ubyte pos = highscore_pos(score)
-        if pos {
+        if pos!=0 {
             pos--
             cx16.r10 = table + 6*8
             cx16.r11 = table + 64 + 6*2
@@ -48,14 +48,14 @@ highscore {
         sys.memset(name_input, len(name_input), ' ')
         name_input[0] = $8a ; return key
         input_idx = 0
-        while cbm.GETIN() { /* clear keyboard buffer */ }
+        while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
     }
 
     sub enter_name() -> bool {
         ubyte letter = cbm.GETIN()
         when letter {
             13 -> {
-                if input_idx {
+                if input_idx!=0 {
                     name_input[input_idx] = 0
                     return true
                 }

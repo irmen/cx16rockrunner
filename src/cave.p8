@@ -156,14 +156,14 @@ cave {
         jiffy_counter++
         if jiffy_counter==60 {
             jiffy_counter=0
-            if time_left_secs {
+            if time_left_secs>0 {
                 time_left_secs--
                 if time_left_secs <= 10
                     sounds.timeout(time_left_secs)
             }
         }
 
-        if amoeba_count and (jiffy_counter & 3 == 0)
+        if amoeba_count>0 and (jiffy_counter & 3 == 0)
             sounds.amoeba()
         if magicwall_enabled and (jiffy_counter & 3 == 1)
             sounds.magicwall()
@@ -183,7 +183,7 @@ cave {
                 enable_bonusbg()
                 intermission = false
             }
-            if time_left_secs and interrupts.vsync_counter & 1 {
+            if time_left_secs>0 and interrupts.vsync_counter & 1 !=0 {
                 add_score(cave.difficulty)
                 sounds.bonus(time_left_secs)
                 time_left_secs--
@@ -346,11 +346,11 @@ cave {
                         objects.vertexpander -> handle_vert_expander()
                         objects.bothexpander -> handle_both_expander()
                     }
-                    if objects.attributes[obj] & objects.ATTRF_ROCKFORD {
+                    if objects.attributes[obj] & objects.ATTRF_ROCKFORD !=0 {
                         if not exit_reached
                             handle_rockford()
                     }
-                    if objects.attributes[obj] & objects.ATTRF_FALLABLE {
+                    if objects.attributes[obj] & objects.ATTRF_FALLABLE !=0 {
                         if attr & ATTR_SCANNED_FLAG == 0 {
                             if attr==ATTR_FALLING {
                                 handle_falling_object()
@@ -360,7 +360,7 @@ cave {
                                     fall_down_one_cell()
                                     play_fall_sound(obj)
                                 }
-                                else if objects.attributes[@(cell_ptr + MAX_CAVE_WIDTH)] & objects.ATTRF_ROUNDED {
+                                else if objects.attributes[@(cell_ptr + MAX_CAVE_WIDTH)] & objects.ATTRF_ROUNDED !=0 {
                                     ; stationary boulders and diamonds can roll off something as well, as long as that is stationary
                                     roll_off()
                                 }
@@ -393,11 +393,11 @@ cave {
                 sink_through_magicwall()
             } else if obj_below==objects.slime {
                 sink_through_slime()
-            } else if attr_below & objects.ATTRF_ROUNDED {
+            } else if attr_below & objects.ATTRF_ROUNDED !=0 {
                 roll_off()
-            } else if attr_below & objects.ATTRF_ROCKFORD {
+            } else if attr_below & objects.ATTRF_ROCKFORD !=0 {
                 explode(x, y+1)
-            } else if attr_below & objects.ATTRF_EXPLODABLE {
+            } else if attr_below & objects.ATTRF_EXPLODABLE !=0 {
                 explode(x, y+1)
             } else {
                 ; stop falling; it is blocked by something
@@ -548,7 +548,7 @@ cave {
             ubyte targetattr
             bool eatable
             ubyte afterboulder
-            ubyte moved = false
+            bool moved = false
 
             if time_left_secs==0 and rockford_state!=0 {
                 ; explode (and lose a life in the process)
@@ -928,7 +928,7 @@ cave {
             explode_cell()
 
             sub explode_cell() {
-                if objects.attributes[@(cell_ptr2)] & objects.ATTRF_ROCKFORD {
+                if objects.attributes[@(cell_ptr2)] & objects.ATTRF_ROCKFORD !=0 {
                     rockford_state = 0
                     @(cell_ptr2) = how
                     @(attr_ptr2) |= ATTR_SCANNED_FLAG
@@ -937,7 +937,7 @@ cave {
                     player_died = true
                     player_died_timer = 150
                 }
-                if objects.attributes[@(cell_ptr2)] & objects.ATTRF_CONSUMABLE {
+                if objects.attributes[@(cell_ptr2)] & objects.ATTRF_CONSUMABLE !=0 {
                     @(cell_ptr2) = how
                     @(attr_ptr2) |= ATTR_SCANNED_FLAG
                 }
@@ -1054,7 +1054,7 @@ cave {
             return
         attr_ptr2 = cell_attributes
         repeat cave.MAX_CAVE_HEIGHT {
-            if bdcff.bdrandom() & 1 {
+            if bdcff.bdrandom() & 1 !=0 {
                 ubyte x = bdcff.bdrandom() % (cave.MAX_CAVE_WIDTH-1)
                 @(attr_ptr2 + x) &= ~ATTR_COVERED_FLAG
             }
