@@ -468,13 +468,13 @@ main {
             position_str[0] = '1'+position
             screen.hud_text(10, 11+position*2, position_str)
             screen.hud_text(14, 11+position*2, highscore.get_name(position))
-            conv.str_uw0(highscore.get_score(position))
+            uword score_string = conv.str_uw0(highscore.get_score(position))
             for cx16.r0L in 0 to 7 {
-                if conv.string_out[cx16.r0L] != '0'
+                if score_string[cx16.r0L] != '0'
                     break
-                conv.string_out[cx16.r0L] = ' '
+                score_string[cx16.r0L] = ' '
             }
-            screen.hud_text(24, 11+position*2, conv.string_out)
+            screen.hud_text(24, 11+position*2, score_string)
         }
     }
 
@@ -774,19 +774,14 @@ _loop           lda  (p8v_attr_ptr),y
     sub hud_update() {
         const ubyte xpos = 8
         screen.hud_text(xpos+1, 1, "\x8e")     ; diamond symbol
-        conv.str_ub0(cave.num_diamonds)
-        screen.hud_text(xpos+3, 1, conv.string_out)
+        screen.hud_text(xpos+3, 1, conv.str_ub0(cave.num_diamonds))
         screen.hud_text(xpos+6, 1, "/")
-        conv.str_ub0(cave.diamonds_needed)
-        screen.hud_text(xpos+7, 1, conv.string_out)
+        screen.hud_text(xpos+7, 1, conv.str_ub0(cave.diamonds_needed))
         screen.hud_text(xpos+12, 1, "\x88")       ; rockford symbol
-        conv.str_ub0(cave.num_lives)
-        screen.hud_text(xpos+14, 1, conv.string_out)
+        screen.hud_text(xpos+14, 1, conv.str_ub0(cave.num_lives))
         screen.hud_text(xpos+19, 1, "\x8f")     ; clock symbol
-        conv.str_ub0(cave.time_left_secs)
-        screen.hud_text(xpos+21, 1, conv.string_out)
-        conv.str_uw0(cave.score)
-        screen.hud_text(xpos+26, 1, conv.string_out)
+        screen.hud_text(xpos+21, 1, conv.str_ub0(cave.time_left_secs))
+        screen.hud_text(xpos+26, 1, conv.str_uw0(cave.score))
     }
 
     sub show_cave_title(bool with_description) {
