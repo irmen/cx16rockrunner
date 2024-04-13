@@ -30,6 +30,12 @@ main {
     const uword INSTRUCTIONS_DISPLAY_TIME = 60 * 10
     const uword DEMO_WAIT_TIME = 60 * 21 - HISCORE_DISPLAY_TIME
 
+    const bool quicklaunch_mode = false           ; set to TRUE to quickly enter game (loads 0-test.bd caveset)
+    const ubyte quicklaunch_start_cave = 'b'
+    const ubyte quicklaunch_joystick = 0
+    const ubyte quicklaunch_cavespeed = 20
+
+
     sub start() {
 ;        repeat {
 ;            ubyte k = cbm.GETIN()
@@ -43,16 +49,22 @@ main {
         joystick.active_joystick = 0
         interrupts.ram_bank = cx16.getrambank()
         music.init()
-        screen.titlescreen()
+        if not quicklaunch_mode
+            screen.titlescreen()
         sys.set_irq(&interrupts.handler)
-        music.playback_enabled = true
+        music.playback_enabled = not quicklaunch_mode
 
-        if not bdcff.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
-            ; caveset load error
-            error_abort($80)
+        if quicklaunch_mode {
+            bdcff.load_caveset("0-test.bd")
+            bdcff.parse_caveset()
+        } else {
+            if not bdcff.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
+                ; caveset load error
+                error_abort($80)
+            }
+            sys.wait(200)
         }
 
-        sys.wait(200)
         cave.init()
         highscore.load(bdcff.caveset_filename)
         screen.set_tiles_screenmode()
@@ -106,6 +118,8 @@ main {
                     }
                 }
                 STATE_UNCOVERING -> {
+                    if quicklaunch_mode
+                        cave.uncover_all()
                     cave.uncover_more()
                     if not cave.covered {
                         while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
@@ -225,6 +239,10 @@ main {
         str cave_letter_str     = "A-T: select start cave [A]"
         str cave_difficulty_str = "1-5: select difficulty [1]"
         letter = cbm.GETIN2()
+
+        if quicklaunch_mode
+            letter = quicklaunch_start_cave
+
         if letter!=0 {
             main.start.start_demo_timer = DEMO_WAIT_TIME
             main.start.start_hiscore_timer = HISCORE_WAIT_TIME
@@ -246,6 +264,13 @@ main {
                 cave.cover_all()
                 screen.hud_clear()
                 screen.show_cave_title(false)
+                if quicklaunch_mode {
+                    start_new_game()
+                    start_loaded_level()
+                    joystick.active_joystick=quicklaunch_joystick
+                    cave.cave_speed = quicklaunch_cavespeed
+                    return
+                }
             }
             while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
         }
@@ -313,6 +338,8 @@ main {
         cave.cover_all()
         cave.restart_level()
         main.start.title_timer = 250
+        if quicklaunch_mode
+            main.start.title_timer = 60
         game_state = STATE_CAVETITLE
         screen.hud_clear()
         screen.show_cave_title(true)
