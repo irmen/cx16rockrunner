@@ -48,11 +48,11 @@ highscore {
         sys.memset(name_input, len(name_input), ' ')
         name_input[0] = $8a ; return key
         input_idx = 0
-        while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
+        while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
     }
 
     sub enter_name() -> bool {
-        ubyte letter = cbm.GETIN()
+        ubyte letter = cbm.GETIN2()
         when letter {
             13 -> {
                 if input_idx!=0 {

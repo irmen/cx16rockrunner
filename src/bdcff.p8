@@ -129,7 +129,8 @@ bdcff {
                 if line[0]=='['
                     return true
                 uword argptr = 0
-                ubyte isIndex = string.find(line, '=')
+                ubyte isIndex
+                isIndex, void = string.find(line, '=')
                 if_cs {
                     argptr = line+isIndex+1
                     line[isIndex] = 0
@@ -212,7 +213,7 @@ bdcff {
                         read_state = READ_SKIP
                     else {
                         argptr = 0
-                        isIndex = string.find(lineptr, '=')
+                        isIndex,void = string.find(lineptr, '=')
                         if_cs {
                             argptr = lineptr+isIndex+1
                             lineptr[isIndex] = 0
@@ -358,7 +359,7 @@ bdcff {
                             split_words()
                             uword numberStr = words[0]
                             numberStr[5] = 0
-                            isIndex = string.find(numberStr, '.')
+                            isIndex,void = string.find(numberStr, '.')
                             if_cs {
                                 ; we assume the floating point value is always a multiple of 1/8ths so 0, 0.125, 0.250, etc etc up to 1.000
                                 ; conversion to slime permeability byte is to set the number of bits equal to this factor.
@@ -394,7 +395,7 @@ bdcff {
                         read_state = READ_CAVE
                     } else {
                         argptr = 0
-                        isIndex = string.find(lineptr, '=')
+                        isIndex,void = string.find(lineptr, '=')
                         if_cs {
                             argptr = lineptr+isIndex+1
                             lineptr[isIndex] = 0
@@ -659,7 +660,7 @@ bdcff {
                 while @(argptr)!=0 and word_idx<len(words) {
                     words[word_idx] = argptr
                     word_idx++
-                    cx16.r0L = string.find(argptr, ' ')
+                    cx16.r0L,void = string.find(argptr, ' ')
                     if_cc
                         return
                     argptr += cx16.r0L

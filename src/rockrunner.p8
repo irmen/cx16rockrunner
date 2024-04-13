@@ -108,7 +108,7 @@ main {
                 STATE_UNCOVERING -> {
                     cave.uncover_more()
                     if not cave.covered {
-                        while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
+                        while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
                         cave.scroll_enabled = cave.width>cave.VISIBLE_CELLS_H or cave.height>cave.VISIBLE_CELLS_V
                         interrupts.cavescan_frame = 0
                         if demo_requested
@@ -146,7 +146,7 @@ main {
                 }
                 STATE_SHOWING_HISCORE -> {
                     display_hiscore_timer--
-                    if display_hiscore_timer==0 or cbm.GETIN()==27 {
+                    if display_hiscore_timer==0 or cbm.GETIN2()==27 {
                         activate_choose_level()
                     }
                 }
@@ -207,7 +207,7 @@ main {
             music.init()
             music.playback_enabled = true
         }
-        while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
+        while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
         game_state = STATE_CHOOSE_LEVEL
     }
 
@@ -224,7 +224,7 @@ main {
 
         str cave_letter_str     = "A-T: select start cave [A]"
         str cave_difficulty_str = "1-5: select difficulty [1]"
-        letter = cbm.GETIN()
+        letter = cbm.GETIN2()
         if letter!=0 {
             main.start.start_demo_timer = DEMO_WAIT_TIME
             main.start.start_hiscore_timer = HISCORE_WAIT_TIME
@@ -247,7 +247,7 @@ main {
                 screen.hud_clear()
                 screen.show_cave_title(false)
             }
-            while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
+            while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
         }
         else if letter>='1' and letter <= '5' {
             ; digit - select difficulty
@@ -390,8 +390,8 @@ main {
     }
 
     sub select_caveset() {
-        ubyte keypress = cbm.GETIN()
-        while cbm.GETIN()!=0 { /* clear keyboard buffer */ }
+        ubyte keypress = cbm.GETIN2()
+        while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
         cx16.r1L = string.lowerchar(keypress)
         if cx16.r1L>32 and cx16.r1L<='z' {
             activate_select_caveset(cx16.r1L)

@@ -204,7 +204,7 @@ cave {
                 disable_magicwall(false)
         }
 
-        if cbm.GETIN()==27 and not player_died {
+        if cbm.GETIN2()==27 and not player_died {
             ; escape is pressed. Lose a life and restart the level
             if intermission==false
                 num_lives--
@@ -557,11 +557,11 @@ cave {
             }
 
             if main.game_state==main.STATE_DEMO {
-                if cbm.GETIN()==27 {
+                if cbm.GETIN2()==27 {
                     ; escape was pressed, abort the demo
                     exit_reached=true
                     time_left_secs=0
-                    while cbm.GETIN()==27 {
+                    while cbm.GETIN2()==27 {
                         ; wait until key released
                     }
                     return
@@ -1161,7 +1161,7 @@ joystick {
     bool fire
 
     sub scan() {
-        cx16.r1 = cx16.joystick_get2(active_joystick)
+        cx16.r1, void = cx16.joystick_get(active_joystick)
         left = lsb(cx16.r1) & %0010==0
         right = lsb(cx16.r1) & %0001==0
         up = lsb(cx16.r1) & %1000==0
