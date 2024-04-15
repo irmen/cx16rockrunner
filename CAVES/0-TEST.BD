@@ -48,8 +48,8 @@ WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
 [/cave]
 
 [cave]
-Name=Cannot pickup diamond bug
-Description=One of the diamonds cannot be picked up. BUG!
+Name=Can pickup all diamonds?
+Description=Should be able to pick up ALL diamonds
 CaveDelay=8
 CaveTime=200
 DiamondsRequired=5
@@ -61,16 +61,16 @@ Colors=Black Black Orange Brown Cyan
 
 [map]
 WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
-W    r      W
-W           W
-W           W
-W        P  W
-W           W
-W           W
-Wc          W
-W           W
-W           X
-W           W
+W             W
+W             W
+W             W
+W    r   P    W
+W             W
+W             W
+W             W
+W             W
+W         ddd X
+Wc        ddd W
 WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
 [/map]
 [/cave]

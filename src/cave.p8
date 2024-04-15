@@ -929,17 +929,19 @@ cave {
 
             sub explode_cell() {
                 if objects.attributes[@(cell_ptr2)] & objects.ATTRF_ROCKFORD !=0 {
+                    ; explosion hits Rockford
                     rockford_state = 0
                     @(cell_ptr2) = how
-                    @(attr_ptr2) |= ATTR_SCANNED_FLAG
+                    @(attr_ptr2) = ATTR_SCANNED_FLAG
                     if intermission==false
                         num_lives--
                     player_died = true
                     player_died_timer = 150
                 }
                 if objects.attributes[@(cell_ptr2)] & objects.ATTRF_CONSUMABLE !=0 {
+                    ; something else exploded.
                     @(cell_ptr2) = how
-                    @(attr_ptr2) |= ATTR_SCANNED_FLAG
+                    @(attr_ptr2) = ATTR_SCANNED_FLAG
                 }
             }
         }

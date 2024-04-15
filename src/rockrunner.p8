@@ -33,7 +33,7 @@ main {
     const bool quicklaunch_mode = false           ; set to TRUE to quickly enter game (loads 0-test.bd caveset)
     const ubyte quicklaunch_start_cave = 'b'
     const ubyte quicklaunch_joystick = 0
-    const ubyte quicklaunch_cavespeed = 20
+    const ubyte quicklaunch_cavespeed = 8
 
 
     sub start() {
