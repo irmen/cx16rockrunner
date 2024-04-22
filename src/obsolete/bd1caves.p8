@@ -1,3 +1,7 @@
+
+; This is old code that contains the BD1 Caves in code form.
+; But as we now have a BDCFF file loader, this is no longer used.
+
 bd1caves {
 
     const ubyte NUM_CAVES = 20

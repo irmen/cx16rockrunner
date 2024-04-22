@@ -55,8 +55,8 @@ main {
         music.playback_enabled = not quicklaunch_mode
 
         if quicklaunch_mode {
-            bdcff.load_caveset("0-test.bd")
-            bdcff.parse_caveset()
+            void bdcff.load_caveset("0-test.bd")
+            void bdcff.parse_caveset()
         } else {
             if not bdcff.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
                 ; caveset load error

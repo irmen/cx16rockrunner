@@ -58,6 +58,7 @@ TODO
   and get restarted for all tiles that are still going in the animation.
   Solution: rewrite the tile animation system to track animation frame per tile in the matrix, instead of per tile *type*
   Can this be embedded into the attribute matrix or does it need a new matrix?
+  In objects.p8 (generated!) at the bottom are the old anim tracking arrays that probably should be replaced.
 
 - feature: describe the basic game mechanics somewhere in the readme for new players.
 - feature: tweak the controls to also register joystick buttons a few frames before the actual cavescan - does this make it more responsive? or just more laggy? 
