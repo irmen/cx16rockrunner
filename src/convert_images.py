@@ -3,26 +3,7 @@ import configparser
 from dataclasses import dataclass
 from typing import Tuple
 from PIL import Image
-
-
-def to4bit(color: int) -> int:
-    return (color * 15 + 135) >> 8      # see https://threadlocalmutex.com/?p=48
-
-def reduce_colorspace(palette: list[int]) -> list[int]:
-    # convert to 4:4:4 RGB, still 8 bits though
-    result = []
-    for c in palette:
-        c = to4bit(c)
-        result.append(c<<4 | c)
-    return result
-
-def make_cx16_palette(palette: list[int]) -> bytes:
-    cx16palette = bytearray()
-    for pi in range(0, len(palette), 3):
-        r, g, b = to4bit(palette[pi]), to4bit(palette[pi + 1]), to4bit(palette[pi + 2])
-        cx16palette.append(g << 4 | b)
-        cx16palette.append(r)
-    return cx16palette
+from cx16images import BitmapImage, flat_palette_to_vera, reduce_colorspace, flat_palette_to_rgb, rgb_palette_to_flat
 
 
 def cvt(filename: str) -> Image.Image:
@@ -35,7 +16,8 @@ def cvt(filename: str) -> Image.Image:
         raise ValueError("width is not a multiple of 16: " + str(filename))
     num_tiles = width // 16 * height // 16
     converted = Image.new('P', (num_tiles * 16, 16))
-    converted.putpalette(reduce_colorspace(pal))
+    rgb_pal = reduce_colorspace(flat_palette_to_rgb(pal))
+    converted.putpalette(rgb_palette_to_flat(rgb_pal))
     converted.info['transparency'] = 0
     print(f"gathering '{filename}' : {num_colors} colors, {num_tiles} tiles")
     for tile_idx in range(num_tiles):
@@ -83,7 +65,7 @@ def combine_parts() -> Tuple[Image.Image, int, list[TilesPart]]:
     config = configparser.ConfigParser()
     config.read("images/catalog.ini")
     for fn in config.sections():
-        part = cvt("images/"+fn)
+        part = cvt("images/" + fn)
         num_tiles = part.size[0] // 16
         parts.append(TilesPart(os.path.basename(fn), total_tiles, palette_offset, num_tiles, part))
         total_tiles += num_tiles
@@ -118,9 +100,10 @@ def convert_tiles() -> list[TilesPart]:
                 data.append(color1 << 4 | color2)
     converted.save("converted.png")
     open("TILES.BIN", "wb").write(data)
-    cx16palette = make_cx16_palette(palette)
-    cx16palette[0] = 0  # make first entry black
-    cx16palette[1] = 0  # make first entry black
+    cx16palette = flat_palette_to_vera(palette)
+    # make first entry black:
+    cx16palette[0] = 0
+    cx16palette[1] = 0
     open("TILES.PAL", "wb").write(cx16palette)
     return tiles_parts
 
@@ -243,17 +226,11 @@ def make_catalog(parts: list[TilesPart]) -> None:
 
 
 def convert_titlescreen():
-    img = Image.open("images/miner16.png")
-    palette = make_cx16_palette(img.getpalette())
-    assert (len(palette) == 32)
+    img = BitmapImage("images/miner16.png")
+    palette = img.get_vera_palette()
+    assert len(palette) == 32
     open("TITLESCREEN.PAL", "wb").write(palette)
-    data = bytearray()
-    for y in range(240):
-        for x in range(0, 320, 2):
-            color1 = img.getpixel((x, y)) & 15
-            color2 = img.getpixel((x + 1, y)) & 15
-            data.append(color1 << 4 | color2)
-    open("TITLESCREEN.BIN", "wb").write(data)
+    open("TITLESCREEN.BIN", "wb").write(img.get_all_pixels_4bpp())
 
 
 def convert_font():
@@ -266,7 +243,7 @@ def convert_font():
                 b |= img.getpixel((px, py))
             result.append(b)
             b = 0
-            for px in range(col * 8+4, col * 8 + 8):
+            for px in range(col * 8 + 4, col * 8 + 8):
                 b <<= 2
                 b |= img.getpixel((px, py))
             result.append(b)
@@ -278,36 +255,30 @@ def convert_font():
     # misc
     for col in range(0, 32):
         bb = extract_letter(img, col, 0)
-        font[(128+col)*16: (128+col+1)*16] = bb
+        font[(128 + col) * 16: (128 + col + 1) * 16] = bb
     # digits
     for col in range(0, 32):
         bb = extract_letter(img, col, 1)
-        font[(32+col)*16: (32+col+1)*16] = bb
+        font[(32 + col) * 16: (32 + col + 1) * 16] = bb
     # uppercase letters
     for col in range(0, 32):
         bb = extract_letter(img, col, 2)
-        font[(64+32+col)*16: (64+32+col+1)*16] = bb
-        font[(64+128+col)*16: (64+128+col+1)*16] = bb
+        font[(64 + 32 + col) * 16: (64 + 32 + col + 1) * 16] = bb
+        font[(64 + 128 + col) * 16: (64 + 128 + col + 1) * 16] = bb
     # lowercase letters
     for col in range(0, 32):
         bb = extract_letter(img, col, 3)
-        font[(64+col)*16: (64+col+1)*16] = bb
+        font[(64 + col) * 16: (64 + col + 1) * 16] = bb
     assert len(font) == 256 * 8 * 2
     open("FONT.BIN", "wb").write(font)
 
 
 def convert_bgsprite():
-    img = Image.open("images/bgsprite.png")
-    palette = make_cx16_palette(img.getpalette())
+    img = BitmapImage("images/bgsprite.png")
+    palette = img.get_vera_palette()
     assert (len(palette) <= 32)
     open("BGSPRITE.PAL", "wb").write(palette)
-    data = bytearray()
-    for y in range(64):
-        for x in range(0, 64, 2):
-            color1 = img.getpixel((x, y)) & 15
-            color2 = img.getpixel((x + 1, y)) & 15
-            data.append(color1 << 4 | color2)
-    open("BGSPRITE.BIN", "wb").write(data)
+    open("BGSPRITE.BIN", "wb").write(img.get_all_pixels_4bpp())
 
 
 if __name__ == '__main__':
