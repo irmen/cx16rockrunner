@@ -13,25 +13,32 @@ from typing import TypeAlias
 
 RGBList: TypeAlias = list[tuple[int, int, int]]
 
-# the first 16 default colors of the Commander X16's color palette in (r,g,b) format
-default_colors = [
-    (0x0, 0x0, 0x0),  # 0 = black
-    (0xf, 0xf, 0xf),  # 1 = white
-    (0x8, 0x0, 0x0),  # 2 = red
-    (0xa, 0xf, 0xe),  # 3 = cyan
-    (0xc, 0x4, 0xc),  # 4 = purple
-    (0x0, 0xc, 0x5),  # 5 = green
-    (0x0, 0x0, 0xa),  # 6 = blue
-    (0xe, 0xe, 0x7),  # 7 = yellow
-    (0xd, 0x8, 0x5),  # 8 = orange
-    (0x6, 0x4, 0x0),  # 9 = brown
-    (0xf, 0x7, 0x7),  # 10 = light red
-    (0x3, 0x3, 0x3),  # 11 = dark grey
-    (0x7, 0x7, 0x7),  # 12 = medium grey
-    (0xa, 0xf, 0x6),  # 13 = light green
-    (0x0, 0x8, 0xf),  # 14 = light blue
-    (0xb, 0xb, 0xb)  # 15 = light grey
-]
+# the 256 default colors of the Commander X16's color palette in (r,g,b) format
+default_colors = []
+
+_colors="""000,fff,800,afe,c4c,0c5,00a,ee7,d85,640,f77,333,777,af6,08f,bbb
+000,111,222,333,444,555,666,777,888,999,aaa,bbb,ccc,ddd,eee,fff
+211,433,644,866,a88,c99,fbb,211,422,633,844,a55,c66,f77,200,411
+611,822,a22,c33,f33,200,400,600,800,a00,c00,f00,221,443,664,886
+aa8,cc9,feb,211,432,653,874,a95,cb6,fd7,210,431,651,862,a82,ca3
+fc3,210,430,640,860,a80,c90,fb0,121,343,564,786,9a8,bc9,dfb,121
+342,463,684,8a5,9c6,bf7,120,241,461,582,6a2,8c3,9f3,120,240,360
+480,5a0,6c0,7f0,121,343,465,686,8a8,9ca,bfc,121,242,364,485,5a6
+6c8,7f9,020,141,162,283,2a4,3c5,3f6,020,041,061,082,0a2,0c3,0f3
+122,344,466,688,8aa,9cc,bff,122,244,366,488,5aa,6cc,7ff,022,144
+166,288,2aa,3cc,3ff,022,044,066,088,0aa,0cc,0ff,112,334,456,668
+88a,9ac,bcf,112,224,346,458,56a,68c,79f,002,114,126,238,24a,35c
+36f,002,014,016,028,02a,03c,03f,112,334,546,768,98a,b9c,dbf,112
+324,436,648,85a,96c,b7f,102,214,416,528,62a,83c,93f,102,204,306
+408,50a,60c,70f,212,434,646,868,a8a,c9c,fbe,211,423,635,847,a59
+c6b,f7d,201,413,615,826,a28,c3a,f3c,201,403,604,806,a08,c09,f0b"""
+
+for line in _colors.splitlines():
+    for rgb in line.split(","):
+        r = int(rgb[0], 16)
+        g = int(rgb[1], 16)
+        b = int(rgb[2], 16)
+        default_colors.append((r, g, b))
 
 
 class BitmapImage:
@@ -158,6 +165,23 @@ class BitmapImage:
                 index += 1
         return data
 
+    def quantize_to(self, palette_rgb12: RGBList, dither: Image.Dither = Image.Dither.FLOYDSTEINBERG) -> None:
+        """
+        Convert the image to one with the supplied palette.
+        This palette must be in 12 bits colorspace (4 bits so 0-15 per channel)
+        The resulting image will have its palette extended to 8 bits per channel again.
+        If you want to display the image on the actual Commander X16, simply take the lower (or upper) 4 bits of every color channel.
+        Dithering is applied as given (default is Floyd-Steinberg).
+        """
+        palette_image = Image.new("P", (1, 1))
+        palette = []
+        for r, g, b in palette_rgb12:
+            palette.append(r << 4 | r)
+            palette.append(g << 4 | g)
+            palette.append(b << 4 | b)
+        palette_image.putpalette(palette)
+        self.img = self.img.quantize(dither=dither, palette=palette_image)
+
     def quantize(self, bits_per_pixel: int, preserve_first_16_colors: bool,
                  dither: Image.Dither = Image.Dither.FLOYDSTEINBERG) -> None:
         """
@@ -170,37 +194,26 @@ class BitmapImage:
             num_colors = 240 if preserve_first_16_colors else 256
         elif bits_per_pixel == 4:
             num_colors = 16
-        else:
-            raise ValueError("only 8 or 4 bpp supported")
-        palette_image = self.make_quantization_palette_from_image(num_colors, preserve_first_16_colors)
-        self.img = self.img.quantize(dither=dither, palette=palette_image)
-
-    def make_quantization_palette_from_image(self, num_colors: int, preserve_first_16_colors: bool) -> Image:
-        if num_colors == 16 and preserve_first_16_colors:
-            palette_image = Image.new("P", (1, 1))
-            palette = []
-            for r, g, b in default_colors:
-                palette.append(r << 4 | r)
-                palette.append(g << 4 | g)
-                palette.append(b << 4 | b)
-            palette_image.putpalette(palette)
-            return palette_image
-        else:
-            image = self.img.convert("RGB")
-            palette_image = image.quantize(colors=num_colors, dither=Image.Dither.NONE, method=Image.Quantize.MAXCOVERAGE)
-            if len(palette_image.getpalette()) // 3 > num_colors:
-                palette_image = image.quantize(colors=num_colors - 1, dither=Image.Dither.NONE, method=Image.Quantize.MAXCOVERAGE)
-            palette_rgb = flat_palette_to_rgb(palette_image.getpalette())
-            palette_rgb = list(set(palette_8to4(palette_rgb)))
             if preserve_first_16_colors:
-                palette_rgb = default_colors + palette_rgb
-            palette = []
-            for r, g, b in sorted(palette_rgb):
-                palette.append(r << 4 | r)
-                palette.append(g << 4 | g)
-                palette.append(b << 4 | b)
-            palette_image.putpalette(palette)
-            return palette_image
+                return self.quantize_to(default_colors[:16])
+        elif bits_per_pixel == 2:
+            assert preserve_first_16_colors==False, "bpp is too small for 16 default colors"
+            num_colors = 4
+        elif bits_per_pixel == 1:
+            assert preserve_first_16_colors==False, "bpp is too small for 16 default colors"
+            num_colors = 2
+        else:
+            raise ValueError("only 8,4,2,1 bpp supported")
+        image = self.img.convert("RGB")
+        palette_image = image.quantize(colors=num_colors, dither=Image.Dither.NONE, method=Image.Quantize.MAXCOVERAGE)
+        if len(palette_image.getpalette()) // 3 > num_colors:
+            palette_image = image.quantize(colors=num_colors - 1, dither=Image.Dither.NONE, method=Image.Quantize.MAXCOVERAGE)
+        palette_rgb = flat_palette_to_rgb(palette_image.getpalette())
+        palette_rgb = list(reversed(sorted(set(palette_8to4(palette_rgb)))))
+        if preserve_first_16_colors:
+            palette_rgb = default_colors[:16] + palette_rgb
+        self.img = image
+        self.quantize_to(palette_rgb, dither)
 
     def constrain_size(self, hires: bool = False) -> None:
         """
