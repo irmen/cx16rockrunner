@@ -1057,7 +1057,7 @@ cave {
         attr_ptr2 = cell_attributes
         repeat cave.MAX_CAVE_HEIGHT {
             if bdcff.bdrandom() & 1 !=0 {
-                ubyte x = bdcff.bdrandom() % (cave.MAX_CAVE_WIDTH-1)
+                ubyte x = bdcff.bdrandom() % ((cave.MAX_CAVE_WIDTH-1) as ubyte)
                 @(attr_ptr2 + x) &= ~ATTR_COVERED_FLAG
             }
             attr_ptr2 += MAX_CAVE_WIDTH
