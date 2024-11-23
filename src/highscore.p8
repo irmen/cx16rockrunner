@@ -1,5 +1,5 @@
 %import diskio
-%import string
+%import strings
 
 highscore {
     ; data format:
@@ -30,13 +30,13 @@ highscore {
             cx16.r10 = table + 6*8
             cx16.r11 = table + 64 + 6*2
             for cx16.r9L in 6 downto pos {
-                void string.copy(cx16.r10, cx16.r10+8)
+                void strings.copy(cx16.r10, cx16.r10+8)
                 pokew(cx16.r11+2, peekw(cx16.r11))
                 cx16.r10 -= 8
                 cx16.r11 -= 2
             }
             pokew(cx16.r11+2, score)
-            void string.copy(name, cx16.r10+8)
+            void strings.copy(name, cx16.r10+8)
             save(caveset_name)
         }
     }
@@ -101,7 +101,7 @@ highscore {
         diskio.chdir("..")
         cx16.r9 = table
         repeat 8 {
-            void string.copy("DesertF", cx16.r9)
+            void strings.copy("DesertF", cx16.r9)
             cx16.r9 += 8
         }
         cx16.r10 = 1600

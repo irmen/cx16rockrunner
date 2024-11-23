@@ -16,7 +16,7 @@ src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSP
 	@python src/convert_images.py
 
 ROCKRUNNER.PRG: src/*.p8 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL
-	@p8compile src/rockrunner.p8 -target cx16
+	@prog8c src/rockrunner.p8 -target cx16
 	@mv rockrunner.prg ROCKRUNNER.PRG
 
 zip: all
@@ -27,6 +27,6 @@ bdcffreadertest: BDCFFTEST.PRG
 	PULSE_LATENCY_MSEC=20 x16emu -abufs 16 -scale 2 -run -prg $<
 
 BDCFFTEST.PRG: src/*.p8
-	@p8compile src/bdcfftest.p8 -target cx16
+	@prog8c src/bdcfftest.p8 -target cx16
 	@mv bdcfftest.prg BDCFFTEST.PRG
 

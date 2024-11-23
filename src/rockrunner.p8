@@ -419,7 +419,7 @@ main {
     sub select_caveset() {
         ubyte keypress = cbm.GETIN2()
         while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
-        cx16.r1L = string.lowerchar(keypress)
+        cx16.r1L = strings.lowerchar(keypress)
         if cx16.r1L>32 and cx16.r1L<='z' {
             activate_select_caveset(cx16.r1L)
         } else {
