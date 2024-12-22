@@ -95,10 +95,10 @@ class BitmapImage:
         assert self.has_palette()
         data = bytearray(width * height)
         index = 0
-        img = self.img
+        pix = self.img.load()
         for py in range(y, y + height):
             for px in range(x, x + width):
-                data[index] = img.getpixel((px, py))
+                data[index] = pix[px, py]
                 index += 1
         return data
 
@@ -119,11 +119,11 @@ class BitmapImage:
         assert self.has_palette()
         data = bytearray(width // 2 * height)
         index = 0
-        img = self.img
+        pix = self.img.load()
         for py in range(y, y + height):
             for px in range(x, x + width, 2):
-                pix1 = img.getpixel((px, py))
-                pix2 = img.getpixel((px + 1, py))
+                pix1 = pix[px, py]
+                pix2 = pix[px + 1, py]
                 data[index] = pix1 << 4 | pix2
                 index += 1
         return data
@@ -137,11 +137,11 @@ class BitmapImage:
         assert self.has_palette()
         data = bytearray(self.width // 2 * self.height)
         index = 0
-        img = self.img
+        pix = self.img.load()
         for py in range(self.height):
             for px in range(0, self.width, 2):
-                pix1 = img.getpixel((px, py))
-                pix2 = img.getpixel((px + 1, py))
+                pix1 = pix[px, py]
+                pix2 = pix[px + 1, py]
                 data[index] = pix1 << 4 | pix2
                 index += 1
         return data
