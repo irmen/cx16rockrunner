@@ -191,7 +191,7 @@ bdcff {
 
         repeat {
             lineptr = next_file_line_petscii()
-            uword equalsIndex
+            ubyte equalsIndex
             if lineptr=="[/cave]" {
                 validate_size()
                 cave.diamonds_needed = diamonds_needed[difficulty-1]
