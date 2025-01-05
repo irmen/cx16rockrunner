@@ -53,8 +53,6 @@ It explains the game and the various inhabitants of the caves you encounter.
 TODO
 ----
 
-- Improve titlescreen:  dim the colors of the scrolling block background temporarily to make the text more legible
-
 - BUG: explodingdash.bd cave 1 (or 0-test cave C) on the right side: the explosions keep restarting  into a giant column of flame
   caused by the way animations are done: they're global for the tile *type* (explosion in this case)
   and get restarted for all tiles that are still going in the animation.
