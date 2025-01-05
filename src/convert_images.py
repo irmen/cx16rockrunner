@@ -273,12 +273,21 @@ def convert_font():
     open("FONT.BIN", "wb").write(font)
 
 
-def convert_bgsprite():
+def convert_sprites():
+    # background sprite
     img = BitmapImage("images/bgsprite.png")
     palette = img.get_vera_palette()
     assert (len(palette) <= 32)
     open("BGSPRITE.PAL", "wb").write(palette)
     open("BGSPRITE.BIN", "wb").write(img.get_all_pixels_4bpp())
+    # logo sprites
+    img = BitmapImage("images/miner16small.png").get_image()
+    # the palette should be the same as the titlescreen palette
+    img_left = BitmapImage("leftlogo", img.crop((0, 0, 64, 64)))
+    img_right = BitmapImage("rightlogo", img.crop((64, 0, 128, 64)))
+    with open("LOGOSPRITE.BIN", "wb") as out:
+        out.write(img_left.get_all_pixels_4bpp())
+        out.write(img_right.get_all_pixels_4bpp())
 
 
 if __name__ == '__main__':
@@ -286,4 +295,4 @@ if __name__ == '__main__':
     make_catalog(tiles_parts)
     convert_titlescreen()
     convert_font()
-    convert_bgsprite()
+    convert_sprites()

@@ -216,6 +216,7 @@ main {
         main.choose_level.update_hud_choices_text()
         demo_requested = false
         screen.hud_clear()
+        screen.show_logo_image(false)
         cave.cover_all()
         if not music.playback_enabled {
             music.init()
@@ -302,7 +303,7 @@ main {
             show_instructions()
             return
         }
-        screen.hud_text(4,2,"\x8e\x8e\x8e\x8e   Rock  Runner   v1.2  \x8e\x8e\x8e\x8e")         ; VERSION NUMBER is here (1.2)
+        screen.hud_text(4,2,"\x8e\x8e\x8e\x8e   Rock  Runner   v1.3a \x8e\x8e\x8e\x8e")         ; VERSION NUMBER is here (1.3a)
         screen.hud_text(4,4,"by DesertFish. Written in Prog8")
 
         ; what caveset is loaded
@@ -320,6 +321,9 @@ main {
         screen.hud_text(8,24,"F4: instructions")
         screen.hud_text(7,26,"Any joystick START button")
         screen.hud_text(10,27,"to start the game!")
+
+        ; logo
+        screen.show_logo_image(true)
 
         sub update_hud_choices_text() {
             cave_letter_str[len(cave_letter_str)-2] = chosen_level+'A'-1
@@ -342,7 +346,9 @@ main {
             main.start.title_timer = 60
         game_state = STATE_CAVETITLE
         screen.hud_clear()
+        screen.show_logo_image(false)
         screen.show_cave_title(true)
+        screen.show_background_sprite_layer()
     }
 
     sub play_demo() {
@@ -366,6 +372,7 @@ main {
         game_state = STATE_SHOWING_HISCORE
         main.start.display_hiscore_timer = INSTRUCTIONS_DISPLAY_TIME
         screen.hud_clear()
+        screen.show_logo_image(false)
         screen.hud_text(7,3,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
         screen.hud_text(7,5,"Rock Runner  Instructions")
         screen.hud_text(7,7,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
@@ -391,6 +398,7 @@ main {
         ; $81 = down, $82 = left, $83 = up, $84 = right arrows.
         game_state = STATE_SELECT_CAVESET
         screen.hud_clear()
+        screen.show_logo_image(false)
         screen.hud_text(3,2,"Select a caveset from the list")
         screen.hud_text(3,3,"(scanned from the 'caves' subdir)")
         screen.hud_text(3,4,"Press letter or digit or '*' to use")
@@ -483,6 +491,7 @@ main {
         game_state = STATE_SHOWING_HISCORE
         main.start.display_hiscore_timer = HISCORE_DISPLAY_TIME
         screen.hud_clear()
+        screen.show_logo_image(false)
         screen.hud_text(7,3,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
         screen.hud_text(7,5,"Rock Runner  Hall Of Fame")
         screen.hud_text(7,6,"Caveset: ")
@@ -536,6 +545,7 @@ screen {
         cx16.VERA_CTRL = 0
         cx16.VERA_DC_VIDEO &= %10001111
     }
+
     sub enable() {
         cx16.VERA_CTRL = 0
         cx16.VERA_DC_VIDEO = old_vera_displaymode
@@ -651,6 +661,8 @@ _loop           lda  (p8v_attr_ptr),y
 
         void diskio.vload_raw("bgsprite.bin", 1, $f000)
         void diskio.vload_raw("bgsprite.pal", 1, $fa00+14*16*2)
+        void diskio.vload_raw("logosprite.bin", 1, $d000)
+        void diskio.vload_raw("titlescreen.pal", 1, $fa00+13*16*2)
     }
 
     sub update_animations() {
@@ -689,7 +701,7 @@ _loop           lda  (p8v_attr_ptr),y
         ;           320x240 pixels, 4bpp (16 colors) 16x16 tiles.
         ;           tile map: 64x32 tiles at $1C000.
         ;           uses font data at $1E000
-        ; no sprites.
+        ; sprites background layer.
 
         ; pre-fill screen with space tiles
         cx16.vaddr(1, $b000, 0, 1)
@@ -699,26 +711,6 @@ _loop           lda  (p8v_attr_ptr),y
             cx16.VERA_DATA0 = 0
         }
         hud_clear()
-
-        ; background sprite layer: repeat a big sprite a couple of times across the background.
-        cx16.vaddr(1, $fc00, 0, 1)
-        ubyte spr_ypos = 0
-        repeat 4 {
-            ubyte spr_xpos = 8
-            repeat 4 {
-                cx16.VERA_DATA0 = lsb($1f000 >> 5)
-                cx16.VERA_DATA0 = lsb($1f000 >> 13)
-                cx16.VERA_DATA0 = spr_xpos
-                cx16.VERA_DATA0 = 0
-                cx16.VERA_DATA0 = spr_ypos
-                cx16.VERA_DATA0 = 0
-                cx16.VERA_DATA0 = %00000100
-                cx16.VERA_DATA0 = %11110000 | 14
-                spr_xpos += 80
-                spr_ypos += 8
-            }
-            spr_ypos += 80-32
-        }
 
         cx16.VERA_CTRL = 0
         cx16.VERA_DC_BORDER = 0
@@ -818,6 +810,56 @@ _loop           lda  (p8v_attr_ptr),y
         screen.hud_text(xpos+10, ypos, cave.name)
         if with_description
             screen.hud_wrap_text(xpos, ypos+3, 25, cave.description)
+    }
+
+    sub show_logo_image(bool visible) {
+        ; the logo consists of two 64*64 sprites 4bpp
+
+        cx16.VERA_CTRL = 0
+        if visible {
+            cx16.vaddr(1, $fc00, 0, 1)
+            uword spr_xpos = 160-64
+            uword spr_data = $1d000 >> 5
+            repeat 2 {
+                cx16.VERA_DATA0 = lsb(spr_data)
+                cx16.VERA_DATA0 = msb(spr_data)
+                cx16.VERA_DATA0 = lsb(spr_xpos)
+                cx16.VERA_DATA0 = msb(spr_xpos)
+                cx16.VERA_DATA0 = 80
+                cx16.VERA_DATA0 = 0
+                cx16.VERA_DATA0 = %00001100
+                cx16.VERA_DATA0 = %11110000 | 13        ; palette offset 13 (14 is used by the stars backdrop, 15 by the text)
+                spr_xpos += 64
+                spr_data += 64
+            }
+            cx16.VERA_DC_VIDEO |= %01000000
+        }
+        else
+            cx16.VERA_DC_VIDEO &= %10111111
+    }
+
+    sub show_background_sprite_layer() {
+        ; background sprite layer: repeat a big sprite a couple of times across the background.
+        cx16.vaddr(1, $fc00, 0, 1)
+        ubyte spr_ypos = 0
+        repeat 4 {
+            ubyte spr_xpos = 8
+            repeat 4 {
+                cx16.VERA_DATA0 = lsb($1f000 >> 5)
+                cx16.VERA_DATA0 = lsb($1f000 >> 13)
+                cx16.VERA_DATA0 = spr_xpos
+                cx16.VERA_DATA0 = 0
+                cx16.VERA_DATA0 = spr_ypos
+                cx16.VERA_DATA0 = 0
+                cx16.VERA_DATA0 = %00000100
+                cx16.VERA_DATA0 = %11110000 | 14
+                spr_xpos += 80
+                spr_ypos += 8
+            }
+            spr_ypos += 80-32
+        }
+
+        cx16.VERA_DC_VIDEO |= %01000000
     }
 
     bool white_flash
