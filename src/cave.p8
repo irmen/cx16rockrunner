@@ -481,6 +481,9 @@ cave {
             }
         }
 
+        uword @requirezp target_cell_ptr
+        uword @requirezp target_attr_ptr
+
         sub handle_firefly() {
             ; Movement rules: if it touches Rockford or Amoeba it explodes
             ; tries to rotate 90 degrees left and move to empty cell in new or original direction
@@ -491,8 +494,8 @@ cave {
                 return
             }
             ubyte new_dir = rotate_90_left(attr)
-            uword target_cell_ptr = get_cell_ptr_for_direction(new_dir)
-            uword target_attr_ptr = get_attr_ptr_for_direction(new_dir)
+            target_cell_ptr = get_cell_ptr_for_direction(new_dir)
+            target_attr_ptr = get_attr_ptr_for_direction(new_dir)
             if @(target_cell_ptr)==objects.space {
                 @(cell_ptr) = objects.space
                 @(attr_ptr) = 0
@@ -521,8 +524,8 @@ cave {
                 return
             }
             ubyte new_dir = rotate_90_right(attr)
-            uword target_cell_ptr = get_cell_ptr_for_direction(new_dir)
-            uword target_attr_ptr = get_attr_ptr_for_direction(new_dir)
+            target_cell_ptr = get_cell_ptr_for_direction(new_dir)
+            target_attr_ptr = get_attr_ptr_for_direction(new_dir)
             if @(target_cell_ptr)==objects.space {
                 @(cell_ptr) = objects.space
                 @(attr_ptr) = 0

@@ -60,6 +60,7 @@ TODO
   Can this be embedded into the attribute matrix or does it need a new matrix?
   In objects.p8 (generated!) at the bottom are the old anim tracking arrays that probably should be replaced.
 
+- codesize: screen.hud_text() is called MANY times in a row, this eats code space. Make a table of subsequent strings, and parse that in a loop perhaps?
 - feature: describe the basic game mechanics somewhere in the readme for new players.
 - feature: tweak the controls to also register joystick buttons a few frames before the actual cavescan - does this make it more responsive? or just more laggy? 
 - feature: "CaveDelay" is currently not parsed. This causes the wrong cave speed for some levels, such as arnodash4 cave E (first intermission) where rockford spawns and immediately dies because of a firefly explosion. See parse_cave().
