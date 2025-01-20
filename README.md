@@ -35,15 +35,9 @@ For example, error code `$86` means that a cave in the caveset file is larger th
 How to play the game
 --------------------
 
-Pick up enough diamonds in the
-cave to unlock the exit, and
-reach it before the time runs out.
-Avoid enemies and getting crushed.
-Control the game using any joypad
-(start button activates).
-Fire+direction lets you grab
-something without moving there!
-Press ESC when you're stuck: this
+Pick up enough diamonds in the cave to unlock the exit, and reach it before the time runs out.
+Avoid enemies and getting crushed. Control the game using any joypad (start button activates).
+Fire+direction lets you grab something without moving there! Press ESC when you're stuck: this
 restarts the level (losing a life)
 
 For more details refer to the manual of the original Boulder Dash game: https://archive.org/details/Boulder_Dash_1984_First_Star_Software/

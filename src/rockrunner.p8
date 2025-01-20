@@ -16,7 +16,7 @@ main {
 
     str BD1_CAVESET_FILE = "boulderdash01.bd"
     const ubyte STATE_CAVETITLE = 1
-    const ubyte STATE_CHOOSE_LEVEL = 2
+    const ubyte STATE_TITLE_MENU = 2
     const ubyte STATE_UNCOVERING = 3
     const ubyte STATE_PLAYING = 4
     const ubyte STATE_GAMEOVER = 5
@@ -69,7 +69,7 @@ main {
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        activate_choose_level()
+        activate_title_menu_state()
         screen.enable()
         ubyte title_timer
         uword start_demo_timer = DEMO_WAIT_TIME
@@ -82,7 +82,7 @@ main {
             screen.update()
 
             when game_state {
-                STATE_CHOOSE_LEVEL -> {
+                STATE_TITLE_MENU -> {
                     choose_level()
                     start_demo_timer--
                     if start_demo_timer==0 {
@@ -154,13 +154,13 @@ main {
                 }
                 STATE_DEMO -> {
                     if cave.scan() != cave.ACTION_NOTHING {
-                        activate_choose_level()
+                        activate_title_menu_state()
                     }
                 }
                 STATE_SHOWING_HISCORE -> {
                     display_hiscore_timer--
                     if display_hiscore_timer==0 or cbm.GETIN2()==27 {
-                        activate_choose_level()
+                        activate_title_menu_state()
                     }
                 }
                 STATE_GAMEOVER -> {
@@ -209,7 +209,8 @@ main {
         start_loaded_level()
     }
 
-    sub activate_choose_level() {
+    sub activate_title_menu_state() {
+        game_state = STATE_TITLE_MENU
         chosen_difficulty = 1
         chosen_level = 1
         main.choose_level.update_hud_choices_text()
@@ -223,7 +224,6 @@ main {
             music.playback_enabled = true
         }
         while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
-        game_state = STATE_CHOOSE_LEVEL
     }
 
     sub choose_level() {
@@ -264,7 +264,8 @@ main {
                 bdcff.parse_cave(chosen_level, chosen_difficulty)
                 cave.cover_all()
                 screen.hud_clear()
-                screen.show_cave_title(false)
+                ; Don't show the cave title anymore it falls below the game's logo graphics.
+                ; screen.show_cave_title(false)
                 if quicklaunch_mode {
                     start_new_game()
                     start_loaded_level()
@@ -433,7 +434,7 @@ main {
             activate_select_caveset(cx16.r1L)
         } else {
             if keypress == 27 {
-                activate_choose_level()
+                activate_title_menu_state()
                 return
             }
             if keypress==0 and interrupts.vsync_counter & 3 !=0
@@ -454,7 +455,7 @@ main {
                                     }
                                     highscore.load(bdcff.caveset_filename)
                                     sys.wait(10)
-                                    activate_choose_level()
+                                    activate_title_menu_state()
                                 }
                                 return
                             }
@@ -908,18 +909,23 @@ _loop           lda  (p8v_attr_ptr),y
     }
 
     uword[16] orig_covertile_colors
-    bool have_orig_covertile_colors
+    bool already_dimmed
     sub dim_covertile_color(bool dim) {
+        ; This makes the cover tile colors darker (or resets them back to the originals),
+        ; it is used on the title screens to make the text more readable.
+
+        if dim and already_dimmed
+            return      ; don't dim twice
+
         uword palette_idx = $fa00 + objects.palette_offsets_preshifted[objects.covered]*$0002
 
-        if not have_orig_covertile_colors {
+        if not already_dimmed {
             ; backup the original covertile color entries
             cx16.vaddr(1, palette_idx, 0, 1)
             for cx16.r0L in 0 to 15 {
                 cx16.r1 = mkword(cx16.VERA_DATA0, cx16.VERA_DATA0)
                 orig_covertile_colors[cx16.r0L] = cx16.r1
             }
-            have_orig_covertile_colors = true
         }
 
         cx16.vaddr(1, palette_idx, 0, 1)
@@ -936,6 +942,7 @@ _loop           lda  (p8v_attr_ptr),y
                 cx16.VERA_DATA0 = msb(cx16.r1)
             }
         }
+        already_dimmed = dim
     }
 }
 

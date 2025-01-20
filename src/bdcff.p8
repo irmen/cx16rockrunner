@@ -466,9 +466,9 @@ bdcff {
 
                 ubyte i
                 for i in cave.width to cave.MAX_CAVE_WIDTH-1
-                    draw_line(objects.steel, i, 0, i, cave.MAX_CAVE_WIDTH-1)
+                    draw_line(objects.steel, i, 0, i, cave.MAX_CAVE_HEIGHT-1)
                 for i in cave.height to cave.MAX_CAVE_HEIGHT-1
-                    draw_line(objects.steel, 0, i, cave.MAX_CAVE_HEIGHT-1, i)
+                    draw_line(objects.steel, 0, i, cave.MAX_CAVE_WIDTH-1, i)
             }
 
             sub parse_point() {
