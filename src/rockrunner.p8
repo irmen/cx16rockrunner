@@ -69,7 +69,7 @@ main {
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles()
-        activate_title_menu_state()
+        activate_title_menu_state(true)
         screen.enable()
         ubyte title_timer
         uword start_demo_timer = DEMO_WAIT_TIME
@@ -154,13 +154,13 @@ main {
                 }
                 STATE_DEMO -> {
                     if cave.scan() != cave.ACTION_NOTHING {
-                        activate_title_menu_state()
+                        activate_title_menu_state(true)
                     }
                 }
                 STATE_SHOWING_HISCORE -> {
                     display_hiscore_timer--
                     if display_hiscore_timer==0 or cbm.GETIN2()==27 {
-                        activate_title_menu_state()
+                        activate_title_menu_state(false)
                     }
                 }
                 STATE_GAMEOVER -> {
@@ -209,10 +209,12 @@ main {
         start_loaded_level()
     }
 
-    sub activate_title_menu_state() {
+    sub activate_title_menu_state(bool reset_chosen_level) {
         game_state = STATE_TITLE_MENU
-        chosen_difficulty = 1
-        chosen_level = 1
+        if reset_chosen_level {
+            chosen_difficulty = 1
+            chosen_level = 1
+        }
         main.choose_level.update_hud_choices_text()
         demo_requested = false
         screen.hud_clear()
@@ -363,6 +365,7 @@ main {
             highscore.load(BD1_CAVESET_FILE)
         }
         chosen_level = 1
+        chosen_difficulty = 1
         bdcff.parse_cave(1, chosen_difficulty)
         bd1demo.init()
         start_loaded_level()
@@ -434,7 +437,7 @@ main {
             activate_select_caveset(cx16.r1L)
         } else {
             if keypress == 27 {
-                activate_title_menu_state()
+                activate_title_menu_state(false)
                 return
             }
             if keypress==0 and interrupts.vsync_counter & 3 !=0
@@ -455,7 +458,7 @@ main {
                                     }
                                     highscore.load(bdcff.caveset_filename)
                                     sys.wait(10)
-                                    activate_title_menu_state()
+                                    activate_title_menu_state(true)
                                 }
                                 return
                             }
