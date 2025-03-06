@@ -102,15 +102,18 @@ main {
                         screen.set_scroll_pos(0, 0)     ; not random?
                         screen.hud_clear()
                         if demo_requested {
-                            screen.hud_text(9,10,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")
-                            screen.hud_text(9,11,"\x8e                    \x8d")
-                            screen.hud_text(9,12,"\x8d    Rock  Runner    \x8e")
-                            screen.hud_text(9,13,"\x8e                    \x8d")
-                            screen.hud_text(9,14,"\x8d       Demo !       \x8e")
-                            screen.hud_text(9,15,"\x8e                    \x8d")
-                            screen.hud_text(9,16,"\x8d press ESC to abort \x8e")
-                            screen.hud_text(9,17,"\x8e                    \x8d")
-                            screen.hud_text(9,18,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88")
+                            uword[] @nosplit announcement = [
+                                mkword(9, 10), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88",
+                                mkword(9, 11), "\x8e                    \x8d",
+                                mkword(9, 12), "\x8d    Rock  Runner    \x8e",
+                                mkword(9, 13), "\x8e                    \x8d",
+                                mkword(9, 14), "\x8d       Demo !       \x8e",
+                                mkword(9, 15), "\x8e                    \x8d",
+                                mkword(9, 16), "\x8d press ESC to abort \x8e",
+                                mkword(9, 17), "\x8e                    \x8d",
+                                mkword(9, 18), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88"
+                            ]
+                            screen.hud_texts(announcement, len(announcement)/2)
                         }
                         music.playback_enabled = false
                         game_state = STATE_UNCOVERING
@@ -306,24 +309,27 @@ main {
             show_instructions()
             return
         }
-        screen.hud_text(4,2,"\x8e\x8e\x8e\x8e   Rock  Runner   v1.3a \x8e\x8e\x8e\x8e")         ; VERSION NUMBER is here (1.3a)
-        screen.hud_text(4,4,"by DesertFish. Written in Prog8")
 
-        ; what caveset is loaded
-        screen.hud_text(4,6,"Caveset: ")
-        screen.hud_text(13, 6, bdcff.caveset_filename)
-        screen.hud_text(6, 7, bdcff.caveset_name)
-        screen.hud_text(6, 8, bdcff.caveset_author)
+        uword[] @nosplit texts = [
+            mkword(4,2), "\x8e\x8e\x8e\x8e   Rock  Runner   v1.3a \x8e\x8e\x8e\x8e",        ; VERSION NUMBER is here
+            mkword(4,4), "by DesertFish. Written in Prog8",
+            mkword(4,6), "Caveset: ",
+            ; what caveset is loaded:
+            mkword(13,6), bdcff.caveset_filename,
+            mkword(6,7), bdcff.caveset_name,
+            mkword(6,8), bdcff.caveset_author,
+            mkword(7,19), cave_letter_str,
+            mkword(7,20), cave_difficulty_str,
+            ; menu
+            mkword(8,21), "F1: load different caveset",
+            mkword(8,22), "F2: play demo (BD1 cave A)",
+            mkword(8,23), "F3: show hall of fame",
+            mkword(8,24), "F4: instructions",
+            mkword(7,26), "Any joystick START button",
+            mkword(10,27), "to start the game!"
+        ]
 
-        ; menu
-        screen.hud_text(7,19,cave_letter_str)
-        screen.hud_text(7,20,cave_difficulty_str)
-        screen.hud_text(8,21,"F1: load different caveset")
-        screen.hud_text(8,22,"F2: play demo (BD1 cave A)")
-        screen.hud_text(8,23,"F3: show hall of fame")
-        screen.hud_text(8,24,"F4: instructions")
-        screen.hud_text(7,26,"Any joystick START button")
-        screen.hud_text(10,27,"to start the game!")
+        screen.hud_texts(texts, len(texts)/2)
 
         ; logo
         screen.show_logo_image(true)
@@ -378,20 +384,24 @@ main {
         main.start.display_hiscore_timer = INSTRUCTIONS_DISPLAY_TIME
         screen.hud_clear()
         screen.show_logo_image(false)
-        screen.hud_text(7,3,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
-        screen.hud_text(7,5,"Rock Runner  Instructions")
-        screen.hud_text(7,7,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
-        screen.hud_text(4,11,"Pick up enough diamonds in the")
-        screen.hud_text(4,12,"cave to unlock the exit, and")
-        screen.hud_text(4,13,"reach it before the time runs out.")
-        screen.hud_text(4,14,"Avoid enemies and getting crushed.")
-        screen.hud_text(4,17,"Control the game using any joypad")
-        screen.hud_text(4,18,"(start button activates).")
-        screen.hud_text(4,19,"Fire+direction lets you grab")
-        screen.hud_text(4,20,"something without moving there!")
-        screen.hud_text(4,23,"Press ESC when you're stuck: this")
-        screen.hud_text(4,24,"restarts the level (losing a life)")
 
+        uword[] @nosplit instructions = [
+            mkword(7,3), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d",
+            mkword(7,5), "Rock Runner  Instructions",
+            mkword(7,7), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d",
+            mkword(4,11), "Pick up enough diamonds in the",
+            mkword(4,12), "cave to unlock the exit, and",
+            mkword(4,13), "reach it before the time runs out.",
+            mkword(4,14), "Avoid enemies and getting crushed.",
+            mkword(4,17), "Control the game using any joypad",
+            mkword(4,18), "(start button activates).",
+            mkword(4,19), "Fire+direction lets you grab",
+            mkword(4,20), "something without moving there!",
+            mkword(4,23), "Press ESC when you're stuck: this",
+            mkword(4,24), "restarts the level (losing a life)"
+        ]
+
+        screen.hud_texts(instructions, len(instructions)/2)
     }
 
     str caveset_prefix = "**"
@@ -404,10 +414,15 @@ main {
         game_state = STATE_SELECT_CAVESET
         screen.hud_clear()
         screen.show_logo_image(false)
-        screen.hud_text(3,2,"Select a caveset from the list")
-        screen.hud_text(3,3,"(scanned from the 'caves' subdir)")
-        screen.hud_text(3,4,"Press letter or digit or '*' to use")
-        screen.hud_text(3,5,"that as a name prefix filter.")
+
+        uword[] @nosplit instructions = [
+            mkword(3,2), "Select a caveset from the list",
+            mkword(3,3), "(scanned from the 'caves' subdir)",
+            mkword(3,4), "Press letter or digit or '*' to use",
+            mkword(3,5), "that as a name prefix filter."
+        ]
+        screen.hud_texts(instructions, len(instructions)/2)
+
         diskio.chdir("caves")
         caveset_prefix[0] = prefixletter
         cx16.rambank(bdcff.FILENAMES_BANK)
@@ -497,12 +512,17 @@ main {
         main.start.display_hiscore_timer = HISCORE_DISPLAY_TIME
         screen.hud_clear()
         screen.show_logo_image(false)
-        screen.hud_text(7,3,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
-        screen.hud_text(7,5,"Rock Runner  Hall Of Fame")
-        screen.hud_text(7,6,"Caveset: ")
-        screen.hud_text(16, 6, bdcff.caveset_filename)
-        screen.hud_text(10, 7, bdcff.caveset_name)
-        screen.hud_text(7,9,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+
+        uword[] @nosplit halltxt = [
+            mkword(7,3), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d",
+            mkword(7,5), "Rock Runner  Hall Of Fame",
+            mkword(7,6), "Caveset: ",
+            mkword(16,6), bdcff.caveset_filename,
+            mkword(10,7), bdcff.caveset_name,
+            mkword(7,9), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d"
+        ]
+        screen.hud_texts(halltxt, len(halltxt)/2)
+
         ubyte position
         str position_str = "?."
         for position in 0 to 7 {
@@ -524,10 +544,16 @@ main {
         music.init()
         music.playback_enabled = true
         screen.hud_clear()
-        screen.hud_text(7,10,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
-        screen.hud_text(7,12,"You got a new High Score!")
-        screen.hud_text(7,14,"Enter your name:")
-        screen.hud_text(7,16,"\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d")
+
+        uword [] @nosplit highscore_txts = [
+            mkword(7,10), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d",
+            mkword(7,12), "You got a new High Score!",
+            mkword(7,14), "Enter your name:",
+            mkword(7,16), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d"
+        ]
+
+        screen.hud_texts(highscore_txts, len(highscore_txts)/2)
+
         highscore.start_enter_name()
         ; name entry is handled in a separate subroutine!
     }
@@ -738,6 +764,14 @@ _loop           lda  (p8v_attr_ptr),y
         }
     }
 
+    sub hud_texts(uword texts_specs, ubyte amount) {
+        repeat amount {
+            cx16.r0 = peekw(texts_specs)
+            hud_text(cx16.r0H, cx16.r0L, peekw(texts_specs+2))
+            texts_specs += 4
+        }
+    }
+
     sub hud_text(ubyte col, ubyte row, uword text_ptr) {
         uword offset = (row as uword) * 128 + col*2
         cx16.vaddr(1, $c000 + offset, 0, 1)
@@ -797,13 +831,17 @@ _loop           lda  (p8v_attr_ptr),y
 
     sub hud_update() {
         const ubyte xpos = 8
-        screen.hud_text(xpos+1, 1, "\x8e")     ; diamond symbol
+        uword[] @nosplit hud_elements = [
+            mkword(xpos+1, 1), "\x8e",      ; diamond symbol
+            mkword(xpos+6, 1), "/",
+            mkword(xpos+12, 1), "\x88",     ; rockford symbol
+            mkword(xpos+19, 1), "\x8f",     ; clock symbol
+        ]
+        screen.hud_texts(hud_elements, len(hud_elements)/2)
+
         screen.hud_text(xpos+3, 1, conv.str_ub0(cave.num_diamonds))
-        screen.hud_text(xpos+6, 1, "/")
         screen.hud_text(xpos+7, 1, conv.str_ub0(cave.diamonds_needed))
-        screen.hud_text(xpos+12, 1, "\x88")       ; rockford symbol
         screen.hud_text(xpos+14, 1, conv.str_ub0(cave.num_lives))
-        screen.hud_text(xpos+19, 1, "\x8f")     ; clock symbol
         screen.hud_text(xpos+21, 1, conv.str_ub0(cave.time_left_secs))
         screen.hud_text(xpos+26, 1, conv.str_uw0(cave.score))
     }

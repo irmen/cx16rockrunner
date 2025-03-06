@@ -1,4 +1,6 @@
 %import psg
+%import math
+
 
 ; super high priority sounds: timeout 
 ; high priority sounds: crack - amoeba - magic wall
