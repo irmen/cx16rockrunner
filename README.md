@@ -54,6 +54,7 @@ TODO
   Can this be embedded into the attribute matrix or does it need a new matrix?
   In objects.p8 (generated!) at the bottom are the old anim tracking arrays that probably should be replaced.
 
+- feature: allow longer names in the Hiscore table?
 - feature: sort the caveset list and make it scrollable (and get rid of the prefix entry letter)
 - feature: describe the basic game mechanics somewhere in the readme for new players.
 - feature: tweak the controls to also register joystick buttons a few frames before the actual cavescan - does this make it more responsive? or just more laggy? 

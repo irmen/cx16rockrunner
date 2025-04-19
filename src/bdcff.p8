@@ -1,5 +1,6 @@
 ; Boulderdash Common File Format loader and parsing
 
+%import diskio
 %import strings
 %import conv
 %import cave
