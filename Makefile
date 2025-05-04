@@ -18,7 +18,7 @@ run2: ROCKRUNNER.PRG
 	PULSE_LATENCY_MSEC=20 box16 -scale 2 -run -prg $<
 
 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL LOGOSPRITE.BIN: src/convert_images.py images/catalog.ini
-	@$(PYTHON)src/convert_images.py
+	@$(PYTHON) src/convert_images.py
 
 ROCKRUNNER.PRG: src/*.p8 src/objects.p8 TILES.BIN TILES.PAL TITLESCREEN.BIN TITLESCREEN.PAL FONT.BIN BGSPRITE.BIN BGSPRITE.PAL LOGOSPRITE.BIN
 	$(PROG8C) src/rockrunner.p8 -target cx16
