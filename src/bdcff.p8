@@ -73,7 +73,7 @@ bdcff {
         return buffer
 
         sub eol() -> bool {
-            return @(cs_file_ptr)==iso:'\r' or @(cs_file_ptr)==iso:'\n'
+            return @(cs_file_ptr)==10 or @(cs_file_ptr)==13
         }
 
         sub inc_ptr() {

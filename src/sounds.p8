@@ -8,6 +8,9 @@
 ; low priority: all other sounds.
 ; To convert SID values to hertz, multiply by (1,022,900/16,777,216) = 0.06096959114074707
 ; To convert Hertz to Vera freq, divide by (48828.125 / (2**17)) = 0.3725290298461914
+; Noise frequency should be doubled again due to the way the VERA PSG noise waveform works
+; (see https://github.com/X16Community/x16-emulator/issues/341 )
+;
 ; So to convert SID value directly to Vera freq, multiply by 0.163664
 ;    attack time:    MAXVOL/15/attack  seconds.    higher value = faster attack.
 ;    sustain time:   sustain/60 seconds    higher sustain value = longer sustain (!).
@@ -26,7 +29,7 @@ sounds {
 
     sub explosion() {
         psg.voice(VOICE_EXPLOSION, psg.LEFT|psg.RIGHT, 63, psg.NOISE, 0)
-        psg.freq(VOICE_EXPLOSION, 846)
+        psg.freq(VOICE_EXPLOSION, 846 * 2)
         psg.envelope(VOICE_EXPLOSION, 63, 250, 0, 2)
     }
 
@@ -47,13 +50,13 @@ sounds {
 
     sub boulder() {
         psg.voice(VOICE_BOULDERS, psg.LEFT|psg.RIGHT, 63, psg.NOISE, 0)
-        psg.freq(VOICE_BOULDERS, 2085)
+        psg.freq(VOICE_BOULDERS, 2085 *2)
         psg.envelope(VOICE_BOULDERS, 63, 250, 1, 30)
     }
 
     sub crack() {
         psg.voice(VOICE_CRACK, psg.LEFT|psg.RIGHT, 63, psg.NOISE, 0)
-        psg.freq(VOICE_CRACK, 5977)
+        psg.freq(VOICE_CRACK, 9000 *2)
         psg.envelope(VOICE_CRACK, 63, 250, 1, 10)
     }
 

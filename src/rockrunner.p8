@@ -311,7 +311,7 @@ main {
         }
 
         uword[] @nosplit texts = [
-            mkword(4,2), "\x8e\x8e\x8e\x8e   Rock  Runner   v1.3  \x8e\x8e\x8e\x8e",        ; VERSION NUMBER is here
+            mkword(4,2), "\x8e\x8e\x8e\x8e   Rock  Runner  v1.4b  \x8e\x8e\x8e\x8e",        ; VERSION NUMBER is here
             mkword(4,4), "by DesertFish. Written in Prog8",
             mkword(4,6), "Caveset: ",
             ; what caveset is loaded:

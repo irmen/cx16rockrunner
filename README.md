@@ -47,8 +47,6 @@ It explains the game and the various inhabitants of the caves you encounter.
 TODO
 ----
 
-- BUG: noise sounds frequencies are off and should be doubled (or checked with the official spec) since emulator issue https://github.com/X16Community/x16-emulator/issues/341 was fixed
-
 - BUG: explodingdash.bd cave 1 (or 0-test cave C) on the right side: the explosions keep restarting  into a giant column of flame
   caused by the way animations are done: they're global for the tile *type* (explosion in this case)
   and get restarted for all tiles that are still going in the animation.
