@@ -3,7 +3,7 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.11" />
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="Python 3.12 (py3)" project-jdk-type="Python SDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_21" default="true" project-jdk-name="Python 3.13 virtualenv at ~/.virtualenvs/py3" project-jdk-type="Python SDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>
