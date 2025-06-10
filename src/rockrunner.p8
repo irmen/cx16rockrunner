@@ -11,6 +11,7 @@ main {
     ubyte chosen_level
     ubyte chosen_difficulty
     ubyte game_state
+    ubyte tileset = 2
     bool demo_requested
 
     str BD1_CAVESET_FILE = "boulderdash01.bd"
@@ -23,6 +24,7 @@ main {
     const ubyte STATE_SHOWING_HISCORE = 7
     const ubyte STATE_ENTER_NAME = 8
     const ubyte STATE_SELECT_CAVESET = 9
+    const ubyte STATE_SELECT_TILESET = 10
     const uword HISCORE_WAIT_TIME = 60 * 12
     const uword HISCORE_DISPLAY_TIME = 60 * 6
     const uword INSTRUCTIONS_DISPLAY_TIME = 60 * 10
@@ -35,14 +37,6 @@ main {
 
 
     sub start() {
-;        repeat {
-;            ubyte k = cbm.GETIN()
-;            if k {
-;                txt.print_ub(k)
-;                txt.spc()
-;            }
-;        }
-
         clear_abort_error()
         joystick.active_joystick = 0
         interrupts.ram_bank = cx16.getrambank()
@@ -67,7 +61,7 @@ main {
         highscore.load(bdcff.caveset_filename)
         screen.set_tiles_screenmode()
         screen.disable()
-        screen.load_tiles()
+        screen.load_tiles(tileset)
         activate_title_menu_state(true)
         screen.enable()
         ubyte title_timer
@@ -181,6 +175,9 @@ main {
                 STATE_SELECT_CAVESET -> {
                     select_caveset()
                 }
+                STATE_SELECT_TILESET -> {
+                    select_tileset()
+                }
             }
         }
     }
@@ -241,8 +238,7 @@ main {
             }
         }
 
-        str cave_letter_str     = "A-T: select start cave [A]"
-        str cave_difficulty_str = "1-5: select difficulty [1]"
+        str cave_and_level_select_str = "A-T: start cave=A  1-5: difficulty=1"
         letter = cbm.GETIN2()
 
         if quicklaunch_mode
@@ -308,22 +304,27 @@ main {
             show_instructions()
             return
         }
+        else if letter==135 {
+            ; F5 - select tile set
+            activate_select_tileset()
+            return
+        }
 
         uword[] @nosplit texts = [
             mkword(4,2), "\x8e\x8e\x8e\x8e   Rock  Runner  v1.4b  \x8e\x8e\x8e\x8e",        ; VERSION NUMBER is here
             mkword(4,4), "by DesertFish. Written in Prog8",
-            mkword(4,6), "Caveset: ",
+            mkword(4,15), "Caveset: ",
             ; what caveset is loaded:
-            mkword(13,6), bdcff.caveset_filename,
-            mkword(6,7), bdcff.caveset_name,
-            mkword(6,8), bdcff.caveset_author,
-            mkword(7,19), cave_letter_str,
-            mkword(7,20), cave_difficulty_str,
+            mkword(13,15), bdcff.caveset_filename,
+            mkword(6,16), bdcff.caveset_name,
+            mkword(6,17), bdcff.caveset_author,
             ; menu
-            mkword(8,21), "F1: load different caveset",
-            mkword(8,22), "F2: play demo (BD1 cave A)",
-            mkword(8,23), "F3: show hall of fame",
-            mkword(8,24), "F4: instructions",
+            mkword(8,19), "F1: load different caveset",
+            mkword(8,20), "F2: play demo (BD1 cave A)",
+            mkword(8,21), "F3: show hall of fame",
+            mkword(8,22), "F4: instructions",
+            mkword(8,23), "F5: choose tile graphics",
+            mkword(2,25), cave_and_level_select_str,
             mkword(7,26), "Any joystick START button",
             mkword(10,27), "to start the game!"
         ]
@@ -334,8 +335,8 @@ main {
         screen.show_logo_image(true)
 
         sub update_hud_choices_text() {
-            cave_letter_str[len(cave_letter_str)-2] = chosen_level+'A'-1
-            cave_difficulty_str[len(cave_difficulty_str)-2] = chosen_difficulty+'0'
+            cave_and_level_select_str[16] = chosen_level+'A'-1
+            cave_and_level_select_str[35] = chosen_difficulty+'0'
         }
     }
 
@@ -403,6 +404,26 @@ main {
         screen.hud_texts(instructions, len(instructions)/2)
     }
 
+    sub activate_select_tileset() {
+        game_state = STATE_SELECT_TILESET
+        screen.hud_clear()
+        screen.show_logo_image(false)
+
+        uword[] @nosplit instructions = [
+            mkword(4,5), "Choose the Graphics Tile Set:",
+            mkword(10,9), "1 - classic",
+            mkword(10,11), "2 - new",
+            mkword(4,19), "classic tiles from Boulder Rush",
+            mkword(4,20), "new tiles by Shign Bright"
+        ]
+
+        screen.hud_texts(instructions, len(instructions)/2)
+
+        str chosen = "currently loaded: ?"
+        chosen[len(chosen)-1] = tileset+'0'
+        screen.hud_text(8, 14, chosen)
+    }
+
     str caveset_prefix = "**"
     ubyte caveset_selected_index
     const ubyte CAVESET_DISPLAYLIST_MAXLENGTH = 20
@@ -441,6 +462,26 @@ main {
         }
         caveset_selected_index = 0
         screen.hud_text(9, 8, "\x84")       ; right arrow on the first entry
+    }
+
+    sub select_tileset() {
+        ubyte keypress = cbm.GETIN2()
+        while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
+        if keypress == '1' {
+            tileset = 1
+            screen.dim_covertile_color(false)
+            screen.load_game_tiles(1)
+            screen.dim_covertile_color(true)
+            activate_title_menu_state(false)
+        }
+        else if keypress == '2' {
+            tileset = 2
+            screen.dim_covertile_color(false)
+            screen.load_game_tiles(2)
+            screen.dim_covertile_color(true)
+            activate_title_menu_state(false)
+        }
+        return
     }
 
     sub select_caveset() {
@@ -566,7 +607,6 @@ interrupts {
     ubyte ram_bank_backup
 
     asmsub waitvsync() {
-        ; an improved waitvsync() routine over the one in the sys lib
         %asm {{
 -           wai
             lda  p8v_vsync_semaphore

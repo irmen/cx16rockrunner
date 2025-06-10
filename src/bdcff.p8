@@ -660,6 +660,7 @@ bdcff {
 
                 ; should never happen, all object names should be recognised
                 main.error_abort($83)  ; unrecognised object name
+                return 0
             }
 
             sub split_words() {

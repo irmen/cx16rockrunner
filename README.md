@@ -6,7 +6,9 @@ A Boulder Dash® clone for the Commander X16, written in [Prog8](https://prog8.r
 Original Boulder Dash® in 1984 by First Star Software, created by Peter Liepa and Chris Gray.
 Copyright by BBG Entertainment GmbH.
 
-The graphics tile set is from MIT-licensed GDash and is based on Boulder Rush by Michael Kowalski / Miksoft. See below for links.
+The default graphics uses an updated tile set made by Shign Bright for the Commander X16.
+The classic graphics tile set is from MIT-licensed GDash and is based on Boulder Rush by Michael Kowalski / Miksoft.
+
 
 ![Rock Runner screenshot](rrgame.png)
 
@@ -59,8 +61,7 @@ TODO
 - feature: describe the basic game mechanics somewhere in the readme for new players.
 - feature: tweak the controls to also register joystick buttons a few frames before the actual cavescan - does this make it more responsive? or just more laggy? 
 - feature: "CaveDelay" is currently not parsed. This causes the wrong cave speed for some levels, such as arnodash4 cave E (first intermission) where rockford spawns and immediately dies because of a firefly explosion. See parse_cave().
-- feature: touch up the tileset to real 16x16 graphics? starting with diamonds and boulders then Rockford then the rest
-- feature: selectable tilesets?  also add the real c64 retro tileset with the adjustable palette per cave?
+- feature: add the real c64 retro tileset with the adjustable palette per cave?
 - feature: easter egg: replace butterfly with X16 logo (how to trigger?)
 - feature: better title tune (@Crisps?)
 - feature: better sound effects for the random sounds (Use random tones from a scale rather than totally random frequencies?)

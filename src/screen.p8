@@ -120,9 +120,8 @@ _loop           lda  (p8v_attr_ptr),y
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %00010000       ; layer 0 active
     }
 
-    sub load_tiles() {
-        void diskio.vload_raw("tiles.bin", 0, $0000)
-        void diskio.vload_raw("tiles.pal", 1, $fa00)
+    sub load_tiles(ubyte tileset) {
+        load_game_tiles(tileset)
         void diskio.vload_raw("font.bin", 1, $e000)
         ; fixup the palette for the HUD text font (entries $f0-$ff)
         cx16.vpoke(1,$fa00+$f0*2,$00)
@@ -138,6 +137,17 @@ _loop           lda  (p8v_attr_ptr),y
         void diskio.vload_raw("bgsprite.pal", 1, $fa00+14*16*2)
         void diskio.vload_raw("logosprite.bin", 1, $d000)
         void diskio.vload_raw("titlescreen.pal", 1, $fa00+13*16*2)
+    }
+
+    sub load_game_tiles(ubyte tileset) {
+        str tiles_file = "tiles0.bin"
+        str palette_file = "tiles0.pal"
+
+        tiles_file[5] = tileset + '0'
+        palette_file[5] = tileset + '0'
+
+        void diskio.vload_raw(tiles_file, 0, $0000)
+        void diskio.vload_raw(palette_file, 1, $fa00)
     }
 
     sub update_animations() {
@@ -312,7 +322,7 @@ _loop           lda  (p8v_attr_ptr),y
                 cx16.VERA_DATA0 = msb(spr_data)
                 cx16.VERA_DATA0 = lsb(spr_xpos)
                 cx16.VERA_DATA0 = msb(spr_xpos)
-                cx16.VERA_DATA0 = 80
+                cx16.VERA_DATA0 = 44
                 cx16.VERA_DATA0 = 0
                 cx16.VERA_DATA0 = %00001100
                 cx16.VERA_DATA0 = %11110000 | 13        ; palette offset 13 (14 is used by the stars backdrop, 15 by the text)
