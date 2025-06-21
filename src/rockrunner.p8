@@ -6,6 +6,8 @@
 %import bd1demo
 %import bdcff
 %import highscore
+%import cavesets
+
 
 main {
     ubyte chosen_level
@@ -14,7 +16,7 @@ main {
     ubyte tileset = 2
     bool demo_requested
 
-    str BD1_CAVESET_FILE = "boulderdash01.bd"
+    str BD1_CAVESET_FILE = "1-boulderdash01.bd"
     const ubyte STATE_CAVETITLE = 1
     const ubyte STATE_TITLE_MENU = 2
     const ubyte STATE_UNCOVERING = 3
@@ -30,7 +32,7 @@ main {
     const uword INSTRUCTIONS_DISPLAY_TIME = 60 * 10
     const uword DEMO_WAIT_TIME = 60 * 21 - HISCORE_DISPLAY_TIME
 
-    const bool quicklaunch_mode = false           ; set to TRUE to quickly enter game (loads 0-test.bd caveset)
+    const bool quicklaunch_mode = false           ; set to TRUE to quickly enter game (loads 3-test.bd caveset)
     const ubyte quicklaunch_start_cave = 'b'
     const ubyte quicklaunch_joystick = 0
     const ubyte quicklaunch_cavespeed = 8
@@ -47,10 +49,10 @@ main {
         music.playback_enabled = not quicklaunch_mode
 
         if quicklaunch_mode {
-            void bdcff.load_caveset("0-test.bd")
+            void cavesets.load_caveset("3-test.bd")
             void bdcff.parse_caveset()
         } else {
-            if not bdcff.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
+            if not cavesets.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
                 ; caveset load error
                 error_abort($80)
             }
@@ -58,7 +60,7 @@ main {
         }
 
         cave.init()
-        highscore.load(bdcff.caveset_filename)
+        highscore.load(cavesets.caveset_filename)
         screen.set_tiles_screenmode()
         screen.disable()
         screen.load_tiles(tileset)
@@ -80,7 +82,7 @@ main {
                     start_demo_timer--
                     if start_demo_timer==0 {
                         start_demo_timer = DEMO_WAIT_TIME
-                        if bdcff.caveset_filename == BD1_CAVESET_FILE
+                        if cavesets.caveset_filename == BD1_CAVESET_FILE
                             play_demo()
                     }
                     start_hiscore_timer--
@@ -167,7 +169,7 @@ main {
                 }
                 STATE_ENTER_NAME -> {
                     if highscore.enter_name() {
-                        highscore.record_score(bdcff.caveset_filename, cave.score, highscore.name_input)
+                        highscore.record_score(cavesets.caveset_filename, cave.score, highscore.name_input)
                         show_hiscore()
                     } else
                         screen.hud_text(24,14,highscore.name_input)
@@ -286,7 +288,7 @@ main {
         }
         else if letter==133 {
             ; F1 - load different caveset
-            activate_select_caveset('*')
+            activate_select_caveset()
             return
         }
         else if letter==137 {
@@ -315,7 +317,7 @@ main {
             mkword(4,4), "by DesertFish. Written in Prog8",
             mkword(4,15), "Caveset: ",
             ; what caveset is loaded:
-            mkword(13,15), bdcff.caveset_filename,
+            mkword(13,15), cavesets.caveset_filename,
             mkword(6,16), bdcff.caveset_name,
             mkword(6,17), bdcff.caveset_author,
             ; menu
@@ -362,9 +364,9 @@ main {
     }
 
     sub play_demo() {
-        if bdcff.caveset_filename != BD1_CAVESET_FILE {
+        if cavesets.caveset_filename != BD1_CAVESET_FILE {
             ; demo only works on boulderdash 1 cave 1
-            if not bdcff.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
+            if not cavesets.load_caveset(BD1_CAVESET_FILE) or not bdcff.parse_caveset() {
                 ; caveset load error
                 error_abort($81)
             }
@@ -424,12 +426,12 @@ main {
         screen.hud_text(8, 14, chosen)
     }
 
-    str caveset_prefix = "**"
     ubyte caveset_selected_index
+    ubyte caveset_selected_page
     const ubyte CAVESET_DISPLAYLIST_MAXLENGTH = 20
     ubyte caveset_filenames_amount
 
-    sub activate_select_caveset(ubyte prefixletter) {
+    sub activate_select_caveset() {
         ; $81 = down, $82 = left, $83 = up, $84 = right arrows.
         game_state = STATE_SELECT_CAVESET
         screen.hud_clear()
@@ -438,30 +440,25 @@ main {
         uword[] @nosplit instructions = [
             mkword(3,2), "Select a caveset from the list",
             mkword(3,3), "(scanned from the 'caves' subdir)",
-            mkword(3,4), "Press letter or digit or '*' to use",
-            mkword(3,5), "that as a name prefix filter."
+            mkword(3,4), "Enter/start/fire confirms caveset.",
+            mkword(3,5), "Keep scrolling for more pages."
         ]
         screen.hud_texts(instructions, len(instructions)/2)
 
-        diskio.chdir("caves")
-        caveset_prefix[0] = prefixletter
-        cx16.rambank(bdcff.FILENAMES_BANK)
-        caveset_filenames_amount = diskio.list_filenames(caveset_prefix, $a000, $2000)
-        diskio.chdir("..")
-        ubyte row = 0
-        uword name_ptr = $a000
-        cx16.rambank(bdcff.FILENAMES_BANK)
+        caveset_filenames_amount = cavesets.load_filenames()
+        caveset_selected_index = caveset_selected_page = 0
         screen.hud_text(5, 13, "\x83")
         screen.hud_text(5, 22, "\x81")
-        while row < CAVESET_DISPLAYLIST_MAXLENGTH and row < caveset_filenames_amount {
-            screen.hud_text(12, row+8, name_ptr)
-            row++
-            while @(name_ptr)!=0
-                name_ptr++
-            name_ptr++
-        }
-        caveset_selected_index = 0
+        draw_caveset_file_list(caveset_selected_page)
         screen.hud_text(9, 8, "\x84")       ; right arrow on the first entry
+    }
+
+    sub draw_caveset_file_list(ubyte page) {
+        ubyte row
+        for row in 0 to CAVESET_DISPLAYLIST_MAXLENGTH-1 {
+            screen.hud_text(12, row+8, " " * 24)
+            screen.hud_text(12, row+8, cavesets.get_filename(row + page * CAVESET_DISPLAYLIST_MAXLENGTH))
+        }
     }
 
     sub select_tileset() {
@@ -487,62 +484,67 @@ main {
     sub select_caveset() {
         ubyte keypress = cbm.GETIN2()
         while cbm.GETIN2()!=0 { /* clear keyboard buffer */ }
-        cx16.r1L = strings.lowerchar(keypress)
-        if cx16.r1L>32 and cx16.r1L<='z' {
-            activate_select_caveset(cx16.r1L)
-        } else {
-            if keypress == 27 {
-                activate_title_menu_state(false)
+        if keypress == 27 {
+            activate_title_menu_state(false)
+            return
+        }
+        if keypress==0 and interrupts.vsync_counter & 3 !=0
+            return
+        for joystick.active_joystick in 1 to 4 {        ; skip 0 as it interferes with the normal keys
+            joystick.scan()
+            if keypress==13 or joystick.start or joystick.fire {
+                cx16.r0 = cavesets.get_filename(caveset_selected_index + caveset_selected_page * CAVESET_DISPLAYLIST_MAXLENGTH)
+                if cx16.r0 != 0 {
+                    if not cavesets.load_caveset(cx16.r0) or not bdcff.parse_caveset() {
+                        ; caveset load error
+                        error_abort($84)
+                    }
+                    highscore.load(cavesets.caveset_filename)
+                    sys.wait(10)
+                    activate_title_menu_state(true)
+                }
                 return
             }
-            if keypress==0 and interrupts.vsync_counter & 3 !=0
+            if keypress==145 or joystick.up {
+                if caveset_selected_index>0 {
+                    ; up
+                    screen.hud_text(9, caveset_selected_index+8, " ")
+                    caveset_selected_index--
+                    screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
+                } else prev_page()
                 return
-            for joystick.active_joystick in 1 to 4 {        ; skip 0 as it interferes with the normal keys
-                joystick.scan()
-                if keypress==13 or joystick.start or joystick.fire {
-                    if caveset_selected_index < caveset_filenames_amount {
-                        uword name_ptr = $a000
-                        cx16.rambank(bdcff.FILENAMES_BANK)
-                        ubyte row=0
-                        repeat {
-                            if row==caveset_selected_index {
-                                if name_ptr != "readme.txt" {
-                                    if not bdcff.load_caveset(name_ptr) or not bdcff.parse_caveset() {
-                                        ; caveset load error
-                                        error_abort($84)
-                                    }
-                                    highscore.load(bdcff.caveset_filename)
-                                    sys.wait(10)
-                                    activate_title_menu_state(true)
-                                }
-                                return
-                            }
-                            row++
-                            while @(name_ptr)!=0
-                                name_ptr++
-                            name_ptr++
-                        }
-                    }
-                    return
-                }
-                if keypress==145 or joystick.up {
-                    if caveset_selected_index>0 {
-                        ; up
-                        screen.hud_text(9, caveset_selected_index+8, " ")
-                        caveset_selected_index--
-                        screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
-                    }
-                    return
-                }
-                if keypress==17 or joystick.down {
-                    if caveset_selected_index<CAVESET_DISPLAYLIST_MAXLENGTH-1 {
-                        ; down
-                        screen.hud_text(9, caveset_selected_index+8, " ")
-                        caveset_selected_index++
-                        screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
-                    }
-                    return
-                }
+            }
+            if keypress==17 or joystick.down {
+                if caveset_selected_index<CAVESET_DISPLAYLIST_MAXLENGTH-1 {
+                    ; down
+                    screen.hud_text(9, caveset_selected_index+8, " ")
+                    caveset_selected_index++
+                    screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
+                } else next_page()
+                return
+            }
+        }
+
+        if keypress==130 prev_page()
+        if keypress==2 next_page()
+
+        sub prev_page() {
+            if caveset_selected_page>0 {
+                screen.hud_text(9, caveset_selected_index+8, " ")
+                caveset_selected_index = CAVESET_DISPLAYLIST_MAXLENGTH-1
+                screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
+                caveset_selected_page--
+                draw_caveset_file_list(caveset_selected_page)
+            }
+        }
+
+        sub next_page() {
+            if (caveset_selected_page+1)*CAVESET_DISPLAYLIST_MAXLENGTH < caveset_filenames_amount {
+                caveset_selected_page++
+                screen.hud_text(9, caveset_selected_index+8, " ")
+                caveset_selected_index = 0
+                screen.hud_text(9, caveset_selected_index+8, "\x84")       ; right arrow
+                draw_caveset_file_list(caveset_selected_page)
             }
         }
     }
@@ -557,7 +559,7 @@ main {
             mkword(7,3), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d",
             mkword(7,5), "Rock Runner  Hall Of Fame",
             mkword(7,6), "Caveset: ",
-            mkword(16,6), bdcff.caveset_filename,
+            mkword(16,6), cavesets.caveset_filename,
             mkword(10,7), bdcff.caveset_name,
             mkword(7,9), "\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d\x88\x8d"
         ]
