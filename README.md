@@ -10,7 +10,8 @@ The default graphics uses an updated tile set made by Shign Bright for the Comma
 The classic graphics tile set is from MIT-licensed GDash and is based on Boulder Rush by Michael Kowalski / Miksoft.
 
 
-![Rock Runner screenshot](rrgame.png)
+![game with new tiles](rrgame-new.png) ![game with classic tiles](rrgame.png)
+
 
 
 Custom Level files ('cavesets')
@@ -56,6 +57,7 @@ TODO
   Can this be embedded into the attribute matrix or does it need a new matrix?
   In objects.p8 (generated!) at the bottom are the old anim tracking arrays that probably should be replaced.
 
+- build: teach the PNG converter how to deal with (accidental) 256 color PNGs rather than 16 color palette
 - feature: tweak the controls to also register joystick buttons a few frames before the actual cavescan - does this make it more responsive? or just more laggy? 
 - feature: "CaveDelay" is currently not parsed. This causes the wrong cave speed for some levels, such as arnodash4 cave E (first intermission) where rockford spawns and immediately dies because of a firefly explosion. See parse_cave().
 - feature: add the real c64 retro tileset with the adjustable palette per cave?
