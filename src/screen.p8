@@ -148,6 +148,27 @@ _loop           lda  (p8v_attr_ptr),y
 
         void diskio.vload_raw(tiles_file, 0, $0000)
         void diskio.vload_raw(palette_file, 1, $fa00)
+
+        ; patch up some tile data differences
+        ; TODO this just overwrites whatever is in the catalog.ini ....
+        when tileset {
+            1 -> {
+                ; classic tiles
+                objects.anim_frame[objects.covered] = objects.anim_delay[objects.covered] = 0
+                objects.anim_sizes[objects.covered] = 8
+                objects.anim_speeds[objects.covered] = 2
+                objects.anim_speeds[objects.firefly] = 3
+                objects.anim_speeds[objects.altfirefly] = 3
+            }
+            2 -> {
+                ; updated tiles
+                objects.anim_frame[objects.covered] = objects.anim_delay[objects.covered] = 0
+                objects.anim_sizes[objects.covered] = 6
+                objects.anim_speeds[objects.covered] = 5
+                objects.anim_speeds[objects.firefly] = 5
+                objects.anim_speeds[objects.altfirefly] = 5
+            }
+        }
     }
 
     sub update_animations() {
